@@ -48,6 +48,7 @@ export const PERMISSIONS: PermissionDef[] = [
   { key: 'helpdesk.close',      resource: 'helpdesk', action: 'close',      label: 'Đóng ticket',        group: 'Helpdesk' },
   { key: 'helpdesk.comment',    resource: 'helpdesk', action: 'comment',    label: 'Bình luận ticket',   group: 'Helpdesk' },
   { key: 'helpdesk.manage_rules', resource: 'helpdesk', action: 'manage_rules', label: 'Quản lý rule',    group: 'Helpdesk', description: 'Cấu hình auto-assign rule' },
+  { key: 'helpdesk.manage_teams', resource: 'helpdesk', action: 'manage_teams', label: 'Quản lý Team', group: 'Helpdesk', description: 'CRUD Helpdesk Team + quản lý thành viên' },
 
   // ── Người dùng ──────────────────────────────────────────────────────
   { key: 'users.read',          resource: 'users', action: 'read',        label: 'Xem người dùng',     group: 'Người dùng' },
@@ -77,7 +78,7 @@ export const SYSTEM_ROLE_PERMISSIONS: Record<string, string[]> = {
   IT_MANAGER: [
     'assets.read', 'assets.create', 'assets.update', 'assets.delete', 'assets.checkout', 'assets.checkin',
     'licenses.read', 'licenses.create', 'licenses.update', 'licenses.delete', 'licenses.assign',
-    'helpdesk.view', 'helpdesk.create_ticket', 'helpdesk.claim', 'helpdesk.close', 'helpdesk.comment', 'helpdesk.manage_rules',
+    'helpdesk.view', 'helpdesk.create_ticket', 'helpdesk.claim', 'helpdesk.close', 'helpdesk.comment', 'helpdesk.manage_rules', 'helpdesk.manage_teams',
     'users.read', 'users.update',
     'settings.read', 'settings.update',
     'reports.view', 'reports.export',
