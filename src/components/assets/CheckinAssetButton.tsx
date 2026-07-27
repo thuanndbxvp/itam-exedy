@@ -18,7 +18,7 @@ interface CheckinAssetButtonProps {
  * Phase 2: có thể chuyển sang Modal confirm riêng.
  *
  * Phase 1: chỉ ADMIN (wrap trong <RoleGate>).
- * Server action `checkinAssetCmd` enforce `requireRole('ADMIN')` (Epic C+1).
+ * Server action `checkinAssetCmd` enforce `requirePermission('assets.checkin')`.
  */
 export default function CheckinAssetButton({
   assetId,

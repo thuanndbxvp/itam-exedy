@@ -1,18 +1,18 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { requireRole } from '@/lib/auth-guard'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { getActorUserId, recordAudit } from '@/lib/audit'
+import { runCommand } from '@/lib/commands/runCommand'
+import { requirePermission } from '@/lib/permissions/guard'
 import { updateSettings, getSettings } from '@/lib/settings'
 import type { CommandResult } from '@/lib/errors'
 
 export async function getSettingsAction(): Promise<CommandResult<Awaited<ReturnType<typeof getSettings>>>> {
-  try {
-    const settings = await getSettings()
-    return { ok: true, data: settings }
-  } catch (e) {
-    console.error('[getSettingsAction]', e)
-    return { ok: false, code: 'UNKNOWN', message: 'Lỗi khi đọc cài đặt.' }
-  }
+  return runCommand(async () => {
+    return await getSettings()
+  }, 'getSettingsAction')
 }
 
 export async function updateGeneralSettingsAction(data: {
@@ -21,8 +21,11 @@ export async function updateGeneralSettingsAction(data: {
   timezone: string
   locale: string
 }): Promise<CommandResult<void>> {
-  try {
-    await requireRole('ADMIN')
+  return runCommand(async () => {
+    await requirePermission('settings.update')
+    const session = await getServerSession(authOptions)
+    const actorId = await getActorUserId(session?.user?.id ?? null)
+    const oldSettings = await getSettings()
     await updateSettings({
       companyName: data.companyName,
       currency: data.currency,
@@ -31,35 +34,46 @@ export async function updateGeneralSettingsAction(data: {
     })
     revalidatePath('/')
     revalidatePath('/settings/general')
-    return { ok: true, data: undefined }
-  } catch (e) {
-    if (e instanceof Error && e.message.includes('FORBIDDEN')) {
-      return { ok: false, code: 'FORBIDDEN', message: 'Không có quyền.' }
-    }
-    console.error('[updateGeneralSettings]', e)
-    return { ok: false, code: 'UNKNOWN', message: 'Lỗi khi lưu cài đặt.' }
-  }
+    await recordAudit(
+      actorId,
+      'UPDATE',
+      'USER',
+      'system',
+      'Cập nhật cài đặt chung',
+      {
+        oldValues: { companyName: oldSettings.companyName, currency: oldSettings.currency, timezone: oldSettings.timezone, locale: oldSettings.locale },
+        newValues: { companyName: data.companyName, currency: data.currency, timezone: data.timezone, locale: data.locale },
+      },
+    )
+  }, 'updateGeneralSettings')
 }
 
 export async function updateBrandingSettingsAction(data: {
   logoUrl?: string
   primaryColor?: string
 }): Promise<CommandResult<void>> {
-  try {
-    await requireRole('ADMIN')
+  return runCommand(async () => {
+    await requirePermission('settings.update')
+    const session = await getServerSession(authOptions)
+    const actorId = await getActorUserId(session?.user?.id ?? null)
+    const oldSettings = await getSettings()
     await updateSettings({
       logoUrl: data.logoUrl ?? null,
       primaryColor: data.primaryColor ?? '#2563eb',
     })
     revalidatePath('/')
-    return { ok: true, data: undefined }
-  } catch (e) {
-    if (e instanceof Error && e.message.includes('FORBIDDEN')) {
-      return { ok: false, code: 'FORBIDDEN', message: 'Không có quyền.' }
-    }
-    console.error('[updateBrandingSettings]', e)
-    return { ok: false, code: 'UNKNOWN', message: 'Lỗi khi lưu cài đặt.' }
-  }
+    await recordAudit(
+      actorId,
+      'UPDATE',
+      'USER',
+      'system',
+      'Cập nhật thương hiệu',
+      {
+        oldValues: { logoUrl: oldSettings.logoUrl, primaryColor: oldSettings.primaryColor },
+        newValues: { logoUrl: data.logoUrl ?? null, primaryColor: data.primaryColor ?? '#2563eb' },
+      },
+    )
+  }, 'updateBrandingSettings')
 }
 
 export async function updateSecuritySettingsAction(data: {
@@ -68,8 +82,11 @@ export async function updateSecuritySettingsAction(data: {
   sessionTimeoutMinutes?: number
   twoFactorEnabled?: boolean
 }): Promise<CommandResult<void>> {
-  try {
-    await requireRole('ADMIN')
+  return runCommand(async () => {
+    await requirePermission('settings.update')
+    const session = await getServerSession(authOptions)
+    const actorId = await getActorUserId(session?.user?.id ?? null)
+    const oldSettings = await getSettings()
     await updateSettings({
       passwordMinLength: data.passwordMinLength ?? 8,
       passwordRequireSpecial: data.passwordRequireSpecial ?? false,
@@ -77,12 +94,16 @@ export async function updateSecuritySettingsAction(data: {
       twoFactorEnabled: data.twoFactorEnabled ?? false,
     })
     revalidatePath('/')
-    return { ok: true, data: undefined }
-  } catch (e) {
-    if (e instanceof Error && e.message.includes('FORBIDDEN')) {
-      return { ok: false, code: 'FORBIDDEN', message: 'Không có quyền.' }
-    }
-    console.error('[updateSecuritySettings]', e)
-    return { ok: false, code: 'UNKNOWN', message: 'Lỗi khi lưu cài đặt.' }
-  }
+    await recordAudit(
+      actorId,
+      'UPDATE',
+      'USER',
+      'system',
+      'Cập nhật bảo mật',
+      {
+        oldValues: { passwordMinLength: oldSettings.passwordMinLength, passwordRequireSpecial: oldSettings.passwordRequireSpecial, sessionTimeoutMinutes: oldSettings.sessionTimeoutMinutes, twoFactorEnabled: oldSettings.twoFactorEnabled },
+        newValues: { passwordMinLength: data.passwordMinLength ?? 8, passwordRequireSpecial: data.passwordRequireSpecial ?? false, sessionTimeoutMinutes: data.sessionTimeoutMinutes ?? 480, twoFactorEnabled: data.twoFactorEnabled ?? false },
+      },
+    )
+  }, 'updateSecuritySettings')
 }

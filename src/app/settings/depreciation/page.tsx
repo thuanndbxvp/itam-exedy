@@ -2,12 +2,12 @@
  * Depreciation Settings — F-8: CRUD Depreciation (placeholder for Phase 2.2).
  */
 import prisma from '@/lib/prisma'
-import { requireRole } from '@/lib/auth-guard'
+import { requirePermission } from '@/lib/permissions/guard'
 import { redirect } from 'next/navigation'
 import { TrendingDown } from 'lucide-react'
 
 export default async function DepreciationPage() {
-  try { await requireRole('ADMIN') } catch { redirect('/') }
+  try { await requirePermission('settings.read') } catch { redirect('/') }
   const depreciations = await prisma.depreciation.findMany({ orderBy: { name: 'asc' } })
 
   return (

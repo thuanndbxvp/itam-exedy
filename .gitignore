@@ -40,4 +40,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# local dev artifacts (S0 cleanup)
+dev.db
+dev.db-journal
+dev.db-*
+dev-server.log
+dev-server.err
+curl-results.txt
+*.backup
+*.backup-*
+
 /src/generated/prisma

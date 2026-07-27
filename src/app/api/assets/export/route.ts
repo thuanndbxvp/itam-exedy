@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireRole } from '@/lib/auth-guard'
 import prisma from '@/lib/prisma'
+import { errorResponse } from '@/lib/api'
+import { requirePermissionApi } from '@/lib/permissions/http-guard'
 
 export async function GET(request: NextRequest) {
   try {
-    await requireRole('ADMIN')
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    await requirePermissionApi('reports.export')
+  } catch (e) {
+    return errorResponse(e)
   }
 
   const { searchParams } = new URL(request.url)

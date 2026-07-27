@@ -4,7 +4,7 @@
  * Strategy: tương tự commands/asset — mock TransactionClient.
  */
 import {
-  checkoutLicenseSeatToUser,
+  checkoutLicenseSeat,
   checkinLicenseSeat,
   expireLicenseSeat,
   createLicenseWithSeats,
@@ -66,10 +66,10 @@ const baseLicense = {
 };
 
 // =====================================================
-// checkoutLicenseSeatToUser (renamed từ assignLicenseSeatToUser)
+// checkoutLicenseSeat (renamed từ assignLicenseSeatToUser)
 // =====================================================
 
-describe('checkoutLicenseSeatToUser', () => {
+describe('checkoutLicenseSeat', () => {
   test('happy path: gán seat trống cho user active', async () => {
     const tx = makeTxMock();
     tx.licenseSeat.findUnique.mockResolvedValue({
@@ -83,7 +83,7 @@ describe('checkoutLicenseSeatToUser', () => {
     tx.user.findUnique.mockResolvedValue(activeUser);
     tx.licenseSeat.update.mockResolvedValue({ id: SEAT_ID });
 
-    await checkoutLicenseSeatToUser(tx as never, {
+    await checkoutLicenseSeat(tx as never, {
       seatId: SEAT_ID,
       targetUserId: USER_ID,
       actorId: ADMIN_ID,
@@ -122,7 +122,7 @@ describe('checkoutLicenseSeatToUser', () => {
     });
 
     await expect(
-      checkoutLicenseSeatToUser(tx as never, {
+      checkoutLicenseSeat(tx as never, {
         seatId: SEAT_ID,
         targetUserId: USER_ID,
         actorId: ADMIN_ID,
@@ -146,7 +146,7 @@ describe('checkoutLicenseSeatToUser', () => {
     });
 
     await expect(
-      checkoutLicenseSeatToUser(tx as never, {
+      checkoutLicenseSeat(tx as never, {
         seatId: SEAT_ID,
         targetUserId: USER_ID,
         actorId: ADMIN_ID,
@@ -159,7 +159,7 @@ describe('checkoutLicenseSeatToUser', () => {
     tx.licenseSeat.findUnique.mockResolvedValue(null);
 
     await expect(
-      checkoutLicenseSeatToUser(tx as never, {
+      checkoutLicenseSeat(tx as never, {
         seatId: 'missing',
         targetUserId: USER_ID,
         actorId: ADMIN_ID,
@@ -180,7 +180,7 @@ describe('checkoutLicenseSeatToUser', () => {
     tx.user.findUnique.mockResolvedValue(null);
 
     await expect(
-      checkoutLicenseSeatToUser(tx as never, {
+      checkoutLicenseSeat(tx as never, {
         seatId: SEAT_ID,
         targetUserId: 'ghost',
         actorId: ADMIN_ID,
@@ -363,3 +363,4 @@ describe('createLicenseWithSeats', () => {
     expect(tx.license.create).not.toHaveBeenCalled();
   });
 });
+

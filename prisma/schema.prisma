@@ -330,6 +330,12 @@ model User {
   activated   Boolean @default(true)
   role        Role    @default(EMPLOYEE)
 
+  // RBAC: custom role (optional override of system role permissions)
+  customRoleId String?
+  customRole   RoleDefinition? @relation(fields: [customRoleId], references: [id], onDelete: SetNull)
+
+  userPermissions UserPermission[]
+
   companyId    String?
   company      Company?    @relation("CompanyMember", fields: [companyId], references: [id], onDelete: SetNull)
   departmentId String?
@@ -760,4 +766,82 @@ model HelpdeskNotification {
 
   @@index([userId, isRead, createdAt])
   @@index([userId, createdAt])
+}
+
+// ============================================================================
+// RBAC (Role-Based Access Control) — Epic G
+// ============================================================================
+//
+// Layered permission system:
+//   1. Permission catalog (Permission) — mỗi permission = "<resource>.<action>"
+//      VD: "assets.read", "users.manage", "settings.update"
+//   2. System role → default permissions (Role enum → seeded mapping)
+//   3. Custom role (RoleDefinition) — admin tạo role riêng với subset permissions
+//   4. User-level override (UserPermission) — grant (+) hoặc deny (-) từng perm
+//
+// Resolution thứ tự (lib/permissions.ts):
+//   base = permissions[systemRole]
+//   if user.customRoleId: merge RoleDefinition.permissions
+//   apply UserPermission overrides (deny wins over grant)
+
+model RoleDefinition {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique // vd "license-manager", "helpdesk-lead"
+  description String?
+  // Mapped system role (chỉ để label/UI hint) — không enforce ở runtime.
+  baseRole    Role     @default(EMPLOYEE)
+  isSystem    Boolean  @default(false) // true = role do hệ thống seed, không xóa
+  color       String? // badge color hex
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions RolePermission[]
+  users       User[]
+
+  @@index([baseRole])
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  key         String   @unique // "assets.read"
+  resource    String // "assets"
+  action      String // "read"
+  label       String // "Xem tài sản"
+  description String?
+  group       String // UI grouping: "Tài sản", "Helpdesk", "Người dùng"…
+  createdAt   DateTime @default(now())
+
+  rolePermissions RolePermission[]
+  userPermissions UserPermission[]
+
+  @@index([resource, action])
+  @@index([group])
+}
+
+model RolePermission {
+  id           String         @id @default(cuid())
+  roleId       String
+  role         RoleDefinition @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission     @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime       @default(now())
+
+  @@unique([roleId, permissionId])
+  @@index([permissionId])
+}
+
+model UserPermission {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  effect       String     @default("GRANT") // "GRANT" | "DENY"
+  reason       String? // Ghi chú vì sao override (VD: "Tạm thời thay quyền tháng 7")
+  expiresAt    DateTime? // Optional tự động revert sau ngày này
+  createdAt    DateTime   @default(now())
+
+  @@unique([userId, permissionId])
+  @@index([userId])
 }

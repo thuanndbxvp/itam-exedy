@@ -3,14 +3,14 @@
  */
 import prisma from '@/lib/prisma'
 import CompaniesTable from '@/components/settings/CompaniesTable'
-import { requireRole } from '@/lib/auth-guard'
+import { requirePermission } from '@/lib/permissions/guard'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 
 async function getCompanies() { return prisma.company.findMany({ orderBy: { name: 'asc' } }) }
 
 export default async function CompaniesPage() {
-  try { await requireRole('ADMIN') } catch { redirect('/') }
+  try { await requirePermission('settings.read') } catch { redirect('/') }
   const companies = await getCompanies()
   return (
     <div className="max-w-4xl">

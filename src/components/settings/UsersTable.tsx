@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Modal from '@/components/ui/Modal'
 import { useToast } from '@/components/Toast'
 import { Users, Pencil, Trash2, Loader2, Shield, User as UserIcon } from 'lucide-react'
@@ -17,6 +18,7 @@ interface Props {
 
 export default function UsersTable({ users }: Props) {
   const { showCommandResult } = useToast()
+  const router = useRouter()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -28,7 +30,7 @@ export default function UsersTable({ users }: Props) {
       showCommandResult(data)
       if (data.ok) {
         setDeleteId(null)
-        window.location.reload()
+        router.refresh()
       }
     } finally {
       setDeleting(false)

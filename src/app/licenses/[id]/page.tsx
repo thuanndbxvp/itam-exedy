@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Key, Users, Calendar, Hash, Edit2, XCircle } from 'lucide-react'
+import { ArrowLeft, Key, Users, Calendar, Hash, Edit2, XCircle, Monitor } from 'lucide-react'
 import RoleGate from '@/components/RoleGate'
 import CheckoutSeatButton from '@/components/licenses/CheckoutSeatButton'
 import ExpireSeatButton from '@/components/licenses/ExpireSeatButton'
@@ -13,8 +13,8 @@ interface LicenseDetailPageProps {
 export default async function LicenseDetailPage({ params }: LicenseDetailPageProps) {
   const { id } = await params
 
-  // Load license + seats + users song song.
-  const [license, users] = await Promise.all([
+  // Load license + seats + users + assets song song.
+  const [license, users, assets] = await Promise.all([
     prisma.license.findUnique({
       where: { id },
       include: {
@@ -22,6 +22,9 @@ export default async function LicenseDetailPage({ params }: LicenseDetailPagePro
           include: {
             assignedUser: {
               select: { id: true, firstName: true, lastName: true, email: true },
+            },
+            assignedAsset: {
+              select: { id: true, assetTag: true, name: true },
             },
           },
           orderBy: { createdAt: 'asc' },
@@ -34,6 +37,11 @@ export default async function LicenseDetailPage({ params }: LicenseDetailPagePro
       where: { activated: true, deletedAt: null },
       select: { id: true, firstName: true, lastName: true, email: true },
       orderBy: { firstName: 'asc' },
+    }),
+    prisma.asset.findMany({
+      where: { deletedAt: null },
+      select: { id: true, assetTag: true, name: true },
+      orderBy: { assetTag: 'asc' },
     }),
   ])
 
@@ -171,7 +179,7 @@ export default async function LicenseDetailPage({ params }: LicenseDetailPagePro
                 <th className="px-6 py-4 font-medium whitespace-nowrap">Seat ID</th>
                 <th className="px-6 py-4 font-medium whitespace-nowrap">Trạng thái</th>
                 <th className="px-6 py-4 font-medium whitespace-nowrap">
-                  Người được cấp
+                  Người / Thiết bị được cấp
                 </th>
                 <th className="px-6 py-4 font-medium whitespace-nowrap">Ghi chú</th>
                 <th className="px-6 py-4 font-medium text-right">Thao tác</th>
@@ -238,7 +246,7 @@ export default async function LicenseDetailPage({ params }: LicenseDetailPagePro
                         </span>
                       </td>
 
-                      {/* Assigned User */}
+                      {/* Assigned User / Asset */}
                       <td className="px-6 py-4 text-gray-600">
                         {seat.assignedUser ? (
                           <div className="flex items-center space-x-2">
@@ -253,6 +261,20 @@ export default async function LicenseDetailPage({ params }: LicenseDetailPagePro
                                 ? ' ' + seat.assignedUser.lastName
                                 : ''}
                             </span>
+                          </div>
+                        ) : seat.assignedAsset ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-6 h-6 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center">
+                              <Monitor size={12} />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-medium text-gray-800 text-sm">
+                                {seat.assignedAsset.assetTag}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {seat.assignedAsset.name}
+                              </span>
+                            </div>
                           </div>
                         ) : (
                           <span className="text-gray-400 italic">---</span>
@@ -274,6 +296,7 @@ export default async function LicenseDetailPage({ params }: LicenseDetailPagePro
                               seatId={seat.id}
                               seatLabel={`#${seat.id.slice(-6)}`}
                               users={users}
+                              assets={assets}
                               state={state}
                             />
                           </RoleGate>

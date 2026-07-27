@@ -1,20 +1,12 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
 import type { CommandResult } from '@/lib/errors'
 import { Loader2, Shield, Globe, Palette, Mail, Building2 } from 'lucide-react'
 
 type IconKey = 'shield' | 'globe' | 'palette' | 'mail' | 'building'
-
-const ICON_MAP: Record<IconKey, React.ElementType> = {
-  shield: Shield,
-  globe: Globe,
-  palette: Palette,
-  mail: Mail,
-  building: Building2,
-}
 
 interface Field {
   name: string
@@ -45,6 +37,15 @@ export default function SettingsForm({
   const [isPending, startTransition] = useTransition()
   const [values, setValues] = useState<Record<string, unknown>>(initialData ?? {})
 
+  // Memo hóa icon map để tránh re-create object mỗi render.
+  const iconMap = useMemo<Record<IconKey, React.ElementType>>(() => ({
+    shield: Shield,
+    globe: Globe,
+    palette: Palette,
+    mail: Mail,
+    building: Building2,
+  }), [])
+
   function onFormSubmit(e: React.FormEvent) {
     e.preventDefault()
     startTransition(async () => {
@@ -62,7 +63,7 @@ export default function SettingsForm({
         <h2 className="text-lg font-semibold text-gray-900 mb-4">{title}</h2>
         <div className="space-y-4">
           {fields.map((field) => {
-            const Icon = field.icon ? ICON_MAP[field.icon] : null
+            const Icon = field.icon ? iconMap[field.icon] : null
             const currentValue = values[field.name]
             return (
               <div key={field.name}>

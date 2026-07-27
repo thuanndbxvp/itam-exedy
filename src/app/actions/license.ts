@@ -7,37 +7,14 @@ import { getActorUserId } from '@/lib/audit';
 import prisma from '@/lib/prisma';
 import { withRowLock } from '@/lib/locking';
 import {
-  checkoutLicenseSeatToUser,
+  checkoutLicenseSeat,
   checkinLicenseSeat,
   expireLicenseSeat,
   createLicenseWithSeats,
 } from '@/lib/commands/license';
-import { DomainError } from '@/lib/errors';
 import type { CommandResult } from '@/lib/errors';
-import { requireRole } from '@/lib/auth-guard';
-
-/**
- * Helper wrap try/catch cho toàn bộ command wrappers.
- * Convert DomainError → CommandResult; các lỗi khác → log + UNKNOWN.
- */
-function runCommand<T>(
-  fn: () => Promise<T>,
-  contextLabel: string
-): Promise<CommandResult<T>> {
-  return fn()
-    .then((data) => Promise.resolve({ ok: true as const, data }))
-    .catch((e: unknown) => {
-      if (e instanceof DomainError) {
-        return Promise.resolve({ ok: false as const, code: e.code, message: e.message });
-      }
-      console.error(`[${contextLabel}] UNKNOWN ERROR`, e);
-      return Promise.resolve({
-        ok: false as const,
-        code: 'UNKNOWN',
-        message: 'Lỗi hệ thống không xác định. Vui lòng thử lại.',
-      });
-    });
-}
+import { runCommand } from '@/lib/commands/runCommand';
+import { requirePermission } from '@/lib/permissions/guard';
 
 /**
  * Create License + nested N seats — wrap `createLicenseWithSeats` (pure command).
@@ -67,7 +44,8 @@ export async function createLicense(data: {
   minAmt?: number;
 }): Promise<CommandResult<{ id: string; name: string; seatsCount: number }>> {
   return runCommand(async () => {
-    await requireRole('ADMIN');
+    // RBAC: cần licenses.create
+    await requirePermission('licenses.create');
 
     const session = await getServerSession(authOptions);
     const actorId = await getActorUserId(session?.user?.id ?? null);
@@ -138,7 +116,8 @@ export async function updateLicense(data: {
   minAmt?: number;
 }): Promise<CommandResult<{ id: string; name: string }>> {
   return runCommand(async () => {
-    await requireRole('ADMIN');
+    // RBAC: cần licenses.update
+    await requirePermission('licenses.update');
 
     const session = await getServerSession(authOptions);
     const actorId = await getActorUserId(session?.user?.id ?? null);
@@ -189,20 +168,22 @@ export async function updateLicense(data: {
  */
 export async function checkoutLicenseSeatCmd(params: {
   seatId: string;
-  targetUserId: string;
+  targetUserId?: string;
+  targetAssetId?: string;
   notes?: string;
 }): Promise<CommandResult<{ id: string }>> {
   return runCommand(async () => {
-    // RBAC: chỉ ADMIN mới được checkout license seat
-    await requireRole('ADMIN');
+    // RBAC: cần licenses.assign
+    await requirePermission('licenses.assign');
 
     const session = await getServerSession(authOptions);
     const actorId = await getActorUserId(session?.user?.id ?? null);
 
     const result = await withRowLock('LicenseSeat', params.seatId, (tx) =>
-      checkoutLicenseSeatToUser(tx, {
+      checkoutLicenseSeat(tx, {
         seatId: params.seatId,
         targetUserId: params.targetUserId,
+        targetAssetId: params.targetAssetId,
         actorId,
         notes: params.notes,
       })
@@ -222,8 +203,8 @@ export async function checkinLicenseSeatCmd(params: {
   notes?: string;
 }): Promise<CommandResult<{ id: string }>> {
   return runCommand(async () => {
-    // RBAC: chỉ ADMIN mới được checkin license seat
-    await requireRole('ADMIN');
+    // RBAC: cần licenses.assign
+    await requirePermission('licenses.assign');
 
     const session = await getServerSession(authOptions);
     const actorId = await getActorUserId(session?.user?.id ?? null);
@@ -249,8 +230,8 @@ export async function expireLicenseSeatCmd(params: {
   reason?: string;
 }): Promise<CommandResult<{ id: string; unreassignableSeat: boolean }>> {
   return runCommand(async () => {
-    // RBAC: chỉ ADMIN mới được expire license seat
-    await requireRole('ADMIN');
+    // RBAC: cần licenses.assign
+    await requirePermission('licenses.assign');
 
     const session = await getServerSession(authOptions);
     const actorId = await getActorUserId(session?.user?.id ?? null);

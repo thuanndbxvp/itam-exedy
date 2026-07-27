@@ -3,7 +3,7 @@
  */
 import prisma from '@/lib/prisma'
 import CategoriesTable from '@/components/settings/CategoriesTable'
-import { requireRole } from '@/lib/auth-guard'
+import { requirePermission } from '@/lib/permissions/guard'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 
@@ -12,7 +12,7 @@ async function getCategories() {
 }
 
 export default async function CategoriesPage() {
-  try { await requireRole('ADMIN') } catch { redirect('/') }
+  try { await requirePermission('settings.read') } catch { redirect('/') }
   const categories = await getCategories()
 
   return (

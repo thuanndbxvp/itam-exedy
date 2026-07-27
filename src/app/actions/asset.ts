@@ -13,7 +13,8 @@ import {
 } from '@/lib/commands/asset';
 import { DomainError } from '@/lib/errors';
 import type { CommandResult } from '@/lib/errors';
-import { requireRole } from '@/lib/auth-guard';
+import { runCommand } from '@/lib/commands/runCommand';
+import { requirePermission } from '@/lib/permissions/guard';
 
 /**
  * Create Asset (KHÔNG transactional lock — luôn là row mới, không xung đột).
@@ -39,8 +40,8 @@ export async function createAsset(data: {
   notes?: string;
 }): Promise<CommandResult<{ id: string; assetTag: string }>> {
   return runCommand(async () => {
-    // RBAC: chỉ ADMIN mới được tạo asset
-    await requireRole('ADMIN');
+    // RBAC: cần assets.create
+    await requirePermission('assets.create');
 
     if (!data.assetTag?.trim() || !data.name?.trim() || !data.statusId) {
       throw new DomainError(
@@ -91,7 +92,7 @@ export async function createAsset(data: {
 }
 
 /**
- * Update Asset — ADMIN only.
+ * Update Asset — yêu cầu assets.update permission.
  */
 export async function updateAsset(data: {
   id: string;
@@ -114,7 +115,8 @@ export async function updateAsset(data: {
   notes?: string;
 }): Promise<CommandResult<{ id: string; assetTag: string }>> {
   return runCommand(async () => {
-    await requireRole('ADMIN');
+    // RBAC: cần assets.update
+    await requirePermission('assets.update');
 
     if (!data.assetTag?.trim() || !data.name?.trim() || !data.statusId) {
       throw new DomainError('VALIDATION', 'assetTag, name, statusId là bắt buộc.');
@@ -163,29 +165,6 @@ export async function updateAsset(data: {
 }
 
 /**
- * Helper wrap try/catch cho toàn bộ command wrappers.
- * Convert DomainError → CommandResult; các lỗi khác → log + UNKNOWN.
- */
-function runCommand<T>(
-  fn: () => Promise<T>,
-  contextLabel: string
-): Promise<CommandResult<T>> {
-  return fn()
-    .then((data) => Promise.resolve({ ok: true as const, data }))
-    .catch((e: unknown) => {
-      if (e instanceof DomainError) {
-        return Promise.resolve({ ok: false as const, code: e.code, message: e.message });
-      }
-      console.error(`[${contextLabel}] UNKNOWN ERROR`, e);
-      return Promise.resolve({
-        ok: false as const,
-        code: 'UNKNOWN',
-        message: 'Lỗi hệ thống không xác định. Vui lòng thử lại.',
-      });
-    });
-}
-
-/**
  * Server action wrapper cho `checkoutAssetToUser`.
  *
  * Pattern: wrapper mở row-lock + transaction, command thuần xử lý business logic.
@@ -198,8 +177,8 @@ export async function checkoutAssetCmd(params: {
   expectedCheckin?: string; // ISO string từ form; convert sang Date
 }): Promise<CommandResult<{ id: string; assetTag: string }>> {
   return runCommand(async () => {
-    // RBAC: chỉ ADMIN mới được checkout asset cho user
-    await requireRole('ADMIN');
+    // RBAC: cần assets.checkout
+    await requirePermission('assets.checkout');
 
     const session = await getServerSession(authOptions);
     const actorId = await getActorUserId(session?.user?.id ?? null);
@@ -226,8 +205,8 @@ export async function checkinAssetCmd(params: {
   notes?: string;
 }): Promise<CommandResult<{ id: string }>> {
   return runCommand(async () => {
-    // RBAC: chỉ ADMIN mới được thu hồi asset
-    await requireRole('ADMIN');
+    // RBAC: cần assets.checkin
+    await requirePermission('assets.checkin');
 
     const session = await getServerSession(authOptions);
     const actorId = await getActorUserId(session?.user?.id ?? null);
@@ -251,8 +230,8 @@ export async function checkoutAssetToLocationCmd(params: {
   notes?: string;
 }): Promise<CommandResult<{ id: string }>> {
   return runCommand(async () => {
-    // RBAC: chỉ ADMIN mới được checkout asset cho location
-    await requireRole('ADMIN');
+    // RBAC: cần assets.checkout (gán cho location cũng là dạng checkout)
+    await requirePermission('assets.checkout');
 
     const session = await getServerSession(authOptions);
     const actorId = await getActorUserId(session?.user?.id ?? null);

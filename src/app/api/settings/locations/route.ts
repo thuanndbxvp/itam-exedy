@@ -1,32 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { requireRole } from '@/lib/auth-guard'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { errorResponse, okResponse } from '@/lib/api'
+import { requirePermissionApi } from '@/lib/permissions/http-guard'
 
 export async function GET() {
   try {
-    await requireRole('ADMIN')
+    await requirePermissionApi('settings.read')
     const locations = await prisma.location.findMany({
       where: { deletedAt: null },
       orderBy: { name: 'asc' },
     })
-    return NextResponse.json({ ok: true, data: locations })
+    return okResponse(locations)
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 401 })
+    return errorResponse(e)
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    await requireRole('ADMIN')
-    const session = await getServerSession(authOptions)
-    const userId = session?.user?.id ?? ''
+    const user = await requirePermissionApi('settings.update')
     const body = await req.json()
     const { name, address, city, state, country, zip, parentId, managerId, companyId, notes } = body
 
     if (!name?.trim()) {
-      return NextResponse.json({ ok: false, error: 'Tên vị trí là bắt buộc' }, { status: 400 })
+      return NextResponse.json({ ok: false, code: 'VALIDATION', message: 'Tên vị trí là bắt buộc' }, { status: 400 })
     }
 
     const location = await prisma.location.create({
@@ -49,13 +46,13 @@ export async function POST(req: NextRequest) {
         actionType: 'CREATE',
         itemType: 'LOCATION',
         itemId: location.id,
-        userId,
+        userId: user.id,
         notes: `Tạo vị trí "${name}"`,
       },
     })
 
-    return NextResponse.json({ ok: true, data: location })
+    return okResponse(location)
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 })
+    return errorResponse(e)
   }
 }

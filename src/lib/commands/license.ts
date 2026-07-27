@@ -17,28 +17,35 @@ type Tx = Prisma.TransactionClient;
  *
  * Caller PHẢI đặt hàm này trong `withRowLock('LicenseSeat', seatId, ...)`.
  */
-export async function checkoutLicenseSeatToUser(
+export async function checkoutLicenseSeat(
   tx: Tx,
   params: {
     seatId: string;
-    targetUserId: string;
+    targetUserId?: string;
+    targetAssetId?: string;
     actorId: string;
     notes?: string;
   }
 ) {
-  const { seatId, targetUserId, actorId, notes } = params;
+  const { seatId, targetUserId, targetAssetId, actorId, notes } = params;
+
+  if (!targetUserId && !targetAssetId) {
+    throw new InvalidStateError('Phải chọn Nhân viên hoặc Thiết bị để cấp phát.');
+  }
+  if (targetUserId && targetAssetId) {
+    throw new InvalidStateError('Chỉ được chọn 1 trong 2: Nhân viên HOẶC Thiết bị.');
+  }
 
   const seat = await tx.licenseSeat.findUnique({
     where: { id: seatId },
     include: {
       license: true,
       assignedUser: { select: { firstName: true, lastName: true } },
-      assignedAsset: { select: { assetTag: true } },
+      assignedAsset: { select: { assetTag: true, name: true } },
     },
   });
   if (!seat) throw new NotFoundError('LicenseSeat', seatId);
 
-  // Invariant: seat phải còn trống
   if (seat.assignedUserId || seat.assignedAssetId) {
     const current = seat.assignedUser
       ? `user "${seat.assignedUser.firstName} ${seat.assignedUser.lastName ?? ''}"`
@@ -48,7 +55,6 @@ export async function checkoutLicenseSeatToUser(
     );
   }
 
-  // Validate License chưa hết hạn (trừ khi reassignable=true)
   if (
     seat.license.expirationDate &&
     seat.license.expirationDate < new Date() &&
@@ -59,27 +65,33 @@ export async function checkoutLicenseSeatToUser(
     );
   }
 
-  const user = await tx.user.findUnique({
-    where: { id: targetUserId },
-    select: { id: true, activated: true, firstName: true, lastName: true },
-  });
-  if (!user) throw new NotFoundError('User', targetUserId);
-  if (!user.activated) {
-    throw new InvalidStateError(
-      `User "${user.firstName} ${user.lastName ?? ''}" chưa kích hoạt — không thể cấp license seat.`
-    );
+  let targetName = '';
+  if (targetUserId) {
+    const user = await tx.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, activated: true, firstName: true, lastName: true },
+    });
+    if (!user) throw new NotFoundError('User', targetUserId);
+    if (!user.activated) {
+      throw new InvalidStateError(`User chưa kích hoạt — không thể cấp license seat.`);
+    }
+    targetName = `user "${user.firstName} ${user.lastName ?? ''}"`;
+  } else if (targetAssetId) {
+    const asset = await tx.asset.findUnique({
+      where: { id: targetAssetId },
+      select: { id: true, assetTag: true, name: true },
+    });
+    if (!asset) throw new NotFoundError('Asset', targetAssetId);
+    targetName = `asset "${asset.assetTag} - ${asset.name}"`;
   }
 
   const updated = await tx.licenseSeat.update({
     where: { id: seatId },
     data: {
-      assignedUserId: targetUserId,
-      assignedAssetId: null,
+      assignedUserId: targetUserId || null,
+      assignedAssetId: targetAssetId || null,
     },
-    include: {
-      license: true,
-      assignedUser: true,
-    },
+    include: { license: true, assignedUser: true, assignedAsset: true },
   });
 
   await tx.actionLog.create({
@@ -87,12 +99,10 @@ export async function checkoutLicenseSeatToUser(
       actionType: 'CHECKOUT',
       itemType: 'LICENSE_SEAT',
       itemId: seatId,
-      targetType: 'USER',
-      targetId: targetUserId,
+      targetType: targetUserId ? 'USER' : 'ASSET',
+      targetId: targetUserId || targetAssetId,
       userId: actorId,
-      notes:
-        notes ||
-        `Cấp phát LicenseSeat của "${seat.license.name}" cho user "${user.firstName} ${user.lastName ?? ''}"`,
+      notes: notes || `Cấp phát LicenseSeat của "${seat.license.name}" cho ${targetName}`,
     },
   });
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireRole } from '@/lib/auth-guard'
+import { errorResponse } from '@/lib/api'
+import { requirePermissionApi } from '@/lib/permissions/http-guard'
 import { getActorUserId } from '@/lib/audit'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -24,9 +25,9 @@ interface ImportResult {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireRole('ADMIN')
-  } catch {
-    return NextResponse.json({ ok: false, code: 'FORBIDDEN', message: 'Không có quyền.' }, { status: 403 })
+    await requirePermissionApi('assets.create')
+  } catch (e) {
+    return errorResponse(e)
   }
 
   const session = await getServerSession(authOptions)

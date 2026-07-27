@@ -1,34 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { requireRole } from '@/lib/auth-guard'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { errorResponse, okResponse } from '@/lib/api'
+import { requirePermissionApi } from '@/lib/permissions/http-guard'
 
 interface Props { params: Promise<{ id: string }> }
 
 export async function GET(_req: NextRequest, { params }: Props) {
   try {
-    await requireRole('ADMIN')
+    await requirePermissionApi('settings.read')
     const { id } = await params
     const manufacturer = await prisma.manufacturer.findUnique({ where: { id } })
-    if (!manufacturer) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 })
-    return NextResponse.json({ ok: true, data: manufacturer })
+    if (!manufacturer) {
+      return NextResponse.json({ ok: false, code: 'NOT_FOUND', message: 'Not found' }, { status: 404 })
+    }
+    return okResponse(manufacturer)
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 401 })
+    return errorResponse(e)
   }
 }
 
 export async function PUT(req: NextRequest, { params }: Props) {
   try {
-    await requireRole('ADMIN')
-    const session = await getServerSession(authOptions)
-    const userId = session?.user?.id ?? ''
+    const user = await requirePermissionApi('settings.update')
     const { id } = await params
     const body = await req.json()
     const { name, url, supportUrl, supportPhone, supportEmail, notes } = body
 
     if (!name?.trim()) {
-      return NextResponse.json({ ok: false, error: 'Tên nhà sản xuất là bắt buộc' }, { status: 400 })
+      return NextResponse.json({ ok: false, code: 'VALIDATION', message: 'Tên nhà sản xuất là bắt buộc' }, { status: 400 })
     }
 
     const manufacturer = await prisma.manufacturer.update({
@@ -41,22 +40,20 @@ export async function PUT(req: NextRequest, { params }: Props) {
         actionType: 'UPDATE',
         itemType: 'MANUFACTURER',
         itemId: id,
-        userId,
+        userId: user.id,
         notes: `Cập nhật nhà sản xuất "${name}"`,
       },
     })
 
-    return NextResponse.json({ ok: true, data: manufacturer })
+    return okResponse(manufacturer)
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 })
+    return errorResponse(e)
   }
 }
 
 export async function DELETE(_req: NextRequest, { params }: Props) {
   try {
-    await requireRole('ADMIN')
-    const session = await getServerSession(authOptions)
-    const userId = session?.user?.id ?? ''
+    const user = await requirePermissionApi('settings.update')
     const { id } = await params
     await prisma.manufacturer.update({
       where: { id },
@@ -68,13 +65,13 @@ export async function DELETE(_req: NextRequest, { params }: Props) {
         actionType: 'DELETE',
         itemType: 'MANUFACTURER',
         itemId: id,
-        userId,
+        userId: user.id,
         notes: 'Xóa nhà sản xuất',
       },
     })
 
-    return NextResponse.json({ ok: true })
+    return okResponse(undefined)
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 })
+    return errorResponse(e)
   }
 }

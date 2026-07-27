@@ -27,12 +27,11 @@ async function main() {
 
   // Default status labels
   const statuses = [
-    { name: 'Ready to Deploy', deployable: true, pending: false, archived: false, color: '#10b981' },
-    { name: 'Pending', deployable: false, pending: true, archived: false, color: '#f59e0b' },
-    { name: 'Broken - Not Fixable', deployable: false, pending: false, archived: true, color: '#6b7280' },
-    { name: 'Out for Diagnostics', deployable: false, pending: false, archived: false, color: '#3b82f6' },
-    { name: 'Out for Repair', deployable: false, pending: false, archived: false, color: '#3b82f6' },
-    { name: 'Archived', deployable: false, pending: false, archived: true, color: '#000000' },
+    { name: 'Sẵn sàng', deployable: true, pending: false, archived: false, color: '#10b981', showInNav: false },
+    { name: 'Đang sử dụng', deployable: false, pending: false, archived: false, color: '#3b82f6', showInNav: true },
+    { name: 'Đang chờ xử lý', deployable: false, pending: true, archived: false, color: '#f59e0b', showInNav: false },
+    { name: 'Đang sửa chữa', deployable: false, pending: false, archived: false, color: '#ef4444', showInNav: false },
+    { name: 'Đã thanh lý / Hủy', deployable: false, pending: false, archived: true, color: '#6b7280', showInNav: false },
   ]
 
   for (const s of statuses) {
@@ -224,5 +223,59 @@ async function main() {
     },
   })
   console.log('Helpdesk assignment rules seeded (5)')
+
+  // ===== Epic G: RBAC — seed permissions + system role mappings =====
+  const { PERMISSIONS, SYSTEM_ROLE_PERMISSIONS } = await import('../src/lib/permissions/catalog')
+
+  // 1. Permission catalog
+  for (const p of PERMISSIONS) {
+    await prisma.permission.upsert({
+      where: { key: p.key },
+      update: {
+        label: p.label,
+        description: p.description ?? null,
+        resource: p.resource,
+        action: p.action,
+        group: p.group,
+      },
+      create: {
+        key: p.key,
+        label: p.label,
+        description: p.description ?? null,
+        resource: p.resource,
+        action: p.action,
+        group: p.group,
+      },
+    })
+  }
+  console.log('Seeded', PERMISSIONS.length, 'permissions')
+
+  // 2. System role definitions + mapping permissions
+  const systemRoles = [
+    { slug: 'system-admin',       name: 'System Admin',      baseRole: 'ADMIN',      color: '#dc2626', description: 'Toàn quyền hệ thống' },
+    { slug: 'system-it-manager',  name: 'IT Manager',        baseRole: 'IT_MANAGER', color: '#2563eb', description: 'Quản lý IT, full assets/helpdesk/licenses' },
+    { slug: 'system-it-staff',    name: 'IT Staff',          baseRole: 'IT_STAFF',   color: '#0891b2', description: 'Helpdesk + checkout/checkin' },
+    { slug: 'system-employee',    name: 'Employee',          baseRole: 'EMPLOYEE',   color: '#6b7280', description: 'Tạo ticket helpdesk, xem asset/license của mình' },
+  ]
+
+  for (const r of systemRoles) {
+    const def = await prisma.roleDefinition.upsert({
+      where: { slug: r.slug },
+      update: { name: r.name, baseRole: r.baseRole as 'ADMIN' | 'IT_MANAGER' | 'IT_STAFF' | 'EMPLOYEE', color: r.color, description: r.description, isSystem: true },
+      create: { slug: r.slug, name: r.name, baseRole: r.baseRole as 'ADMIN' | 'IT_MANAGER' | 'IT_STAFF' | 'EMPLOYEE', color: r.color, description: r.description, isSystem: true },
+    })
+
+    // Replace mapping for this system role
+    await prisma.rolePermission.deleteMany({ where: { roleId: def.id } })
+    const permKeys = SYSTEM_ROLE_PERMISSIONS[r.baseRole] ?? []
+    for (const key of permKeys) {
+      const perm = await prisma.permission.findUnique({ where: { key } })
+      if (!perm) continue
+      await prisma.rolePermission.create({
+        data: { roleId: def.id, permissionId: perm.id },
+      })
+    }
+  }
+  console.log('Seeded', systemRoles.length, 'system role definitions with permission mappings')
 }
 main().finally(() => prisma.$disconnect())

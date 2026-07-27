@@ -1,12 +1,12 @@
 import prisma from '@/lib/prisma'
-import { requireRole } from '@/lib/auth-guard'
+import { requirePermission } from '@/lib/permissions/guard'
 import { redirect } from 'next/navigation'
 import SuppliersTable from '@/components/settings/SuppliersTable'
 import { Package } from 'lucide-react'
 
 export default async function SuppliersPage() {
   try {
-    await requireRole('ADMIN')
+    await requirePermission('settings.read')
   } catch {
     redirect('/')
   }

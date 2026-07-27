@@ -1,34 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { requireRole } from '@/lib/auth-guard'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { errorResponse, okResponse } from '@/lib/api'
+import { requirePermissionApi } from '@/lib/permissions/http-guard'
 
 interface Props { params: Promise<{ id: string }> }
 
 export async function GET(_req: NextRequest, { params }: Props) {
   try {
-    await requireRole('ADMIN')
+    await requirePermissionApi('settings.read')
     const { id } = await params
     const location = await prisma.location.findUnique({ where: { id } })
-    if (!location) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 })
-    return NextResponse.json({ ok: true, data: location })
+    if (!location) {
+      return NextResponse.json({ ok: false, code: 'NOT_FOUND', message: 'Not found' }, { status: 404 })
+    }
+    return okResponse(location)
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 401 })
+    return errorResponse(e)
   }
 }
 
 export async function PUT(req: NextRequest, { params }: Props) {
   try {
-    await requireRole('ADMIN')
-    const session = await getServerSession(authOptions)
-    const userId = session?.user?.id ?? ''
+    const user = await requirePermissionApi('settings.update')
     const { id } = await params
     const body = await req.json()
     const { name, address, city, state, country, zip, parentId, managerId, companyId, notes } = body
 
     if (!name?.trim()) {
-      return NextResponse.json({ ok: false, error: 'Tên vị trí là bắt buộc' }, { status: 400 })
+      return NextResponse.json({ ok: false, code: 'VALIDATION', message: 'Tên vị trí là bắt buộc' }, { status: 400 })
     }
 
     const location = await prisma.location.update({
@@ -52,22 +51,20 @@ export async function PUT(req: NextRequest, { params }: Props) {
         actionType: 'UPDATE',
         itemType: 'LOCATION',
         itemId: id,
-        userId,
+        userId: user.id,
         notes: `Cập nhật vị trí "${name}"`,
       },
     })
 
-    return NextResponse.json({ ok: true, data: location })
+    return okResponse(location)
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 })
+    return errorResponse(e)
   }
 }
 
 export async function DELETE(_req: NextRequest, { params }: Props) {
   try {
-    await requireRole('ADMIN')
-    const session = await getServerSession(authOptions)
-    const userId = session?.user?.id ?? ''
+    const user = await requirePermissionApi('settings.update')
     const { id } = await params
     await prisma.location.update({
       where: { id },
@@ -79,13 +76,13 @@ export async function DELETE(_req: NextRequest, { params }: Props) {
         actionType: 'DELETE',
         itemType: 'LOCATION',
         itemId: id,
-        userId,
+        userId: user.id,
         notes: 'Xóa vị trí',
       },
     })
 
-    return NextResponse.json({ ok: true })
+    return okResponse(undefined)
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 })
+    return errorResponse(e)
   }
 }

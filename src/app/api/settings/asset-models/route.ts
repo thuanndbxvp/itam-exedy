@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { requireRole } from '@/lib/auth-guard'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { errorResponse, okResponse } from '@/lib/api'
+import { requirePermissionApi } from '@/lib/permissions/http-guard'
 
 export async function GET() {
   try {
-    await requireRole('ADMIN')
+    await requirePermissionApi('settings.read')
     const models = await prisma.assetModel.findMany({
       where: { deletedAt: null },
       include: {
@@ -15,25 +14,23 @@ export async function GET() {
       },
       orderBy: { name: 'asc' },
     })
-    return NextResponse.json({ ok: true, data: models })
+    return okResponse(models)
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 401 })
+    return errorResponse(e)
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    await requireRole('ADMIN')
-    const session = await getServerSession(authOptions)
-    const userId = session?.user?.id ?? ''
+    const user = await requirePermissionApi('settings.update')
     const body = await req.json()
     const { name, modelNumber, categoryId, manufacturerId, depreciationId, eol, requireSerial, notes } = body
 
     if (!name?.trim()) {
-      return NextResponse.json({ ok: false, error: 'Tên model là bắt buộc' }, { status: 400 })
+      return NextResponse.json({ ok: false, code: 'VALIDATION', message: 'Tên model là bắt buộc' }, { status: 400 })
     }
     if (!categoryId) {
-      return NextResponse.json({ ok: false, error: 'Danh mục là bắt buộc' }, { status: 400 })
+      return NextResponse.json({ ok: false, code: 'VALIDATION', message: 'Danh mục là bắt buộc' }, { status: 400 })
     }
 
     const model = await prisma.assetModel.create({
@@ -54,13 +51,13 @@ export async function POST(req: NextRequest) {
         actionType: 'CREATE',
         itemType: 'ASSET_MODEL',
         itemId: model.id,
-        userId,
+        userId: user.id,
         notes: `Tạo model "${name}"`,
       },
     })
 
-    return NextResponse.json({ ok: true, data: model })
+    return okResponse(model)
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 })
+    return errorResponse(e)
   }
 }

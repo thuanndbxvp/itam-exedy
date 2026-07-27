@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import prisma from '@/lib/prisma'
 import AuditLogTable from '@/components/reports/AuditLogTable'
-import { requireRole } from '@/lib/auth-guard'
+import { requirePermission } from '@/lib/permissions/guard'
 import { redirect } from 'next/navigation'
 import { ScrollText } from 'lucide-react'
 
@@ -73,7 +73,7 @@ export default async function AuditLogPage({
   }>
 }) {
   try {
-    await requireRole('ADMIN')
+    await requirePermission('reports.view')
   } catch {
     redirect('/')
   }

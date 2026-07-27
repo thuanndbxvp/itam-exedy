@@ -5,7 +5,7 @@
  */
 import prisma from '@/lib/prisma'
 import StatusLabelTable from '@/components/settings/StatusLabelTable'
-import { requireRole } from '@/lib/auth-guard'
+import { requirePermission } from '@/lib/permissions/guard'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 
@@ -21,7 +21,7 @@ async function getStatuses() {
 
 export default async function StatusesPage() {
   try {
-    await requireRole('ADMIN')
+    await requirePermission('settings.read')
   } catch {
     redirect('/')
   }

@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { Plus, Filter, Loader2, LifeBuoy } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Plus, Filter, Loader2, LifeBuoy, UserCheck } from 'lucide-react'
 
 interface Ticket {
   id: string
@@ -60,20 +60,40 @@ const CATEGORY_LABELS: Record<string, string> = {
   OTHER: 'Khác',
 }
 
-export default function HelpdeskPage() {
+type Tab = 'mine' | 'new' | 'all'
+
+function HelpdeskContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { data: session } = useSession()
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
-  const [filterStatus, setFilterStatus] = useState('')
-
+  const [claiming, setClaiming] = useState<string | null>(null)
+  
   const isIt = session?.user?.role === 'IT_STAFF' || session?.user?.role === 'IT_MANAGER' || session?.user?.role === 'ADMIN'
+  
+  const initialTab = (searchParams.get('tab') as Tab) || (isIt ? 'mine' : 'all')
+  const [tab, setTab] = useState<Tab>(initialTab)
+  const [filterStatus, setFilterStatus] = useState('')
 
   useEffect(() => {
     async function load() {
       setLoading(true)
       try {
-        const url = filterStatus ? `/api/tickets?status=${filterStatus}` : '/api/tickets'
+        let url = '/api/tickets'
+        
+        if (isIt) {
+          if (tab === 'mine') {
+            url = '/api/tickets?mine=1'
+          } else if (tab === 'new') {
+            url = '/api/tickets?status=NEW'
+          } else if (tab === 'all') {
+            url = filterStatus ? `/api/tickets?status=${filterStatus}` : '/api/tickets'
+          }
+        } else {
+          url = filterStatus ? `/api/tickets?status=${filterStatus}` : '/api/tickets'
+        }
+
         const r = await fetch(url, { cache: 'no-store' })
         const json = await r.json()
         if (json.ok) setTickets(json.data.tickets)
@@ -81,8 +101,38 @@ export default function HelpdeskPage() {
         setLoading(false)
       }
     }
-    load()
-  }, [filterStatus])
+    // Only reload if we actually know the user role
+    if (session?.user?.role) {
+      load()
+    }
+  }, [tab, filterStatus, isIt, session?.user?.role])
+
+  const handleTabChange = (newTab: Tab) => {
+    setTab(newTab)
+    const newParams = new URLSearchParams(searchParams.toString())
+    newParams.set('tab', newTab)
+    router.replace(`/helpdesk?${newParams.toString()}`)
+  }
+
+  async function claim(t: Ticket, e: React.MouseEvent) {
+    e.stopPropagation() // Prevent row click
+    setClaiming(t.id)
+    try {
+      const r = await fetch(`/api/tickets/${t.id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'claim' }),
+      })
+      const json = await r.json()
+      if (json.ok) {
+        router.push(`/helpdesk/${t.code}`)
+      } else {
+        alert(json.message ?? 'Không thể nhận ticket.')
+      }
+    } finally {
+      setClaiming(null)
+    }
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -95,7 +145,7 @@ export default function HelpdeskPage() {
           </h2>
           <p className="text-sm text-gray-500 mt-1">
             {isIt
-              ? 'Tất cả ticket hệ thống. Chuyển sang Hộp thư IT để xử lý.'
+              ? 'Trung tâm quản lý, tiếp nhận và xử lý yêu cầu hỗ trợ.'
               : 'Danh sách yêu cầu hỗ trợ của bạn. Nhấn "Tạo ticket mới" để báo lỗi.'}
           </p>
         </div>
@@ -108,25 +158,63 @@ export default function HelpdeskPage() {
         </Link>
       </div>
 
-      {/* Filter */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4 flex items-center gap-3">
-        <Filter size={16} className="text-gray-400" />
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-        <span className="text-sm text-gray-500 ml-auto">{tickets.length} ticket</span>
-      </div>
-
-      {/* List */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* Tabs for IT Staff */}
+        {isIt && (
+          <div className="border-b border-gray-200 flex px-2 bg-gray-50/50">
+            <button
+              onClick={() => handleTabChange('mine')}
+              className={`px-5 py-3.5 text-sm font-medium border-b-2 transition ${
+                tab === 'mine'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Của tôi (Đang xử lý)
+            </button>
+            <button
+              onClick={() => handleTabChange('new')}
+              className={`px-5 py-3.5 text-sm font-medium border-b-2 transition ${
+                tab === 'new'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Chưa nhận
+            </button>
+            <button
+              onClick={() => handleTabChange('all')}
+              className={`px-5 py-3.5 text-sm font-medium border-b-2 transition ${
+                tab === 'all'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Toàn công ty (Tất cả)
+            </button>
+          </div>
+        )}
+
+        {/* Filter (Only show when tab is 'all' or for non-IT) */}
+        {(!isIt || tab === 'all') && (
+          <div className="p-4 border-b border-gray-100 flex items-center gap-3 bg-gray-50/30">
+            <Filter size={16} className="text-gray-400" />
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              {STATUS_OPTIONS.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <span className="text-sm text-gray-500 ml-auto">{tickets.length} ticket</span>
+          </div>
+        )}
+
+        {/* List */}
         {loading ? (
           <div className="flex items-center justify-center py-16 text-gray-500">
             <Loader2 size={20} className="animate-spin mr-2" /> Đang tải...
@@ -134,87 +222,129 @@ export default function HelpdeskPage() {
         ) : tickets.length === 0 ? (
           <div className="py-16 text-center text-gray-500">
             <LifeBuoy size={32} className="mx-auto text-gray-300 mb-2" />
-            <p className="text-sm">Chưa có ticket nào.</p>
-            <Link
-              href="/helpdesk/new"
-              className="text-blue-600 hover:underline text-sm mt-2 inline-block"
-            >
-              Tạo ticket đầu tiên →
-            </Link>
+            <p className="text-sm">Chưa có ticket nào trong mục này.</p>
+            {!isIt && (
+              <Link
+                href="/helpdesk/new"
+                className="text-blue-600 hover:underline text-sm mt-2 inline-block"
+              >
+                Tạo ticket đầu tiên →
+              </Link>
+            )}
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                <th className="px-4 py-3">Mã</th>
-                <th className="px-4 py-3">Tiêu đề</th>
-                <th className="px-4 py-3">Phân loại</th>
-                <th className="px-4 py-3">Priority</th>
-                <th className="px-4 py-3">Trạng thái</th>
-                <th className="px-4 py-3">{isIt ? 'Người báo' : 'Phụ trách'}</th>
-                <th className="px-4 py-3">Cập nhật</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {tickets.map((t) => (
-                <tr
-                  key={t.id}
-                  onClick={() => router.push(`/helpdesk/${t.code}`)}
-                  className="hover:bg-gray-50 cursor-pointer transition"
-                >
-                  <td className="px-4 py-3 font-mono text-xs text-blue-600 font-medium">
-                    {t.code}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900 line-clamp-1">{t.title}</div>
-                    {t.reportedAsset && (
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        Asset: {t.reportedAsset.assetTag}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">{CATEGORY_LABELS[t.category] ?? t.category}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-block px-2 py-0.5 text-xs font-semibold rounded border ${
-                        PRIORITY_COLORS[t.priority]
-                      }`}
-                    >
-                      {t.priority}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-block px-2 py-0.5 text-xs font-medium rounded ${
-                        STATUS_COLORS[t.status] ?? 'bg-gray-100 text-gray-600'
-                      }`}
-                    >
-                      {t.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">
-                    {isIt
-                      ? `${t.reporter.firstName} ${t.reporter.lastName ?? ''}`
-                      : t.assignee
-                      ? `${t.assignee.firstName} ${t.assignee.lastName ?? ''}`
-                      : t.team
-                      ? t.team.name
-                      : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-gray-500">
-                    {new Date(t.updatedAt).toLocaleString('vi-VN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      day: '2-digit',
-                      month: '2-digit',
-                    })}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3">Mã</th>
+                  <th className="px-4 py-3 min-w-[250px]">Tiêu đề</th>
+                  <th className="px-4 py-3">Phân loại</th>
+                  <th className="px-4 py-3">Trạng thái</th>
+                  <th className="px-4 py-3">{isIt ? 'Người báo' : 'Phụ trách'}</th>
+                  <th className="px-4 py-3">{isIt ? 'SLA' : 'Cập nhật'}</th>
+                  {isIt && tab === 'new' && <th className="px-4 py-3 text-right">Thao tác</th>}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {tickets.map((t) => {
+                  const slaMs = t.slaDueAt ? new Date(t.slaDueAt).getTime() - Date.now() : null
+                  const overdue = slaMs !== null && slaMs < 0
+                  
+                  return (
+                    <tr
+                      key={t.id}
+                      onClick={() => router.push(`/helpdesk/${t.code}`)}
+                      className="hover:bg-gray-50 cursor-pointer transition group"
+                    >
+                      <td className="px-4 py-3 font-mono text-xs text-blue-600 font-medium">
+                        {t.code}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-gray-900 line-clamp-1">{t.title}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span
+                            className={`inline-block px-1.5 py-0.5 text-[10px] font-bold uppercase rounded ${
+                              PRIORITY_COLORS[t.priority]
+                            }`}
+                          >
+                            {t.priority}
+                          </span>
+                          {t.reportedAsset && (
+                            <span className="text-xs text-gray-500 truncate">
+                              Asset: {t.reportedAsset.assetTag}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">{CATEGORY_LABELS[t.category] ?? t.category}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-block px-2 py-0.5 text-xs font-medium rounded ${
+                            STATUS_COLORS[t.status] ?? 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          {t.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {isIt ? (
+                          <span>{t.reporter.firstName} {t.reporter.lastName ?? ''}</span>
+                        ) : (
+                          t.assignee
+                            ? <span>{t.assignee.firstName} {t.assignee.lastName ?? ''}</span>
+                            : t.team
+                            ? <span className="text-blue-600">{t.team.name}</span>
+                            : <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {isIt ? (
+                          t.slaDueAt ? (
+                            <span className={overdue ? 'text-red-600 font-medium' : 'text-gray-600'}>
+                              {new Date(t.slaDueAt).toLocaleString('vi-VN', {
+                                hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
+                              })}
+                            </span>
+                          ) : <span className="text-gray-400">—</span>
+                        ) : (
+                          <span className="text-gray-500">
+                            {new Date(t.updatedAt).toLocaleString('vi-VN', {
+                              hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
+                            })}
+                          </span>
+                        )}
+                      </td>
+                      {isIt && tab === 'new' && (
+                        <td className="px-4 py-3 text-right">
+                          {!t.assignee && (
+                            <button
+                              onClick={(e) => claim(t, e)}
+                              disabled={claiming === t.id}
+                              className="inline-flex items-center gap-1 bg-white border border-gray-200 shadow-sm hover:border-blue-300 hover:text-blue-600 disabled:opacity-60 text-gray-600 px-3 py-1.5 rounded text-xs font-medium transition"
+                            >
+                              {claiming === t.id ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={12} />}
+                              Nhận vé
+                            </button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
+  )
+}
+
+export default function HelpdeskPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-gray-500">Đang tải Helpdesk...</div>}>
+      <HelpdeskContent />
+    </Suspense>
   )
 }

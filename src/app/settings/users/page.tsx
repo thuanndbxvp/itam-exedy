@@ -3,7 +3,7 @@
  */
 import prisma from '@/lib/prisma'
 import UsersTable from '@/components/settings/UsersTable'
-import { requireRole } from '@/lib/auth-guard'
+import { requirePermission } from '@/lib/permissions/guard'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 
@@ -16,7 +16,7 @@ async function getUsers() {
 
 export default async function UsersPage() {
   try {
-    await requireRole('ADMIN')
+    await requirePermission('users.read')
   } catch {
     redirect('/')
   }

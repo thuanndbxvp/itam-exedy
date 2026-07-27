@@ -16,7 +16,7 @@ interface CheckoutAssetButtonProps {
  * Nút "Cấp phát" — mở CheckoutAssetModal.
  *
  * Phase 1: chỉ hiển thị cho ADMIN (wrap trong <RoleGate> ở assets/page.tsx).
- * Server action `checkoutAssetCmd` vẫn enforce `requireRole('ADMIN')` (Epic C+1) — UI chỉ là cosmetic.
+ * Server action `checkoutAssetCmd` enforce `requirePermission('assets.checkout')` — UI chỉ là cosmetic.
  */
 export default function CheckoutAssetButton({
   assetId,

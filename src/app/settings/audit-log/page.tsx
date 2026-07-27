@@ -1,16 +1,73 @@
 /**
  * Audit Log Viewer — F-10: xem ActionLog với filter/search.
  */
+import type { ActionType, ItemType } from '@prisma/client'
 import prisma from '@/lib/prisma'
-import { requireRole } from '@/lib/auth-guard'
+import { requirePermission } from '@/lib/permissions/guard'
 import { redirect } from 'next/navigation'
 import { ScrollText } from 'lucide-react'
 
-async function getLogs(params: { actionType?: string; itemType?: string; userId?: string }) {
+/**
+ * Mirror của enum trong `prisma/schema.prisma` — lý do dùng const thay vì `Object.values(Prisma.XxxEnum)`:
+ *   - Prisma generated types KHÔNG export object map cho enums (chỉ export type union).
+ *   - Hard-code ở đây là single source of truth; nếu schema đổi phải update cả 2 chỗ.
+ *   - Trade-off: 1 file 1 chỗ duy nhất dùng nên không DRY-vi-phạm.
+ */
+const ACTION_TYPES = [
+  'CREATE',
+  'UPDATE',
+  'CHECKOUT',
+  'CHECKIN',
+  'AUDIT',
+  'DELETE',
+  'RESTORE',
+  'NOTE_ADDED',
+  'ACCEPTED',
+  'DECLINED',
+] as const satisfies readonly ActionType[]
+
+/** Subset ItemType hiển thị ở filter UI — đủ dùng cho admin audit-relevance. */
+const ITEM_TYPES = [
+  'ASSET',
+  'LICENSE',
+  'LICENSE_SEAT',
+  'USER',
+  'CATEGORY',
+  'LOCATION',
+  'DEPARTMENT',
+  'MANUFACTURER',
+  'SUPPLIER',
+  'STATUS_LABEL',
+  'ASSET_MODEL',
+  'COMPANY',
+] as const satisfies readonly ItemType[]
+
+/**
+ * Type guard: kiểm tra string có phải ActionType hợp lệ không.
+ * Tránh `as unknown as` cast không an toàn từ URL params.
+ */
+function toActionType(v: string | undefined): ActionType | undefined {
+  if (!v) return undefined
+  return (ACTION_TYPES as readonly string[]).includes(v) ? (v as ActionType) : undefined
+}
+
+function toItemType(v: string | undefined): ItemType | undefined {
+  if (!v) return undefined
+  return (ITEM_TYPES as readonly string[]).includes(v) ? (v as ItemType) : undefined
+}
+
+async function getLogs(params: {
+  actionType?: string
+  itemType?: string
+  userId?: string
+}) {
+  const actionType = toActionType(params.actionType)
+  const itemType = toItemType(params.itemType)
+
   return prisma.actionLog.findMany({
     where: {
-      ...(params.actionType && { actionType: params.actionType as unknown as import('@prisma/client').ActionType }),
-      ...(params.itemType && { itemType: params.itemType as unknown as import('@prisma/client').ItemType }),
+      ...(actionType && { actionType }),
+      ...(itemType && { itemType }),
       ...(params.userId && { userId: params.userId }),
     },
     include: { user: { select: { firstName: true, lastName: true, email: true } } },
@@ -19,15 +76,16 @@ async function getLogs(params: { actionType?: string; itemType?: string; userId?
   })
 }
 
-const ACTION_TYPES = ['CREATE', 'UPDATE', 'CHECKOUT', 'CHECKIN', 'AUDIT', 'DELETE', 'NOTE_ADDED']
-const ITEM_TYPES = ['ASSET', 'LICENSE', 'LICENSE_SEAT', 'USER', 'CATEGORY', 'LOCATION', 'STATUS_LABEL']
-
 export default async function AuditLogPage({
   searchParams,
 }: {
   searchParams: Promise<{ actionType?: string; itemType?: string }>
 }) {
-  try { await requireRole('ADMIN') } catch { redirect('/') }
+  try {
+    await requirePermission('reports.view')
+  } catch {
+    redirect('/')
+  }
   const sp = await searchParams
   const logs = await getLogs({ actionType: sp.actionType, itemType: sp.itemType })
 
@@ -42,21 +100,38 @@ export default async function AuditLogPage({
       <form className="bg-white rounded-xl border border-gray-200 p-4 mb-6 flex gap-4 items-end">
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Hành động</label>
-          <select name="actionType" defaultValue={sp.actionType ?? ''}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          <select
+            name="actionType"
+            defaultValue={sp.actionType ?? ''}
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+          >
             <option value="">Tất cả</option>
-            {ACTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            {ACTION_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
           </select>
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Loại mục tiêu</label>
-          <select name="itemType" defaultValue={sp.itemType ?? ''}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          <select
+            name="itemType"
+            defaultValue={sp.itemType ?? ''}
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+          >
             <option value="">Tất cả</option>
-            {ITEM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            {ITEM_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
           </select>
         </div>
-        <button type="submit" className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">
+        <button
+          type="submit"
+          className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+        >
           Tìm kiếm
         </button>
       </form>
@@ -80,7 +155,7 @@ export default async function AuditLogPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {logs.map(log => (
+              {logs.map((log) => (
                 <tr key={log.id} className="hover:bg-gray-50 transition">
                   <td className="px-6 py-3 text-gray-500 text-xs whitespace-nowrap">
                     {new Date(log.createdAt).toLocaleString('vi-VN')}
@@ -95,7 +170,9 @@ export default async function AuditLogPage({
                       {log.actionType}
                     </span>
                   </td>
-                  <td className="px-6 py-3 text-gray-600">{log.itemType} / {log.itemId.slice(0, 8)}...</td>
+                  <td className="px-6 py-3 text-gray-600">
+                    {log.itemType} / {log.itemId.slice(0, 8)}...
+                  </td>
                   <td className="px-6 py-3 text-gray-500 text-xs">{log.notes || '—'}</td>
                 </tr>
               ))}

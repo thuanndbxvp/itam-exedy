@@ -21,13 +21,14 @@
 import type { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { errorResponse, okResponse } from "@/lib/api";
-import { requireUser, canReportForAsset, isItSide, type CurrentUser } from "@/lib/tickets/permissions";
+import { canReportForAsset, isItSide, type CurrentUser } from "@/lib/tickets/permissions";
 import { ValidationError, NotFoundError, ForbiddenError } from "@/lib/errors";
 import { generateTicketCode } from "@/lib/tickets/code";
 import { computeSlaDueAt } from "@/lib/tickets/sla";
 import { resolveAssignmentRule } from "@/lib/tickets/auto-assign";
 import { notify, notifyMany } from "@/lib/tickets/notifications";
 import type { TicketCategory, TicketPriority, TicketStatus, TicketType } from "@prisma/client";
+import { requirePermissionApi } from '@/lib/permissions/http-guard'
 
 const VALID_TYPES: TicketType[] = ["INCIDENT", "REQUEST"];
 const VALID_CATEGORIES: TicketCategory[] = ["HARDWARE", "SOFTWARE", "NETWORK", "ACCOUNT", "OTHER"];
@@ -48,7 +49,7 @@ const VALID_STATUSES: TicketStatus[] = [
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await requireUser();
+    const user = await requirePermissionApi('helpdesk.view');
     const sp = req.nextUrl.searchParams;
 
     const status = sp.get("status") as TicketStatus | null;
@@ -125,7 +126,7 @@ interface CreateTicketInput {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireUser();
+    const user = await requirePermissionApi('helpdesk.create_ticket');
     const body = (await req.json()) as CreateTicketInput;
 
     // ----- Validate -----

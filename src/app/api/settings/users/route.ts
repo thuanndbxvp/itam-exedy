@@ -1,52 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { ForbiddenError } from '@/lib/errors'
-
-async function requireAdmin() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id || session?.user?.role !== 'ADMIN') {
-    throw new ForbiddenError('Chỉ ADMIN mới được thực hiện.')
-  }
-}
+import { errorResponse, okResponse } from '@/lib/api'
+import { requirePermissionApi } from '@/lib/permissions/http-guard'
+import { recordAudit } from '@/lib/audit'
 
 export async function GET() {
   try {
-    await requireAdmin()
+    await requirePermissionApi('users.read')
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
       include: { department: true, company: true },
     })
-    return NextResponse.json({ ok: true, data: users })
+    return okResponse(users)
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Lỗi khi lấy danh sách.'
-    const code = e instanceof Error && e.message.includes('FORBIDDEN') ? 'FORBIDDEN' : 'UNKNOWN'
-    return NextResponse.json({ ok: false, code, message: msg }, { status: code === 'FORBIDDEN' ? 403 : 500 })
+    return errorResponse(e)
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    await requireAdmin()
-    const { firstName, email, password, role } = await req.json()
+    const user = await requirePermissionApi('users.create')
+    const { firstName, lastName, email, password, role, departmentId, jobTitle, customRoleId } = await req.json()
 
     if (!firstName?.trim() || !email?.trim() || !password) {
-      return NextResponse.json({ ok: false, code: 'VALIDATION', message: 'Thông tin không đầy đủ.' }, { status: 400 })
+      return NextResponse.json(
+        { ok: false, code: 'VALIDATION', message: 'Thông tin không đầy đủ.' },
+        { status: 400 },
+      )
     }
 
     const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) {
-      return NextResponse.json({ ok: false, code: 'CONFLICT', message: 'Email đã tồn tại.' }, { status: 409 })
+      return NextResponse.json(
+        { ok: false, code: 'CONFLICT', message: 'Email đã tồn tại.' },
+        { status: 409 },
+      )
     }
 
-    const user = await prisma.user.create({
-      data: { firstName, email, password, role: role || 'EMPLOYEE', activated: true },
+    const created = await prisma.user.create({
+      data: {
+        firstName,
+        lastName: lastName || null,
+        email,
+        password,
+        role: role || 'EMPLOYEE',
+        jobTitle: jobTitle || null,
+        departmentId: departmentId || null,
+        customRoleId: customRoleId || null,
+        activated: true,
+      },
     })
-    return NextResponse.json({ ok: true, data: user }, { status: 201 })
+    await recordAudit(user.id, 'CREATE', 'USER', created.id, `Tạo người dùng "${[firstName, created.lastName].filter(Boolean).join(' ')}"`, {
+      newValues: { firstName, lastName, email, role: created.role, departmentId: created.departmentId },
+    })
+    return okResponse(created, { status: 201 })
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Lỗi khi tạo.'
-    const code = e instanceof Error && e.message.includes('FORBIDDEN') ? 'FORBIDDEN' : 'UNKNOWN'
-    return NextResponse.json({ ok: false, code, message: msg }, { status: code === 'FORBIDDEN' ? 403 : 500 })
+    return errorResponse(e)
   }
 }

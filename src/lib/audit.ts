@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import type { ActionType, ItemType } from "@prisma/client";
 
 // Module-level cache — tránh query User 'system' lặp lại mỗi request.
 // Tier 2 dùng được trong Node.js Process (server actions chạy trong server runtime).
@@ -40,4 +41,42 @@ export async function getActorUserId(sessionUserId?: string | null): Promise<str
 
   systemUserIdCache = systemUser.id;
   return systemUser.id;
+}
+
+/**
+ * Ghi 1 bản ghi ActionLog (audit trail).
+ *
+ * Phase 1 (Sprint 1): fire-and-forget ở ngoài transaction.
+ *   - Ưu tiên: đơn giản, đủ cho compliance cơ bản.
+ *   - Nhược: nếu audit fail → return 500 cho cả request CRUD (acceptable cho settings).
+ * Phase 2 (nếu cần): chuyển vào Tx để rollback cùng mutation khi audit fail.
+ *
+ * CHÚ Ý: KHÔNG ghi log vào trong `withRowLock` transaction — tránh giữ lock quá lâu.
+ *
+ * @param userId - ID actor (lấy từ `requirePermissionApi()`).
+ * @param actionType - CREATE | UPDATE | DELETE | AUDIT.
+ * @param itemType - Loại entity (MANUFACTURER, COMPANY, ...).
+ * @param itemId - ID row bị ảnh hưởng.
+ * @param notes - Câu mô tả human-readable (VD: `Tạo nhà sản xuất "Dell"`).
+ * @param meta - Optional { oldValues?, newValues? } để diff.
+ */
+export async function recordAudit(
+  userId: string,
+  actionType: ActionType,
+  itemType: ItemType,
+  itemId: string,
+  notes: string,
+  meta?: { oldValues?: unknown; newValues?: unknown },
+): Promise<void> {
+  await prisma.actionLog.create({
+    data: {
+      actionType,
+      itemType,
+      itemId,
+      userId,
+      notes,
+      oldValues: meta?.oldValues === undefined ? undefined : (meta.oldValues as object),
+      newValues: meta?.newValues === undefined ? undefined : (meta.newValues as object),
+    },
+  });
 }

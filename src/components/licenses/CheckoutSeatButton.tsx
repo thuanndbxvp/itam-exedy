@@ -11,6 +11,7 @@ interface CheckoutSeatButtonProps {
   seatId: string
   seatLabel: string
   users: { id: string; firstName: string; lastName: string | null; email: string | null }[]
+  assets: { id: string; assetTag: string; name: string }[]
   /** Trạng thái seat hiện tại (để render nút phù hợp). */
   state: 'AVAILABLE' | 'ASSIGNED' | 'EXPIRED'
 }
@@ -20,12 +21,13 @@ interface CheckoutSeatButtonProps {
  * Phase 1: chỉ Checkout + Checkin (Expire làm sau nếu cần).
  *
  * Phase 1: chỉ ADMIN (wrap trong <RoleGate> ở licenses/[id]/page.tsx).
- * Server actions enforce `requireRole('ADMIN')` (Epic C+1).
+ * Server actions enforce `requirePermission('licenses.assign')` — UI chỉ là cosmetic.
  */
 export default function CheckoutSeatButton({
   seatId,
   seatLabel,
   users,
+  assets,
   state,
 }: CheckoutSeatButtonProps) {
   const router = useRouter()
@@ -106,6 +108,7 @@ export default function CheckoutSeatButton({
         seatId={seatId}
         seatLabel={seatLabel}
         users={users}
+        assets={assets}
       />
     </>
   )

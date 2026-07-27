@@ -1,12 +1,12 @@
 import prisma from '@/lib/prisma'
-import { requireRole } from '@/lib/auth-guard'
+import { requirePermission } from '@/lib/permissions/guard'
 import { redirect } from 'next/navigation'
 import AssetModelsTable from '@/components/settings/AssetModelsTable'
 import { Box } from 'lucide-react'
 
 export default async function AssetModelsPage() {
   try {
-    await requireRole('ADMIN')
+    await requirePermission('settings.read')
   } catch {
     redirect('/')
   }

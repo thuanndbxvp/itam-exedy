@@ -1,32 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { ForbiddenError } from '@/lib/errors'
-
-async function requireAdmin() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id || session?.user?.role !== 'ADMIN') {
-    throw new ForbiddenError('Chỉ ADMIN mới được thực hiện.')
-  }
-}
+import { errorResponse, okResponse } from '@/lib/api'
+import { requirePermissionApi } from '@/lib/permissions/http-guard'
+import { recordAudit } from '@/lib/audit'
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin()
+    await requirePermissionApi('settings.read')
     const { id } = await params
     const status = await prisma.statusLabel.findUnique({ where: { id } })
     if (!status) {
       return NextResponse.json({ ok: false, code: 'NOT_FOUND', message: 'Không tìm thấy.' }, { status: 404 })
     }
-    return NextResponse.json({ ok: true, data: status })
+    return okResponse(status)
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Lỗi khi lấy.'
-    const code = e instanceof Error && e.message.includes('FORBIDDEN') ? 'FORBIDDEN' : 'UNKNOWN'
-    return NextResponse.json({ ok: false, code, message: msg }, { status: code === 'FORBIDDEN' ? 403 : 500 })
+    return errorResponse(e)
   }
 }
 
@@ -35,7 +26,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin()
+    const user = await requirePermissionApi('settings.update')
     const { id } = await params
     const body = await req.json()
     const { name, deployable, pending, archived, color } = body
@@ -48,7 +39,10 @@ export async function PUT(
     if (name && name !== existing.name) {
       const conflict = await prisma.statusLabel.findUnique({ where: { name } })
       if (conflict) {
-        return NextResponse.json({ ok: false, code: 'CONFLICT', message: 'Tên trạng thái đã tồn tại.' }, { status: 409 })
+        return NextResponse.json(
+          { ok: false, code: 'CONFLICT', message: 'Tên trạng thái đã tồn tại.' },
+          { status: 409 },
+        )
       }
     }
 
@@ -62,11 +56,17 @@ export async function PUT(
         color: color !== undefined ? color : existing.color,
       },
     })
-    return NextResponse.json({ ok: true, data: updated })
+    await recordAudit(
+      user.id,
+      'UPDATE',
+      'STATUS_LABEL',
+      id,
+      `Cập nhật trạng thái "${updated.name}"`,
+      { oldValues: { deployable: existing.deployable, pending: existing.pending, archived: existing.archived }, newValues: { deployable: updated.deployable, pending: updated.pending, archived: updated.archived } },
+    )
+    return okResponse(updated)
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Lỗi khi cập nhật.'
-    const code = e instanceof Error && e.message.includes('FORBIDDEN') ? 'FORBIDDEN' : 'UNKNOWN'
-    return NextResponse.json({ ok: false, code, message: msg }, { status: code === 'FORBIDDEN' ? 403 : 500 })
+    return errorResponse(e)
   }
 }
 
@@ -75,7 +75,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin()
+    const user = await requirePermissionApi('settings.update')
     const { id } = await params
 
     const existing = await prisma.statusLabel.findUnique({ where: { id } })
@@ -85,17 +85,20 @@ export async function DELETE(
 
     const assetsUsing = await prisma.asset.count({ where: { statusId: id } })
     if (assetsUsing > 0) {
-      return NextResponse.json({
-        ok: false, code: 'INVALID_STATE',
-        message: `Đang được sử dụng bởi ${assetsUsing} tài sản. Không thể xóa.`
-      }, { status: 409 })
+      return NextResponse.json(
+        {
+          ok: false,
+          code: 'INVALID_STATE',
+          message: `Đang được sử dụng bởi ${assetsUsing} tài sản. Không thể xóa.`,
+        },
+        { status: 409 },
+      )
     }
 
     await prisma.statusLabel.delete({ where: { id } })
-    return NextResponse.json({ ok: true, data: undefined })
+    await recordAudit(user.id, 'DELETE', 'STATUS_LABEL', id, `Xóa trạng thái "${existing.name}"`)
+    return okResponse(undefined)
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Lỗi khi xóa.'
-    const code = e instanceof Error && e.message.includes('FORBIDDEN') ? 'FORBIDDEN' : 'UNKNOWN'
-    return NextResponse.json({ ok: false, code, message: msg }, { status: code === 'FORBIDDEN' ? 403 : 500 })
+    return errorResponse(e)
   }
 }
