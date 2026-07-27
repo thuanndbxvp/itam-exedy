@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import AssetStats from './AssetStats'
 import StatusPieChart from './StatusPieChart'
 import CategoryBarChart from './CategoryBarChart'
+import LicenseExpiryAlert from './alerts/LicenseExpiryAlert'
+import AssetEolAlert from './alerts/AssetEolAlert'
 
 interface SummaryData {
   totalAssets: number
@@ -63,6 +65,10 @@ export default function DashboardClient() {
           <div className="bg-white rounded-xl border border-gray-200 h-72 animate-pulse" />
           <div className="bg-white rounded-xl border border-gray-200 h-72 animate-pulse" />
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl border border-gray-200 h-72 animate-pulse" />
+          <div className="bg-white rounded-xl border border-gray-200 h-72 animate-pulse" />
+        </div>
       </div>
     )
   }
@@ -81,6 +87,12 @@ export default function DashboardClient() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <StatusPieChart data={statusData} />
         <CategoryBarChart data={categoryData} />
+      </div>
+
+      {/* Phase 3 — Proactive alert widgets */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <LicenseExpiryAlert />
+        <AssetEolAlert />
       </div>
     </div>
   )
