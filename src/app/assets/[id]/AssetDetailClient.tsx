@@ -10,6 +10,7 @@ import {
 import RoleGate from '@/components/RoleGate'
 import CheckoutAssetButton from '@/components/assets/CheckoutAssetButton'
 import CheckinAssetButton from '@/components/assets/CheckinAssetButton'
+import MarkAuditedButton from '@/components/assets/MarkAuditedButton'
 import AssetHistoryTimeline from '@/components/assets/AssetHistoryTimeline'
 import AssetMaintenanceList from '@/components/assets/AssetMaintenanceList'
 import Modal from '@/components/ui/Modal'
@@ -124,6 +125,7 @@ export default function AssetDetailClient({ asset, users, locations, statuses }:
 
         <RoleGate allowedRoles={['ADMIN']}>
           <div className="flex items-center gap-2">
+            <MarkAuditedButton assetId={asset.id} />
             <Link
               href={`/assets/${asset.id}/edit`}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
