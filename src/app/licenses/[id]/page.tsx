@@ -40,7 +40,7 @@ export default async function LicenseDetailPage({ params }: LicenseDetailPagePro
             select: { id: true, firstName: true, lastName: true, email: true },
           },
           assignedAsset: {
-            select: { id: true, assetTag: true, name: true },
+            select: { id: true, assetTag: true, name: true, assignedUserId: true },
           },
         },
         orderBy: { createdAt: 'asc' },
