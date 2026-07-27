@@ -1347,19 +1347,21 @@ Print flow: client side generates QR inline → `@media print` ẩn UI → in gr
 
 ---
 
-### C5. Saved searches (L — 2-3 ngày)
+### C5. Saved searches — ✅ DONE (Sprint C5_C6)
 
-**Cần:** Search model, save/load endpoint, UI integration.
-
-**Effort:** L (2-3 ngày)
+**Commit:** `e487a23`. **Files:**
+- `prisma/sql/sprint_c5_saved_filter.sql` — `SavedFilter` table (id, userId, name, scope, filters JSONB, isPublic, timestamps, FK CASCADE).
+- `src/app/api/saved-filters/route.ts` — GET (own + public theo scope), POST create.
+- `src/app/api/saved-filters/[id]/route.ts` — PATCH (owner only), DELETE (owner only).
+- UI integration trong `FilterPanel.tsx`: dropdown "Bộ lọc đã lưu" + nút "Lưu" + modal lưu với public toggle.
 
 ---
 
-### C6. Advanced filter (multi-field) (L — 2-3 ngày)
+### C6. Advanced filter (multi-field) — ✅ DONE (Sprint C5_C6)
 
-**Cần:** Generic filter builder component.
-
-**Effort:** L (2-3 ngày)
+**Commit:** `e487a23`. **Files:**
+- `src/components/assets/FilterPanel.tsx` — mở rộng thêm: `modelId`, `supplierId`, `purchaseDateFrom/To`, `eolDateFrom/To`, `warrantyMonthsMin/Max`, `byod`, `requestable`.
+- `src/app/assets/page.tsx` — parse + apply tất cả param mới vào `prisma.asset.findMany where`.
 
 ---
 
