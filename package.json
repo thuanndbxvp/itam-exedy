@@ -10,7 +10,8 @@
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage --runInBand",
     "test:e2e": "playwright test",
-    "test:ci": "tsc --noEmit && node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage --runInBand && next build"
+    "test:ci": "tsc --noEmit && node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage --runInBand && next build",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.5.7",
