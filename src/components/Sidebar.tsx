@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import {
   LayoutDashboard, Monitor, Key, Settings, Menu, X, LifeBuoy, Inbox,
-  Briefcase, LayoutGrid, Server, Activity, ChevronDown, ChevronRight, KeyRound
+  Briefcase, LayoutGrid, Server, Activity, ChevronDown, ChevronRight, KeyRound, Wrench
 } from 'lucide-react'
 import RoleGate from './RoleGate'
 
@@ -108,6 +108,13 @@ const navigation: NavItem[] = [
   { name: 'Dashboard',          href: '/',                icon: LayoutDashboard, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'] },
   { name: 'Tài sản (Assets)',   href: '/assets',          icon: Monitor,          allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'assets.read' },
   { name: 'Bản quyền (Licenses)', href: '/licenses',      icon: Key,              allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'licenses.read' },
+  { 
+    name: 'Bảo trì (Maintenances)',
+    href: '/maintenances',
+    icon: Wrench,
+    allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER'],
+    permissionKey: 'assets.read',
+  },
   { 
     name: 'Helpdesk',           
     href: '/helpdesk',        
