@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import prisma from '@/lib/prisma'
-import AuditLogTable from '@/components/reports/AuditLogTable'
+import AuditLogTable from '@/components/audit/AuditLogTable'
+import type { Prisma } from '@prisma/client'
 import { requirePermission } from '@/lib/permissions/guard'
 import { redirect } from 'next/navigation'
 import { ScrollText } from 'lucide-react'
@@ -42,7 +43,19 @@ async function getAuditLogs(params: {
   const [logsRaw, total, users] = await Promise.all([
     prisma.actionLog.findMany({
       where,
-      include: { user: { select: { firstName: true, lastName: true } } },
+      select: {
+        id: true,
+        actionType: true,
+        itemType: true,
+        itemId: true,
+        targetType: true,
+        targetId: true,
+        notes: true,
+        oldValues: true,
+        newValues: true,
+        createdAt: true,
+        user: { select: { firstName: true, lastName: true } },
+      },
       orderBy: { createdAt: 'desc' },
       skip,
       take: ITEMS_PER_PAGE,
@@ -55,7 +68,12 @@ async function getAuditLogs(params: {
   ])
 
   // Serialize dates for client component
-  const logs = logsRaw.map((l) => ({ ...l, createdAt: l.createdAt.toISOString() }))
+  const logs = logsRaw.map((l) => ({
+    ...l,
+    createdAt: l.createdAt.toISOString(),
+    oldValues: l.oldValues as Prisma.JsonValue,
+    newValues: l.newValues as Prisma.JsonValue,
+  }))
 
   return { logs, total, page, totalPages: Math.ceil(total / ITEMS_PER_PAGE), users }
 }
