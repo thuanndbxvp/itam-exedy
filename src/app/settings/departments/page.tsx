@@ -7,15 +7,27 @@ import { requirePermission } from '@/lib/permissions/guard'
 import { redirect } from 'next/navigation'
 
 async function getDepartments() {
-  return prisma.department.findMany({
+  const deps = await prisma.department.findMany({
     orderBy: { name: 'asc' },
     include: {
       manager: { select: { id: true, firstName: true, lastName: true } },
       company: { select: { id: true, name: true } },
-      location: { select: { id: true, name: true } },
       _count: { select: { users: true } },
     },
   })
+  // Department schema KHONG co relation `location`, nhung co locationId.
+  // Resolve location names manually de hien thi ten vi tri o UI.
+  const locIds = deps
+    .map((d) => d.locationId)
+    .filter((v): v is string => !!v)
+  const locs = locIds.length
+    ? await prisma.location.findMany({
+        where: { id: { in: locIds } },
+        select: { id: true, name: true },
+      })
+    : []
+  const map = new Map(locs.map((l) => [l.id, l]))
+  return deps.map((d) => ({ ...d, location: d.locationId ? (map.get(d.locationId) ?? null) : null }))
 }
 
 async function getCompanies() {

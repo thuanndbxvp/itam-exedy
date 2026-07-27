@@ -34,7 +34,7 @@ export default async function GeneralSettingsPage() {
       name: 'supportEmail',
       label: 'Email hỗ trợ',
       icon: 'globe' as const,
-      type: 'email' as const,
+      type: 'text' as const,
       description: 'Địa chỉ email liên hệ người dùng gặp sự cố. Cũng được dùng làm email gửi đi mặc định.',
       placeholder: 'VD: support@congty.com',
     },
