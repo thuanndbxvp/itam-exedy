@@ -5,6 +5,8 @@ import AppShell from "@/components/AppShell";
 import SessionProviderClient from "@/components/SessionProvider";
 import { ToastProvider } from "@/components/Toast";
 
+export const dynamic = 'force-dynamic';
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
