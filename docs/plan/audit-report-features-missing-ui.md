@@ -42,10 +42,19 @@
 | 2026-07-28 | A6 - Ticket filter | `62f18b0` | ~1.5h | FilterBar (priority/team/assignee) + API `assigneeId` |
 | 2026-07-28 | (lint cleanup) | `5620a37` | ~0.2h | Bóc 3 unused vars mới |
 | 2026-07-28 | Sprint D - UserPreference | `376d60d` | ~1h | 1 model + 2 enums + SQL apply + seed 6 user + verify cascade |
+| 2026-07-28 | Sprint A.5 P1 - License API | `4c78e91` | ~1h | 2 endpoints (seats, checkout-seat) + history filter fix |
+| 2026-07-28 | Sprint A.5 P2 - Asset License tab | `25b99e2` | ~2.5h | AssignLicenseModal 3-step wizard + Assign/Thu hồi UI |
+| 2026-07-28 | Sprint A.5 HOTFIX - dup licenseId | `fab595c` | ~1h | Backend throw InvalidStateError + frontend disable targets |
 
 **Sprint A status (2026-07-28): ✅ 8/10 done.** Còn lại: A8 bulk seat ops (deferred từ bundle trước). Tổng effort thực tế ~17.5h (~2.2 ngày) thay vì ước tính 6.5-8 ngày ban đầu (cao tốc nhờ patterns A1 đã sẵn + tái sử dụng Modal/Toast).
 
 **Sprint D status (2026-07-28): ✅ DONE.** UserPreference 1:1 với User, cascade delete verified, 6/6 user seeded với default `DAILY`+`SYSTEM`. Blocker cho B10 (Email Digest) đã gỡ.
+
+**Sprint A.5 status (2026-07-28): 🔶 PARTIAL — 2/3 parts + hotfix done.** Phase đệm xử lý relationship transitive Asset↔License↔User:
+- ✅ Part 1 (API): seats + checkout-seat + history filter — `4c78e91`
+- ✅ Part 2 (Asset UI): License tab + AssignLicenseModal 3-step wizard — `25b99e2`
+- 🟡 **CHƯA LÀM Part 3 (User UI):** `/settings/users/[id]/licenses` page với 2 sections (Direct + Transitive) + permission check (Employee chỉ xem của mình hoặc bị 404). Scope hiện tại đã chuyển sang `/code hotfix-license-bugs` theo lệnh user. Recommend chạy Part 3 tiếp theo.
+- ✅ HOTFIX license-bugs: chặn user/asset nhận 2 seat cùng licenseId — `fab595c`
 - **Recommend:**
   1. Đọc Section 7 (Tier 2 Conflict Report) trước khi bắt đầu bất kỳ feature nào
   2. Ưu tiên Sprint A1 (License filter) — 0.5 ngày, low risk
