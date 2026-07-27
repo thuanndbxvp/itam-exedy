@@ -25,6 +25,20 @@
   - Sprint C: ~25 ngày → giữ nguyên
   - **Sprint D (NEW)**: ~1.5 ngày — schema migrations BLOCKING cho B10
 - **Tổng ước tính sau điều chỉnh:** ~40-50 ngày (giảm ~25% so với 60-80 ngày ban đầu)
+
+### 🏆 RECENT WINS (cập nhật liên tục bởi Tier 2)
+
+| Date | Feature | Commit | Effort thực tế | Note |
+|------|---------|--------|----------------|------|
+| 2026-07-28 | A1 - License filter | `85d9fb7`+`ef8062b` | ~2h | Server Component pattern |
+| 2026-07-28 | A2 - Audit log diff | `0ed359b`+`9dd06ff` | ~3h | JsonDiff extract |
+| 2026-07-28 | A3 - User form full | `de00dfd`+`97b7ec6` | ~4h | API whitelist extension |
+| 2026-07-28 | A4 - Asset Mark audited | `8f41015` | ~1.5h | POST /audit endpoint + button |
+| 2026-07-28 | A5 - Depreciation CRUD | `4c22e53` | ~2.5h | Full CRUD + UI modal |
+| 2026-07-28 | A8 - License CSV | `03ac105` | ~1.5h | Export endpoint + button (bulk deferred) |
+| 2026-07-28 | A9 - Maintenance page | `b7f8b73` | ~2h | Global list + filter tabs + sidebar |
+
+**Sprint A còn lại (3/10 features):** A6, A7, A10. Plus deferred A8 bulk seat ops.
 - **Recommend:**
   1. Đọc Section 7 (Tier 2 Conflict Report) trước khi bắt đầu bất kỳ feature nào
   2. Ưu tiên Sprint A1 (License filter) — 0.5 ngày, low risk
@@ -1437,12 +1451,12 @@ SPRINT A (top 10, ~10-12 ngày — RECALIBRATED 2026-07-28):
 [x] A1. License filter button            [XS] (0.5h — Server Component, no API) — ✅ DONE commit `85d9fb7` + `ef8062b` 2026-07-28
 [x] A2. Audit log drill-down + diff      [XS] (0.5 ngày — JsonDiff extract, reuse FieldDiff) — ✅ DONE commits `0ed359b` + `9dd06ff` 2026-07-28
 [x] A3. User form full fields (~25)       [M]  (1.5-2 ngày — extend API body whitelist) — ✅ DONE commits `de00dfd` + `97b7ec6` 2026-07-28
-[ ] A4. Asset "Mark audited" action      [S]  (0.5-1 ngày)
-[ ] A5. Depreciation CRUD UI             [M]  (1.5 ngày — API exist, no scaffold)
+[x] A4. Asset "Mark audited" action      [S]  (0.5-1 ngày) — ✅ DONE commit `8f41015` 2026-07-28 (POST /api/assets/[id]/audit + MarkAuditedButton)
+[x] A5. Depreciation CRUD UI             [M]  (1.5 ngày) — ✅ DONE commit `4c22e53` 2026-07-28 (GET/POST/PUT/DELETE + UI modal + soft-delete guard)
 [ ] A6. Ticket filter (5 filters)        [M]  (1-2 ngày — use helpdesk.* keys)
 [ ] A7. Helpdesk Team CRUD               [M]  (1.5 ngày — /helpdesk/teams path)
-[ ] A8. License CSV export + bulk seats  [M-L] (2-3 ngày)
-[ ] A9. Maintenance global page          [M]  (1.5 ngày — API NEEDS CREATE)
+[~] A8. License CSV export + bulk seats  [M-L] (2-3 ngày) — ⚠️ PARTIAL (commit `03ac105` 2026-07-28): CSV export ✅. Bulk seat ops ⏳ deferred to Phase sau (cần table row selection chưa có).
+[x] A9. Maintenance global page          [M]  (1.5 ngày) — ✅ DONE commit `b7f8b73` 2026-07-28 (/maintenances list + filter tabs + sidebar). /new + /[id]/edit deferred (create/edit có sẵn từ Asset detail tab).
 [ ] A10. Audit log consolidate           [XS] (0.5 ngày)
 
 SPRINT B (nice-to-have, ~12-15 ngày — RECALIBRATED):
