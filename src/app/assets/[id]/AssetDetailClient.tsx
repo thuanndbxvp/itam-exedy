@@ -75,6 +75,7 @@ interface Props {
   users: { id: string; firstName: string; lastName: string | null; email: string | null }[]
   locations: { id: string; name: string }[]
   statuses: { id: string; name: string; deployable: boolean; pending: boolean; archived: boolean }[]
+  transferableAssets?: { id: string; assetTag: string; name: string }[]
 }
 
 const formatDate = (dateStr: string | null) => {
@@ -94,7 +95,7 @@ const getStatusBadge = (status: Asset['status']) => {
   return <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Ready to Deploy</span>
 }
 
-export default function AssetDetailClient({ asset, users, locations, statuses }: Props) {
+export default function AssetDetailClient({ asset, users, locations, statuses, transferableAssets = [] }: Props) {
   const router = useRouter()
   const { showCommandResult } = useToast()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -325,7 +326,13 @@ export default function AssetDetailClient({ asset, users, locations, statuses }:
               {asset.assignedUserId ? (
                 <CheckinAssetButton assetId={asset.id} assetTag={asset.assetTag} />
               ) : (
-                <CheckoutAssetButton assetId={asset.id} assetTag={asset.assetTag} users={users} locations={locations} />
+                <CheckoutAssetButton
+                  assetId={asset.id}
+                  assetTag={asset.assetTag}
+                  users={users}
+                  locations={locations}
+                  assets={transferableAssets}
+                />
               )}
             </div>
           </div>

@@ -29,6 +29,7 @@ export async function createLicense(data: {
   categoryId?: string;
   manufacturerId?: string;
   supplierId?: string;
+  companyId?: string;
   seatsTotal: number;
   expirationDate?: string;
   terminationDate?: string;
@@ -67,6 +68,7 @@ export async function createLicense(data: {
         categoryId: data.categoryId?.trim() || null,
         manufacturerId: data.manufacturerId?.trim() || null,
         supplierId: data.supplierId?.trim() || null,
+        companyId: data.companyId?.trim() || null,
         expirationDate: data.expirationDate ? new Date(data.expirationDate) : null,
         terminationDate: data.terminationDate ? new Date(data.terminationDate) : null,
         reassignable: data.reassignable ?? true,
@@ -102,6 +104,7 @@ export async function updateLicense(data: {
   categoryId?: string;
   manufacturerId?: string;
   supplierId?: string;
+  companyId?: string;
   expirationDate?: string;
   terminationDate?: string;
   reassignable?: boolean;
@@ -131,6 +134,7 @@ export async function updateLicense(data: {
         categoryId: data.categoryId?.trim() || null,
         manufacturerId: data.manufacturerId?.trim() || null,
         supplierId: data.supplierId?.trim() || null,
+        companyId: data.companyId?.trim() || null,
         expirationDate: data.expirationDate ? new Date(data.expirationDate) : null,
         terminationDate: data.terminationDate ? new Date(data.terminationDate) : null,
         reassignable: data.reassignable ?? true,

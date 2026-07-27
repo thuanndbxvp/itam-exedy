@@ -143,6 +143,7 @@ export default async function AssetDetailPage({ params }: PageProps) {
       users={allUsers}
       locations={allLocations}
       statuses={allStatuses}
+      transferableAssets={transferableAssets}
     />
   )
 }

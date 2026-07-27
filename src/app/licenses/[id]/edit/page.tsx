@@ -17,6 +17,7 @@ export default async function EditLicensePage({ params }: PageProps) {
       categoryId: true,
       manufacturerId: true,
       supplierId: true,
+      companyId: true,
       expirationDate: true,
       terminationDate: true,
       reassignable: true,
@@ -34,7 +35,7 @@ export default async function EditLicensePage({ params }: PageProps) {
 
   if (!license) notFound()
 
-  const [categories, manufacturers, suppliers] = await Promise.all([
+  const [categories, manufacturers, suppliers, companies] = await Promise.all([
     prisma.category.findMany({
       where: { deletedAt: null },
       select: { id: true, name: true },
@@ -47,6 +48,10 @@ export default async function EditLicensePage({ params }: PageProps) {
     }),
     prisma.supplier.findMany({
       where: { deletedAt: null },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
+    prisma.company.findMany({
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     }),
@@ -66,6 +71,7 @@ export default async function EditLicensePage({ params }: PageProps) {
       categories={categories}
       manufacturers={manufacturers}
       suppliers={suppliers}
+      companies={companies}
     />
   )
 }

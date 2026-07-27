@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma'
 import LicenseForm from '../LicenseForm'
 
 export default async function NewLicensePage() {
-  const [categories, manufacturers, suppliers] = await Promise.all([
+  const [categories, manufacturers, suppliers, companies] = await Promise.all([
     prisma.category.findMany({
       where: { deletedAt: null, categoryType: 'LICENSE' },
       select: { id: true, name: true },
@@ -16,6 +16,10 @@ export default async function NewLicensePage() {
     }),
     prisma.supplier.findMany({
       where: { deletedAt: null },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
+    prisma.company.findMany({
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     }),
@@ -34,6 +38,7 @@ export default async function NewLicensePage() {
       categories={licenseCategories}
       manufacturers={manufacturers}
       suppliers={suppliers}
+      companies={companies}
     />
   )
 }

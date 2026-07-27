@@ -1,6 +1,6 @@
 import { createLicense, updateLicense } from '@/app/actions/license'
 import Link from 'next/link'
-import { ArrowLeft, Save, Key, Hash, Users, DollarSign, Package, Mail, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Save, Key, Hash, Users, DollarSign, Package, Mail, AlertTriangle, Building2 } from 'lucide-react'
 
 interface Props {
   license?: {
@@ -11,6 +11,7 @@ interface Props {
     categoryId: string | null
     manufacturerId: string | null
     supplierId: string | null
+    companyId: string | null
     expirationDate: string | null
     terminationDate: string | null
     reassignable: boolean
@@ -27,9 +28,10 @@ interface Props {
   categories: { id: string; name: string }[]
   manufacturers: { id: string; name: string }[]
   suppliers: { id: string; name: string }[]
+  companies: { id: string; name: string }[]
 }
 
-export default function LicenseForm({ license, categories, manufacturers, suppliers }: Props) {
+export default function LicenseForm({ license, categories, manufacturers, suppliers, companies }: Props) {
   const isEdit = !!license
 
   async function handleSubmit(formData: FormData) {
@@ -41,6 +43,7 @@ export default function LicenseForm({ license, categories, manufacturers, suppli
       categoryId: (formData.get('categoryId') as string | null) ?? undefined,
       manufacturerId: (formData.get('manufacturerId') as string | null) ?? undefined,
       supplierId: (formData.get('supplierId') as string | null) ?? undefined,
+      companyId: (formData.get('companyId') as string | null) ?? undefined,
       expirationDate: (formData.get('expirationDate') as string | null) || undefined,
       terminationDate: (formData.get('terminationDate') as string | null) || undefined,
       reassignable: formData.get('reassignable') === 'on',
@@ -115,29 +118,24 @@ export default function LicenseForm({ license, categories, manufacturers, suppli
                   className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition" />
               </div>
             )}
-            <div className="grid grid-cols-3 gap-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Danh mục</label>
-                <select name="categoryId" defaultValue={license?.categoryId ?? ''}
-                  className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition">
-                  <option value="">— Không —</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nhà sản xuất</label>
-                <select name="manufacturerId" defaultValue={license?.manufacturerId ?? ''}
-                  className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition">
-                  <option value="">— Không —</option>
-                  {manufacturers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                </select>
-              </div>
+            <div className="grid grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Nhà cung cấp</label>
                 <select name="supplierId" defaultValue={license?.supplierId ?? ''}
                   className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition">
                   <option value="">— Không —</option>
                   {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1">
+                  <Building2 size={14} className="text-gray-500" />
+                  Công ty (B8)
+                </label>
+                <select name="companyId" defaultValue={license?.companyId ?? ''}
+                  className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition">
+                  <option value="">— Không —</option>
+                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
             </div>
