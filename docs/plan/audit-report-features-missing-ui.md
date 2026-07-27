@@ -48,6 +48,11 @@
 | 2026-07-28 | Sprint B1-B5 (Category/Settings CRUD) | `84d8e06` + `a00c23d` | ~2h | Full EULA/Status/Location/Dept/settings fields |
 | 2026-07-28 | Sprint B6-B9 (Asset Image + Asset-to-Asset + License Company + Reports) | `601f6f9` + `498b8ed` | ~3h | Base64 image upload, transferable API, sidebar nav, SVG charts |
 | 2026-07-28 | Sprint B10-B13 (Account panel: notifications/appearance/2FA/login history) | `d6bb4f9` + `09c6fb6` | ~3h | UserPreference forms, theme cookie + anti-FOUC, LOGIN audit trail |
+| 2026-07-28 | Sprint B14-B15 (CSV helper + Users/Audit export) | bundle | ~2h | `lib/csv.ts` shared util (BOM+CRLF+RFC4180), `/api/users/export` (HR roll), `/api/audit-log/export` (compliance report) |
+
+**Sprint B14-B15 status (2026-07-28): ✅ DONE.** Shared CSV layer chuẩn hoá + 2 endpoint admin mới:
+- B14: `src/lib/csv.ts` 4 helper (`escapeCsvCell`, `buildCsv`, `csvResponse`, `parseCsv`) + 2 formatter (`formatCsvDate`, `formatCsvNumber`). Refactor `/api/assets/export` (thêm notes/EOL/requestable/BYOD/warrantyMonths/purchaseOrder/createdAt) và `/api/licenses/export` dùng helper — backward compatible filename.
+- B15: `/api/users/export` (filter `role`/`activated`/`search`, fields 15 cột bao gồm role/department/company/manager) + `/api/audit-log/export` (filter `from`/`to`/`actionType`/`itemType`/`actorId`, limit 10000 rows).
 
 **Sprint A status (2026-07-28): ✅ 8/10 done.** Còn lại: A8 bulk seat ops (deferred từ bundle trước). Tổng effort thực tế ~17.5h (~2.2 ngày) thay vì ước tính 6.5-8 ngày ban đầu (cao tốc nhờ patterns A1 đã sẵn + tái sử dụng Modal/Toast).
 
@@ -1579,7 +1584,7 @@ SPRINT B (nice-to-have, ~12-15 ngày — RECALIBRATED):
 [ ] B12. Active sessions management      [M]  (1.5 ngày)
 [ ] B13. Per-user history timeline       [S]  (1 ngày)
 [ ] B14. CSV Import License/User         [M]  (4 ngày total)
-[ ] B15. CSV Export others               [M]  (4 ngày total)
+[ ] B15. CSV Export others               [M]  (4 ngày total) ← B15 PARTIAL: Users + Audit done trong B14_B15 bundle (CSV Import License/User = vẫn pending)
 [ ] B16. Forgot password email flow      [M]  (2 ngày)
 [ ] B17. 2FA TOTP enrollment             [L]  (3-4 ngày)
 

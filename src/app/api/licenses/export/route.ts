@@ -5,13 +5,16 @@
  *   - status: 'active' | 'expiring_soon' | 'expired' | 'terminated' | 'all' (default 'all')
  *   - search: case-insensitive contains on name
  *
- * Returns: text/csv with UTF-8 BOM for Excel Vietnamese display.
+ * Returns: text/csv với UTF-8 BOM (Excel hiển thị đúng tiếng Việt) + CRLF rows.
  * Permission: reports.export.
+ *
+ * Sprint B14: refactor dùng `lib/csv.ts` helper (thay vì inline string concat).
  */
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import prisma from '@/lib/prisma'
 import { errorResponse } from '@/lib/api'
 import { requirePermissionApi } from '@/lib/permissions/http-guard'
+import { buildCsv, csvResponse, formatCsvDate, formatCsvNumber } from '@/lib/csv'
 
 type StatusFilter = 'active' | 'expiring_soon' | 'expired' | 'terminated' | 'all'
 
@@ -77,7 +80,7 @@ export async function GET(request: NextRequest) {
     orderBy: { createdAt: 'desc' },
   })
 
-  const header = [
+  const headers = [
     'Name',
     'ProductKey',
     'SeatsTotal',
@@ -97,30 +100,24 @@ export async function GET(request: NextRequest) {
   const rows = licenses.map((lic) => {
     const assigned = lic.seats.filter((s) => s.assignedUserId || s.assignedAssetId).length
     return [
-      `"${lic.name.replace(/"/g, '""')}"`,
-      lic.productKey ? `"${lic.productKey.replace(/"/g, '""')}"` : '',
+      lic.name,
+      lic.productKey ?? '',
       String(lic.seats.length),
       String(assigned),
       String(Math.max(0, lic.seats.length - assigned)),
       deriveStatus(lic.expirationDate, lic.terminationDate),
-      lic.expirationDate?.toISOString().split('T')[0] ?? '',
-      lic.terminationDate?.toISOString().split('T')[0] ?? '',
+      formatCsvDate(lic.expirationDate),
+      formatCsvDate(lic.terminationDate),
       lic.manufacturer?.name ?? '',
       lic.category?.name ?? '',
       lic.company?.name ?? '',
-      lic.purchaseDate?.toISOString().split('T')[0] ?? '',
-      lic.purchaseCost?.toString() ?? '',
-      lic.notes ? `"${lic.notes.replace(/"/g, '""').replace(/\n/g, ' ')}"` : '',
+      formatCsvDate(lic.purchaseDate),
+      formatCsvNumber(lic.purchaseCost),
+      (lic.notes ?? '').replace(/\n/g, ' '),
     ]
   })
 
-  const BOM = '\uFEFF'
-  const csv = BOM + [header.join(','), ...rows.map((r) => r.join(','))].join('\r\n')
-
-  return new NextResponse(csv, {
-    headers: {
-      'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="licenses-export-${new Date().toISOString().split('T')[0]}.csv"`,
-    },
-  })
+  const csv = buildCsv(headers, rows)
+  const today = new Date().toISOString().split('T')[0]
+  return csvResponse(`licenses-export-${today}.csv`, csv)
 }

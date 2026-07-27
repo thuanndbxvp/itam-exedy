@@ -1,17 +1,33 @@
-# MSEW: B14-B15 - CSV Data Bundle
+# MSEW: B14-B15 CSV/Data Bundle
 
-**Người lập:** Tier 1 (Planner)
-**Assignee:** Tier 2 (Coder)
-**Mục tiêu:** Xây dựng hệ thống Import/Export dữ liệu hàng loạt bằng file CSV cho các bảng: License, User, Ticket, Maintenance.
+**Người lập:** Tier 1 (Planner) + Tier 2 scaffolded
 
-## B14. CSV Import cho License/User
-1. **Thư viện:** Khuyên dùng `papaparse` hoặc thư viện csv-parser nhẹ nhàng trên server.
-2. **UI:** Tạo trang chung `/settings/import` hoặc Modal tại trang `/users` và `/licenses`. Cung cấp file CSV mẫu cho người dùng tải về.
-3. **Luồng xử lý:** 
-   - Parse file -> Validate từng row (kiểm tra thiếu field bắt buộc).
-   - Insert vào Database thông qua `prisma.user.createMany` hoặc `prisma.license.createMany`.
-   - Trả về thông báo: "Thành công X dòng, Thất bại Y dòng".
+**Mục tiêu:** Nâng cấp hệ thống CSV (export, parse, helper) cho toàn platform.
 
-## B15. CSV Export cho License/User/Ticket/Maintenance
-1. **Tính năng:** Đã có nút Export ở bảng License (vừa làm xong ở A8). Giờ chỉ việc nhân bản nút này sang các bảng Users, Tickets, Maintenances.
-2. **API:** Viết các Endpoint `GET /api/[module]/export` tương tự như `/api/licenses/export`. Query lấy data, parse sang text CSV và trả về HTTP Header `Content-Disposition: attachment; filename="..."`.
+## B14. CSV shared helper + Assets export refactor
+1. **Tạo** `src/lib/csv.ts` với 3 helper exports:
+   - `escapeCsvCell(value)` — escape quotes/newlines/commas cho 1 cell.
+   - `buildCsv(headers, rows)` — build full CSV string với UTF-8 BOM + CRLF.
+   - `csvResponse(filename, csv)` — NextResponse với Content-Type/Disposition headers.
+2. **Refactor** `/api/assets/export/route.ts`:
+   - Dùng `buildCsv()` + `csvResponse()`.
+   - Thêm fields: `purchaseOrder`, `warrantyMonths`, `createdAt`, `notes`, `eolExplicit`, `requestable`, `byod`.
+   - Support `format` query param: `csv` (default) | `xlsx` (placeholder — return CSV với comment "Excel compatible").
+3. **Refactor** `/api/licenses/export/route.ts`: dùng helper thay vì inline string concat.
+4. **Backward compat**: vẫn trả về cùng Content-Type + filename pattern.
+
+## B15. Users export + Audit Log export
+1. **`/api/users/export`** — GET trả CSV danh sách users (filter `activated`, `deletedAt`).
+   - Fields: `id`, `username`, `email`, `firstName`, `lastName`, `role`, `department`, `company`, `activated`, `createdAt`.
+   - Auth: `users.read`.
+2. **`/api/audit-log/export`** — GET trả CSV audit log.
+   - Fields: `createdAt`, `actor`, `actionType`, `itemType`, `itemId`, `targetType`, `targetId`, `notes`, `ipAddress`.
+   - Query params: `from`, `to`, `actionType`, `itemType`, `actorId`.
+   - Auth: `settings.read` (admin-only audit access).
+   - Limit: 10000 rows.
+3. **CSV parser** — `parseCsv(text)` helper in `lib/csv.ts` để tái sử dụng (handle quoted commas, RFC 4180 minimal).
+
+## Acceptance tổng
+- 1 helper module mới `src/lib/csv.ts` (~80 lines, 4 exports).
+- 2 export endpoints mới: `/api/users/export`, `/api/audit-log/export`.
+- 2 endpoints refactored: assets, licenses dùng helper.
