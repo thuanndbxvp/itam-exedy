@@ -1306,48 +1306,44 @@ src/lib/commands/user.ts                              (MODIFY, +10 dòng — see
 
 ---
 
-### C1. QR code / barcode label print (L — 3 ngày)
+### C1. QR code / barcode label print — ✅ DONE (Sprint C1_C4)
 
-**Cần:** `qrcode` lib, label template designer, print CSS.
+**Commit:** `ad47286`. **Files:**
+- `src/lib/print/qr-generator.ts` — qrcode wrapper, generates Data URI + SVG, `assetDeepLink()`.
+- `src/app/print/asset-labels/page.tsx` — server route, auth-guarded, fetches assets + baseUrl.
+- `src/components/print/PrintLabelsClient.tsx` — search + multi-select + print-only grid (3 cols).
 
-**Files:**
-```
-src/lib/print/qr-generator.ts                       (NEW)
-src/app/print/asset-labels/page.tsx                 (NEW)
-src/components/print/LabelDesigner.tsx              (NEW)
-```
-
-**Effort:** L (3 ngày)
+Print flow: client side generates QR inline → `@media print` ẩn UI → in grid 3 cols với QR (28mm) + assetTag + name + model.
 
 ---
 
-### C2. Ticket attachments upload (L — 2-3 ngày)
+### C2. Ticket attachments upload — ✅ DONE (Sprint C1_C4)
 
-**Evidence:** DB `TicketAttachment` model có (schema.prisma:742-755). KHÔNG có API upload, KHÔNG có UI.
-
-**Files:**
-```
-src/app/api/tickets/[id]/attachments/route.ts       (NEW)
-src/components/helpdesk/TicketAttachments.tsx        (NEW)
-```
-
-**Effort:** L (2-3 ngày)
+**Commit:** `ad47286`. **Evidence:** DB `TicketAttachment` model có sẵn. **Files:**
+- `src/app/api/tickets/[id]/attachments/route.ts` — GET / POST / DELETE; reuse `lib/upload.ts` `ticket-attachment` stub.
+- `src/components/helpdesk/TicketAttachments.tsx` — drop zone + list with size/uploader + delete (uploader hoặc IT side).
+- `prisma/sql/sprint_c2_item_type.sql` — thêm `TICKET`, `TICKET_ATTACHMENT` vào `ItemType` enum.
 
 ---
 
-### C3. EULA acceptance flow (L — 2-3 ngày)
+### C3. EULA acceptance flow — ✅ DONE (Sprint C1_C4)
 
-**Cần:** Modal accept/decline, store acceptance timestamp, block checkout nếu chưa accept.
-
-**Effort:** L (2-3 ngày)
+**Commit:** `ad47286`. **Cần:** Modal accept/decline + store acceptance + block checkout nếu chưa accept. **Files:**
+- `prisma/sql/sprint_c3_eula_acceptance.sql` — `EulaAcceptance` table (id, userId, categoryId, version=SHA256(eulaText)[0..16], acceptedAt, ipAddress, @@unique(userId, categoryId)).
+- `src/lib/eula.ts` — `eulaVersion()` SHA-256 hash.
+- `src/app/actions/eula.ts` — `acceptEulaCmd` (server action, idempotent) + `checkEulaStatus()`.
+- `src/app/api/eula/status/route.ts` — GET status (requireAcceptance, alreadyAccepted, eulaText).
+- `src/app/api/assets/[id]/eula-gate/route.ts` — GET composite gate state cho asset.
+- `src/components/assets/EulaModal.tsx` — modal hiển thị EULA + checkbox + Đồng ý/Từ chối.
+- Integration trong `CheckoutAssetModal.tsx`: useEffect → fetch `/api/assets/[id]/eula-gate` khi modal mở → nếu requireAcceptance && !alreadyAccepted thì show EulaModal trước khi submit.
 
 ---
 
-### C4. Accept/Decline asset (L — 2 ngày)
+### C4. Accept/Decline asset — ✅ DONE (Sprint C1_C4)
 
-**Cần:** API + UI cho `ActionType.ACCEPTED/DECLINED` (enum đã có).
-
-**Effort:** L (2 ngày)
+**Commit:** `ad47286`. **Cần:** API + UI cho `ActionType.ACCEPTED/DECLINED`. **Files:**
+- `src/app/api/assets/[id]/accept-decline/route.ts` — POST { action: 'accept'|'decline', notes? }; chỉ `assignedUserId` mới gọi được (không cho IT accept thay); ghi ActionLog ACCEPTED/DECLINED.
+- `src/components/assets/AssetAcceptanceBanner.tsx` — banner hiển thị trên asset detail page nếu current user = `assignedUserId`; nút Xác nhận/Từ chối; pre-compute status từ ActionLog ở `assets/[id]/page.tsx` (PENDING nếu chưa có, ACCEPTED, hoặc DECLINED).
 
 ---
 
