@@ -45,6 +45,7 @@
 | 2026-07-28 | Sprint A.5 P1 - License API | `4c78e91` | ~1h | 2 endpoints (seats, checkout-seat) + history filter fix |
 | 2026-07-28 | Sprint A.5 P2 - Asset License tab | `25b99e2` | ~2.5h | AssignLicenseModal 3-step wizard + Assign/Thu hồi UI |
 | 2026-07-28 | Sprint A.5 HOTFIX - dup licenseId | `fab595c` | ~1h | Backend throw InvalidStateError + frontend disable targets |
+| 2026-07-28 | Sprint B1-B5 (Category/Settings CRUD) | `84d8e06` + `a00c23d` | ~2h | Full EULA/Status/Location/Dept/settings fields |
 
 **Sprint A status (2026-07-28): ✅ 8/10 done.** Còn lại: A8 bulk seat ops (deferred từ bundle trước). Tổng effort thực tế ~17.5h (~2.2 ngày) thay vì ước tính 6.5-8 ngày ban đầu (cao tốc nhờ patterns A1 đã sẵn + tái sử dụng Modal/Toast).
 
@@ -55,6 +56,13 @@
 - ✅ Part 2 (Asset UI): License tab + AssignLicenseModal 3-step wizard — `25b99e2`
 - 🟡 **CHƯA LÀM Part 3 (User UI):** `/settings/users/[id]/licenses` page với 2 sections (Direct + Transitive) + permission check (Employee chỉ xem của mình hoặc bị 404). Scope hiện tại đã chuyển sang `/code hotfix-license-bugs` theo lệnh user. Recommend chạy Part 3 tiếp theo.
 - ✅ HOTFIX license-bugs: chặn user/asset nhận 2 seat cùng licenseId — `fab595c`
+
+**Sprint B1-B5 status (2026-07-28): ✅ DONE.** 5/5 module settings CRUD hoàn thiện (Category EULA, Status 4-type radio, Location đủ fields, Department locationId, Settings supportEmail) — `84d8e06` + `a00c23d`. Effort thực tế ~2h nhờ EntityTable pattern reuse. NF1: sử dụng fields có sẵn trong schema, không migrate DB.
+- B1 (Category): EULA + acceptance + checkin email ✅
+- B2 (Status): 4 loại (deployable / pending / undeployable / archived) ✅
+- B3 (Location): 6 fields address (skip address2 vì schema không có) ✅
+- B4 (Department): Manager/Company/Location 3 dropdowns + cột Vị trí ✅
+- B5 (Settings): supportEmail (map sang `emailFrom` DB) + companyName + locale + currency ✅
 - **Recommend:**
   1. Đọc Section 7 (Tier 2 Conflict Report) trước khi bắt đầu bất kỳ feature nào
   2. Ưu tiên Sprint A1 (License filter) — 0.5 ngày, low risk
