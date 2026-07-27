@@ -50,14 +50,22 @@ export default withAuth(
  * - `/` (dashboard)
  * - `/assets/:path*` (list, new, show, edit — tất cả children)
  * - `/licenses/:path*` (tương tự)
+ * - `/helpdesk/:path*` (Epic F: helpdesk self-service + IT inbox)
+ * - `/admin/:path*` (Epic F: IT_MANAGER/ADMIN-only)
  *
  * KHÔNG gate:
  * - `/login` (auth page — phải accessible khi chưa login)
  * - `/api/auth/*` (NextAuth handler — public)
  * - `/api/*` khác (Phase 2 sẽ gate riêng)
- * - `/settings/*` (chưa có route — Phase 2 sẽ gate)
  * - Static files (`_next/static`, `favicon.ico`, etc.) — Next.js tự skip
  */
 export const config = {
-  matcher: ["/", "/assets/:path*", "/licenses/:path*", "/settings/:path*"]
+  matcher: [
+    "/",
+    "/assets/:path*",
+    "/licenses/:path*",
+    "/settings/:path*",
+    "/helpdesk/:path*",
+    "/admin/:path*",
+  ],
 }

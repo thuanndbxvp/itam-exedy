@@ -58,5 +58,171 @@ async function main() {
     })
   }
   console.log('Seeded', categories.length, 'categories')
+
+  // ===== Epic F: Helpdesk seed =====
+  // IT staff + IT manager demo users. Mật khẩu mặc định: staff123 / manager123.
+  // Dùng email format dễ nhớ để login test trong /login.
+  const itStaffHashed = await bcrypt.hash('staff123', 10)
+  const itManagerHashed = await bcrypt.hash('manager123', 10)
+
+  const itManager = await prisma.user.upsert({
+    where: { email: 'it.manager@congty.com' },
+    update: { role: 'IT_MANAGER', activated: true },
+    create: {
+      email: 'it.manager@congty.com',
+      username: 'it.manager',
+      firstName: 'Minh',
+      lastName: 'Quản Lý IT',
+      password: itManagerHashed,
+      role: 'IT_MANAGER',
+      activated: true,
+    },
+  })
+  console.log('IT Manager created:', itManager.email)
+
+  const itStaff1 = await prisma.user.upsert({
+    where: { email: 'it.staff1@congty.com' },
+    update: { role: 'IT_STAFF', activated: true },
+    create: {
+      email: 'it.staff1@congty.com',
+      username: 'it.staff1',
+      firstName: 'Tuấn',
+      lastName: 'Helpdesk L1',
+      password: itStaffHashed,
+      role: 'IT_STAFF',
+      activated: true,
+    },
+  })
+  console.log('IT Staff 1 created:', itStaff1.email)
+
+  const itStaff2 = await prisma.user.upsert({
+    where: { email: 'it.staff2@congty.com' },
+    update: { role: 'IT_STAFF', activated: true },
+    create: {
+      email: 'it.staff2@congty.com',
+      username: 'it.staff2',
+      firstName: 'Linh',
+      lastName: 'Network Admin',
+      password: itStaffHashed,
+      role: 'IT_STAFF',
+      activated: true,
+    },
+  })
+  console.log('IT Staff 2 created:', itStaff2.email)
+
+  // 2 teams cho helpdesk
+  const helpdeskTeam = await prisma.team.upsert({
+    where: { slug: 'helpdesk-l1' },
+    update: { leadId: itManager.id, isActive: true },
+    create: {
+      name: 'Helpdesk L1',
+      slug: 'helpdesk-l1',
+      description: 'Tiếp nhận và xử lý sự cố phần cứng, phần mềm cơ bản',
+      category: 'HARDWARE',
+      isActive: true,
+      leadId: itManager.id,
+    },
+  })
+  console.log('Team created:', helpdeskTeam.name)
+
+  const networkTeam = await prisma.team.upsert({
+    where: { slug: 'network' },
+    update: { leadId: itManager.id, isActive: true },
+    create: {
+      name: 'Network Team',
+      slug: 'network',
+      description: 'Xử lý sự cố mạng LAN/WAN, Wi-Fi, VPN',
+      category: 'NETWORK',
+      isActive: true,
+      leadId: itManager.id,
+    },
+  })
+  console.log('Team created:', networkTeam.name)
+
+  // Membership
+  await prisma.teamMember.upsert({
+    where: { teamId_userId: { teamId: helpdeskTeam.id, userId: itStaff1.id } },
+    update: {},
+    create: { teamId: helpdeskTeam.id, userId: itStaff1.id, isLead: false },
+  })
+  await prisma.teamMember.upsert({
+    where: { teamId_userId: { teamId: networkTeam.id, userId: itStaff2.id } },
+    update: {},
+    create: { teamId: networkTeam.id, userId: itStaff2.id, isLead: false },
+  })
+  await prisma.teamMember.upsert({
+    where: { teamId_userId: { teamId: helpdeskTeam.id, userId: itManager.id } },
+    update: {},
+    create: { teamId: helpdeskTeam.id, userId: itManager.id, isLead: true },
+  })
+  console.log('Team members seeded')
+
+  // Sample assignment rules (Epic F: auto-assign theo category)
+  await prisma.helpdeskAssignmentRule.upsert({
+    where: { id: 'rule-hardware-default' },
+    update: {},
+    create: {
+      id: 'rule-hardware-default',
+      name: 'HARDWARE → Helpdesk L1',
+      category: 'HARDWARE',
+      teamId: helpdeskTeam.id,
+      weight: 100,
+      isActive: true,
+      notes: 'Mọi ticket phần cứng tự động vào Helpdesk L1',
+    },
+  })
+  await prisma.helpdeskAssignmentRule.upsert({
+    where: { id: 'rule-software-default' },
+    update: {},
+    create: {
+      id: 'rule-software-default',
+      name: 'SOFTWARE → Helpdesk L1',
+      category: 'SOFTWARE',
+      teamId: helpdeskTeam.id,
+      weight: 100,
+      isActive: true,
+      notes: 'Mọi ticket phần mềm tự động vào Helpdesk L1',
+    },
+  })
+  await prisma.helpdeskAssignmentRule.upsert({
+    where: { id: 'rule-network-default' },
+    update: {},
+    create: {
+      id: 'rule-network-default',
+      name: 'NETWORK → Network Team',
+      category: 'NETWORK',
+      teamId: networkTeam.id,
+      weight: 100,
+      isActive: true,
+      notes: 'Sự cố mạng → Network Team',
+    },
+  })
+  await prisma.helpdeskAssignmentRule.upsert({
+    where: { id: 'rule-account-default' },
+    update: {},
+    create: {
+      id: 'rule-account-default',
+      name: 'ACCOUNT → Helpdesk L1',
+      category: 'ACCOUNT',
+      teamId: helpdeskTeam.id,
+      weight: 100,
+      isActive: true,
+      notes: 'Vấn đề tài khoản (quên mật khẩu, SSO…) → Helpdesk L1',
+    },
+  })
+  await prisma.helpdeskAssignmentRule.upsert({
+    where: { id: 'rule-other-default' },
+    update: {},
+    create: {
+      id: 'rule-other-default',
+      name: 'OTHER → Helpdesk L1',
+      category: 'OTHER',
+      teamId: helpdeskTeam.id,
+      weight: 100,
+      isActive: true,
+      notes: 'Vấn đề chưa phân loại → Helpdesk L1 phân loại lại',
+    },
+  })
+  console.log('Helpdesk assignment rules seeded (5)')
 }
 main().finally(() => prisma.$disconnect())

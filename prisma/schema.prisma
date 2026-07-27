@@ -14,8 +14,62 @@ datasource db {
 // ============================================================================
 
 enum Role {
-  ADMIN
   EMPLOYEE
+  IT_STAFF
+  IT_MANAGER
+  ADMIN
+}
+
+// ============================================================================
+// HELPDESK ENUMS (Epic F)
+// ============================================================================
+
+enum TicketType {
+  INCIDENT
+  REQUEST
+}
+
+enum TicketStatus {
+  NEW
+  ASSIGNED
+  IN_PROGRESS
+  PENDING
+  RESOLVED
+  CLOSED
+  REJECTED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketCategory {
+  HARDWARE
+  SOFTWARE
+  NETWORK
+  ACCOUNT
+  OTHER
+}
+
+enum HelpdeskNotificationKind {
+  TICKET_CREATED
+  TICKET_ASSIGNED
+  TICKET_COMMENTED
+  TICKET_STATUS_CHANGED
+  TICKET_RESOLVED
+  TICKET_CLOSED
+  TICKET_REOPENED
+}
+
+enum HelpdeskActorRole {
+  REPORTER
+  ASSIGNEE
+  WATCHER
+  TEAM
+  MANAGER
 }
 
 enum StatusMetaType {
@@ -306,6 +360,15 @@ model User {
   licenseSeatsAssigned LicenseSeat[] @relation("LicenseSeatAssignedUser")
   logs                 ActionLog[]   @relation("ActionLogActor")
 
+  ticketsReported     Ticket[]               @relation("TicketReporter")
+  ticketsAssigned     Ticket[]               @relation("TicketAssignee")
+  ticketsClosed       Ticket[]               @relation("TicketCloser")
+  ticketComments      TicketComment[]
+  ticketAttachments   TicketAttachment[]
+  ticketNotifications HelpdeskNotification[]
+  teamMemberships     TeamMember[]
+  teamsLed            Team[]                 @relation("TeamLead")
+
   @@index([companyId])
   @@index([managerId])
 }
@@ -376,6 +439,7 @@ model Asset {
   deletedAt DateTime?
 
   licenseSeats LicenseSeat[]
+  tickets      Ticket[]      @relation("TicketAsset")
 
   @@index([modelId])
   @@index([statusId])
@@ -444,6 +508,8 @@ model LicenseSeat {
   updatedAt          DateTime  @updatedAt
   deletedAt          DateTime?
 
+  tickets Ticket[] @relation("TicketLicenseSeat")
+
   @@index([licenseId])
   @@index([assignedUserId])
   @@index([assignedAssetId])
@@ -458,35 +524,35 @@ model Setting {
   updatedAt DateTime @updatedAt
 
   // General
-  companyName             String  @default("Công ty TNHH IT Manager")
-  companyId               String?
-  currency                String  @default("VND")
-  timezone                String  @default("Asia/Ho_Chi_Minh")
-  locale                  String  @default("vi-VN")
+  companyName String  @default("Công ty TNHH IT Manager")
+  companyId   String?
+  currency    String  @default("VND")
+  timezone    String  @default("Asia/Ho_Chi_Minh")
+  locale      String  @default("vi-VN")
 
   // Branding
-  logoUrl       String?
-  primaryColor  String  @default("#2563eb")
+  logoUrl      String?
+  primaryColor String  @default("#2563eb")
 
   // Feature flags
   fullMultipleCompaniesSupport Boolean @default(false)
   autoassignAssetsToLocation   Boolean @default(false)
 
   // Security
-  passwordMinLength      Int @default(8)
+  passwordMinLength      Int     @default(8)
   passwordRequireSpecial Boolean @default(false)
-  sessionTimeoutMinutes  Int @default(480)
+  sessionTimeoutMinutes  Int     @default(480)
   twoFactorEnabled       Boolean @default(false)
 
   // Email
-  emailFrom     String?
-  emailFromName String?
-  smtpHost      String?
-  smtpPort      Int?
-  smtpUsername  String?
-  smtpPassword  String?
+  emailFrom      String?
+  emailFromName  String?
+  smtpHost       String?
+  smtpPort       Int?
+  smtpUsername   String?
+  smtpPassword   String?
   smtpEncryption String?
-  emailDomain   String?
+  emailDomain    String?
 
   // Flexible JSON cho các config ít dùng
   extras Json @default("{}")
@@ -520,4 +586,178 @@ model ActionLog {
   @@index([targetType, targetId])
   @@index([userId])
   @@index([createdAt])
+}
+
+// ============================================================================
+// HELPDESK — TEAM (Epic F)
+// ============================================================================
+//
+// Nhóm IT xử lý ticket. Category HARDWARE → team Helpdesk-L1, NETWORK → team Network, v.v.
+// Mỗi team có 1 lead (IT_MANAGER) và nhiều members (IT_STAFF).
+//
+// Tách khỏi "Department" (đơn vị tổ chức) vì Department = phòng ban công ty (Kế toán, HR…),
+// còn Team Helpdesk = task force IT.
+
+model Team {
+  id          String          @id @default(cuid())
+  name        String          @unique
+  slug        String          @unique // vd "helpdesk-l1", "network"
+  description String?
+  category    TicketCategory? // primary category mà team phụ trách
+  isActive    Boolean         @default(true)
+  leadId      String?
+  lead        User?           @relation("TeamLead", fields: [leadId], references: [id], onDelete: SetNull)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  members TeamMember[]
+  tickets Ticket[]                 @relation("TicketTeam")
+  rules   HelpdeskAssignmentRule[]
+
+  @@index([category])
+}
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isLead   Boolean  @default(false)
+  joinedAt DateTime @default(now())
+
+  @@unique([teamId, userId])
+  @@index([userId])
+}
+
+// ============================================================================
+// HELPDESK — TICKET (Epic F)
+// ============================================================================
+
+model Ticket {
+  id          String         @id @default(cuid())
+  code        String         @unique // TKT-2026-0001, auto-gen
+  title       String
+  description String         @db.Text
+  type        TicketType     @default(INCIDENT)
+  status      TicketStatus   @default(NEW)
+  priority    TicketPriority @default(MEDIUM)
+  category    TicketCategory @default(OTHER)
+
+  // Reporter = người tạo ticket (employee báo lỗi). KHÔNG đổi.
+  reporterId String
+  reporter   User   @relation("TicketReporter", fields: [reporterId], references: [id], onDelete: Restrict)
+
+  // Assignee = IT staff được giao xử lý (nullable cho đến khi IT_STAFF claim).
+  assigneeId String?
+  assignee   User?   @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  // Team phụ trách (set bởi auto-assign rule hoặc IT_MANAGER chỉ định).
+  teamId String?
+  team   Team?   @relation("TicketTeam", fields: [teamId], references: [id], onDelete: SetNull)
+
+  // Asset / License mà ticket báo lỗi. Nullable cho "Vấn đề khác" (network chung, account…).
+  reportedAssetId       String?
+  reportedAsset         Asset?       @relation("TicketAsset", fields: [reportedAssetId], references: [id], onDelete: SetNull)
+  reportedLicenseSeatId String?
+  reportedLicenseSeat   LicenseSeat? @relation("TicketLicenseSeat", fields: [reportedLicenseSeatId], references: [id], onDelete: SetNull)
+
+  // SLA & timing
+  slaDueAt   DateTime?
+  resolvedAt DateTime?
+  closedAt   DateTime?
+  closedById String?
+  closedBy   User?     @relation("TicketCloser", fields: [closedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments      TicketComment[]
+  attachments   TicketAttachment[]
+  notifications HelpdeskNotification[]
+
+  @@index([reporterId, status])
+  @@index([assigneeId, status])
+  @@index([teamId, status])
+  @@index([category, status])
+  @@index([status, createdAt])
+  @@index([slaDueAt])
+}
+
+model TicketComment {
+  id         String   @id @default(cuid())
+  ticketId   String
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  content    String   @db.Text
+  isInternal Boolean  @default(false) // true = chỉ IT (assignee, team, manager) thấy
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([ticketId, createdAt])
+}
+
+model TicketAttachment {
+  id         String   @id @default(cuid())
+  ticketId   String
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  filename   String // tên file user upload (giữ extension gốc)
+  storedPath String // đường dẫn tương đối trong /uploads/tickets/
+  mimeType   String
+  size       Int
+  uploaderId String
+  uploader   User     @relation(fields: [uploaderId], references: [id], onDelete: Restrict)
+  createdAt  DateTime @default(now())
+
+  @@index([ticketId])
+}
+
+// ============================================================================
+// HELPDESK — ASSIGNMENT RULE (Epic F)
+// ============================================================================
+//
+// IT_MANAGER cấu hình rule: "category HARDWARE → team Helpdesk-L1, priority HIGH → auto-assign user X".
+// Rule có priority cao hơn thắng. Khi ticket tạo, engine quét rule theo priority desc.
+
+model HelpdeskAssignmentRule {
+  id             String          @id @default(cuid())
+  name           String
+  category       TicketCategory // match theo category
+  priority       TicketPriority? // optional — match theo priority
+  type           TicketType? // optional — match theo type
+  teamId         String?
+  team           Team?           @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  assignToUserId String? // optional — auto-assign cho user cụ thể (round-robin nếu null)
+  weight         Int             @default(100) // cao hơn = rule thắng khi có nhiều rule match
+  isActive       Boolean         @default(true)
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([category, isActive, weight])
+}
+
+// ============================================================================
+// HELPDESK — IN-APP NOTIFICATION (Epic F)
+// ============================================================================
+//
+// Notification bell trên header. Lưu DB để user xem lại, không cần kết nối real-time.
+
+model HelpdeskNotification {
+  id        String                   @id @default(cuid())
+  userId    String
+  user      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticketId  String?
+  ticket    Ticket?                  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  kind      HelpdeskNotificationKind
+  title     String
+  body      String?
+  link      String? // vd "/helpdesk/TKT-2026-0001"
+  isRead    Boolean                  @default(false)
+  readAt    DateTime?
+  createdAt DateTime                 @default(now())
+
+  @@index([userId, isRead, createdAt])
+  @@index([userId, createdAt])
 }

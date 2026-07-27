@@ -1,9 +1,10 @@
 'use client'
 
-import { Bell, Search, LogOut } from 'lucide-react'
+import { Search, LogOut } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { useState } from 'react'
+import NotificationBell from './NotificationBell'
 
 export default function Header() {
   const pathname = usePathname()
@@ -18,6 +19,10 @@ export default function Header() {
     if (pathname.startsWith('/licenses/new')) return 'Thêm mới Bản quyền'
     if (pathname.startsWith('/licenses')) return 'Quản lý Bản quyền'
     if (pathname.startsWith('/settings')) return 'Cài đặt Hệ thống'
+    if (pathname === '/helpdesk/new') return 'Báo lỗi / Yêu cầu hỗ trợ'
+    if (pathname === '/helpdesk/inbox') return 'Hộp thư Helpdesk (IT)'
+    if (pathname.startsWith('/helpdesk')) return 'Helpdesk của tôi'
+    if (pathname.startsWith('/admin/helpdesk')) return 'Quản trị Helpdesk'
     return 'Hệ thống Quản lý'
   }
 
@@ -28,6 +33,20 @@ export default function Header() {
     : '...'
 
   const userRole = session?.user?.role ?? 'EMPLOYEE'
+
+  // Color badge theo role — Epic F
+  const roleColors: Record<string, string> = {
+    ADMIN: 'bg-purple-100 text-purple-700',
+    IT_MANAGER: 'bg-blue-100 text-blue-700',
+    IT_STAFF: 'bg-cyan-100 text-cyan-700',
+    EMPLOYEE: 'bg-gray-100 text-gray-600',
+  }
+  const roleLabel: Record<string, string> = {
+    ADMIN: 'Super Admin',
+    IT_MANAGER: 'IT Manager',
+    IT_STAFF: 'IT Staff',
+    EMPLOYEE: 'Nhân viên',
+  }
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-30">
@@ -54,11 +73,8 @@ export default function Header() {
           />
         </div>
 
-        {/* Notifications */}
-        <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
-          <Bell size={20} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-        </button>
+        {/* Notifications — Epic F: in-app bell */}
+        <NotificationBell />
 
         {/* User Menu */}
         <div className="h-8 w-px bg-gray-200 mx-2"></div>
@@ -69,9 +85,9 @@ export default function Header() {
           >
             <span>{userDisplayName}</span>
             <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
-              userRole === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
+              roleColors[userRole] ?? 'bg-gray-100 text-gray-600'
             }`}>
-              {userRole}
+              {roleLabel[userRole] ?? userRole}
             </span>
           </button>
 

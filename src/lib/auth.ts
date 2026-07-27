@@ -53,7 +53,13 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.firstName = (user as { firstName?: string }).firstName ?? "";
         token.lastName = (user as { lastName?: string | null }).lastName ?? null;
-        token.role = (user as { role?: "ADMIN" | "EMPLOYEE" }).role ?? "EMPLOYEE";
+        token.role =
+          ((user as { role?: "EMPLOYEE" | "IT_STAFF" | "IT_MANAGER" | "ADMIN" }).role ??
+            "EMPLOYEE") as
+            | "EMPLOYEE"
+            | "IT_STAFF"
+            | "IT_MANAGER"
+            | "ADMIN";
       }
       return token;
     },
@@ -62,7 +68,11 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.firstName = token.firstName as string;
         session.user.lastName = (token.lastName as string | null) ?? null;
-        session.user.role = token.role as "ADMIN" | "EMPLOYEE";
+        session.user.role = token.role as
+          | "EMPLOYEE"
+          | "IT_STAFF"
+          | "IT_MANAGER"
+          | "ADMIN";
       }
       return session;
     }

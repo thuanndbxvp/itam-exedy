@@ -1,7 +1,7 @@
-import SettingsSidebar from '@/components/settings/SettingsSidebar'
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import SettingsBreadcrumb from '@/components/settings/SettingsBreadcrumb'
 
 export default async function SettingsLayout({
   children,
@@ -16,8 +16,10 @@ export default async function SettingsLayout({
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] bg-slate-50">
-      <SettingsSidebar />
-      <main className="flex-1 p-6 lg:p-8">{children}</main>
+      <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
+        <SettingsBreadcrumb />
+        {children}
+      </main>
     </div>
   )
 }

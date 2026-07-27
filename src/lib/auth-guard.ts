@@ -17,9 +17,9 @@ import { ForbiddenError } from '@/lib/errors';
 
 /**
  * Type alias cho role — sync với src/types/next-auth.d.ts Session.user.role.
- * Phase 1: chỉ 2 role. Phase 2 sẽ mở rộng.
+ * Epic F: mở rộng thành 4 role.
  */
-export type Role = 'ADMIN' | 'EMPLOYEE';
+export type Role = 'EMPLOYEE' | 'IT_STAFF' | 'IT_MANAGER' | 'ADMIN';
 
 /**
  * Check user hiện tại có role cho phép không.
