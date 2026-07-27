@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
         reportedLicenseSeatId,
         slaDueAt,
       },
-      select: { id: true, code: true, status: true, assigneeId: true, teamId: true },
+      select: { id: true, code: true, title: true, status: true, assigneeId: true, teamId: true },
     });
 
     // ----- Comment đầu tiên (mô tả chính là comment) -----
