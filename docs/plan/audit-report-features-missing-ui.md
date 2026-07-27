@@ -1365,27 +1365,42 @@ Print flow: client side generates QR inline → `@media print` ẩn UI → in gr
 
 ---
 
-### C7. Webhooks / API tokens cho 3rd-party (XL — 4-5 ngày)
+### C7. Webhooks / API tokens cho 3rd-party — ✅ DONE (Sprint C7_C9, MVP)
 
-**Cần:** Token model, HMAC signing, rate limit per token, docs.
+**Commit:** `bc93bd2`. **Scope MVP** (down-sized từ XL → M; pure read-only API + token UI). **Files:**
+- `prisma/sql/sprint_c7_c9_tables.sql` — `ApiToken` (name, tokenPrefix, tokenHash SHA-256, scopes JSON, expiresAt, lastUsedAt, revokedAt).
+- `src/lib/api-token.ts` — generate/validate (4-byte prefix + 32-byte secret), scope whitelist.
+- `src/app/api/api-tokens/route.ts` (GET list / POST create, returns rawToken ONCE) + `[id]/route.ts` (DELETE revoke).
+- `src/app/api/v1/assets/route.ts` — public REST với `Authorization: Bearer …`, scope `assets.read`.
+- `src/app/settings/integrations/` — 3 tab admin page (tokens/templates/channels).
 
-**Effort:** XL (4-5 ngày)
-
----
-
-### C8. Email templates editor (L — 3 ngày)
-
-**Cần:** Template model + editor (rich text) + preview.
-
-**Effort:** L (3 ngày)
+**Defer:** HMAC signing, rate limit per token, full webhook events fire.
 
 ---
 
-### C9. SMS/Slack notification channels (XL — 4 ngày)
+### C8. Email templates editor — ✅ DONE (Sprint C7_C9, MVP)
 
-**Cần:** Twilio config, Slack webhook, channel routing.
+**Commit:** `bc93bd2`. **Files:**
+- `EmailTemplate` table (key as PK, subject, htmlBody, variables JSON, updatedById).
+- `src/lib/email-template.ts` — `renderTemplate()`, `renderEmailTemplate()`; default templates fallback.
+- `src/lib/email-template-send.ts` — `sendTemplateEmail(key, vars, to)`.
+- `/api/email-templates` GET list + `[key]/route.ts` PUT upsert.
+- UI trong `/settings/integrations` tab "Email Templates" — edit form + live preview với sample vars.
 
-**Effort:** XL (4 ngày)
+**Keys:** `TICKET_ASSIGNED`, `TICKET_COMMENTED`, `TICKET_STATUS_CHANGED`, `TICKET_CLOSED`, `PASSWORD_RESET`, `ASSET_CHECKOUT`.
+
+---
+
+### C9. SMS/Slack notification channels — ✅ DONE (Sprint C7_C9, MVP)
+
+**Commit:** `bc93bd2`. **Scope MVP** (Slack only; SMS deferred). **Files:**
+- `NotificationChannel` table (name, kind, url, enabled, filterKinds JSON, lastDeliveryAt, lastDeliveryError).
+- `src/lib/notification-channel.ts` — `deliverExternalChannels()` fire-and-forget POST tới Slack; `testSlackChannel()` cho test-ping.
+- `src/lib/tickets/notifications.ts` — `notify()` hook gọi `deliverExternalChannels` không block caller.
+- `/api/notification-channels` GET / POST / DELETE; `/api/notification-channels/[id]/test`.
+- UI trong `/settings/integrations` tab "Notification Channels" — create + test + delete Slack webhooks.
+
+**Defer:** SMS (Twilio), retry queue, encrypted webhook URLs.
 
 ---
 
