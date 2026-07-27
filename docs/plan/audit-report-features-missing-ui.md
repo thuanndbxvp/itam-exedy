@@ -37,8 +37,12 @@
 | 2026-07-28 | A5 - Depreciation CRUD | `4c22e53` | ~2.5h | Full CRUD + UI modal |
 | 2026-07-28 | A8 - License CSV | `03ac105` | ~1.5h | Export endpoint + button (bulk deferred) |
 | 2026-07-28 | A9 - Maintenance page | `b7f8b73` | ~2h | Global list + filter tabs + sidebar |
+| 2026-07-28 | A10 - Audit consolidate | `057c0b3` | ~0.5h | Xóa duplicate `/audit-log`, update 3 internal links |
+| 2026-07-28 | A7 - Helpdesk Teams CRUD | `dfefe96`+`3a9af7a` | ~3h | API + UI page + perm `helpdesk.manage_teams` |
+| 2026-07-28 | A6 - Ticket filter | `62f18b0` | ~1.5h | FilterBar (priority/team/assignee) + API `assigneeId` |
+| 2026-07-28 | (lint cleanup) | `5620a37` | ~0.2h | Bóc 3 unused vars mới |
 
-**Sprint A còn lại (3/10 features):** A6, A7, A10. Plus deferred A8 bulk seat ops.
+**Sprint A status (2026-07-28): ✅ 8/10 done.** Còn lại: A8 bulk seat ops (deferred từ bundle trước). Tổng effort thực tế ~17.5h (~2.2 ngày) thay vì ước tính 6.5-8 ngày ban đầu (cao tốc nhờ patterns A1 đã sẵn + tái sử dụng Modal/Toast).
 - **Recommend:**
   1. Đọc Section 7 (Tier 2 Conflict Report) trước khi bắt đầu bất kỳ feature nào
   2. Ưu tiên Sprint A1 (License filter) — 0.5 ngày, low risk
@@ -502,7 +506,29 @@ src/components/admin/models/ModelsTable.tsx                   (MODIFY, +20 dòng
 
 ---
 
-### A6. Ticket filter (assignee/team/priority/SLA) (M — 1-2 ngày)
+### A6. Ticket filter (assignee/team/priority/SLA) (M — 1-2 ngày) ✅ DONE 2026-07-28
+
+**Status:** ✅ DONE trong commit `62f18b0` (A6) + API extension (`assigneeId`).
+
+**Implemented:**
+- Filter bar priority (pill buttons: All/Low/Medium/High/Urgent)
+- Filter team (dropdown, IT only)
+- Filter assignee (dropdown, IT only)
+- Multi-filter combined (priority + team + assignee + status existing)
+- "Xóa bộ lọc" button (clear all, giữ tab)
+- URL sync pattern (giống A1 LicenseFilterBar)
+- API: thêm query param `assigneeId` (filter theo assignee cụ thể)
+
+**Evidence:**
+- `src/components/helpdesk/TicketFilterBar.tsx` (NEW, 134 dòng)
+- `src/app/helpdesk/page.tsx` (MODIFY — wire searchParams + fetch teams/assignees)
+- `src/app/api/tickets/route.ts` (MODIFY — thêm `assigneeId` query param)
+
+**NOT implemented (deferred):**
+- SLA filter (Overdue/Due today/Due this week) — backend có `slaDueAt`, chỉ thiếu UI chip
+- Date range filter (createdAt) — chưa có query param
+- Saved filters — cần schema mới + permissions
+- Bulk actions (assign/priority change/close) — Phase 5
 
 **Evidence:**
 - DB: `Ticket` model có `assigneeId`, `teamId`, `priority`, `dueDate`, `slaBreached`
@@ -569,7 +595,35 @@ src/lib/utils/query-string.ts                      (NEW, ~50 dòng — helper bu
 
 ---
 
-### A7. Helpdesk Team CRUD page (M — 1.5 ngày)
+### A7. Helpdesk Team CRUD page (M — 1.5 ngày) ✅ DONE 2026-07-28
+
+**Status:** ✅ DONE trong 2 commits: `dfefe96` (API) + `3a9af7a` (UI).
+
+**Implemented:**
+- API `GET/POST /api/helpdesk-teams` + `PUT/DELETE /api/helpdesk-teams/[id]`
+  - Permission `helpdesk.manage_teams` (mới thêm vào catalog, gán cho IT_MANAGER only)
+  - Slug auto-gen từ name (slugify)
+  - Unique validation cho name + slug
+  - Bulk members handling qua `userIds[]` (validate tồn tại + chưa deleted)
+  - DELETE soft-delete (`isActive=false`), BLOCK nếu còn ticket OPEN (status in NEW/ASSIGNED/IN_PROGRESS/PENDING) → trả 409 INVALID_STATE
+  - Transaction safety cho PUT (replace members)
+- UI `/settings/helpdesk-teams`:
+  - Table: name+slug, category badge, lead (purple), member count, ticket count, status badge
+  - Modal form với multi-select members (popover + checkbox + role badge)
+  - Selected chips với nút X
+  - Lead dropdown chỉ IT_MANAGER + ADMIN
+  - "Tạo/Sửa/Xóa" buttons gated bởi `helpdesk.manage_teams`
+
+**Evidence:**
+- `src/app/api/helpdesk-teams/route.ts` (NEW, ~95 dòng)
+- `src/app/api/helpdesk-teams/[id]/route.ts` (NEW, ~115 dòng)
+- `src/app/settings/helpdesk-teams/page.tsx` (NEW, ~70 dòng — Server Component)
+- `src/components/helpdesk/HelpdeskTeamsClient.tsx` (NEW, ~415 dòng)
+- `src/lib/permissions/catalog.ts` (MODIFY — thêm `helpdesk.manage_teams`)
+
+**NOT implemented (deferred):**
+- Audit log cho Team CRUD: `ItemType` enum (schema.prisma:95) chưa có `TEAM` value → skip. TODO: migrate enum khi cần tracking.
+- Direct sidebar link `/settings/helpdesk-teams`: Admin vào qua `/settings` index (đã có).
 
 **Evidence:**
 - DB: `Team` model (schema.prisma:644-661) với `name, description, managerId, email, sla` (verified ngày 2026-07-28)
@@ -804,7 +858,20 @@ src/components/Layout.tsx                                 (MODIFY, +5 dòng nav)
 
 ---
 
-### A10. Audit log consolidate (2 trang trùng) (XS — 0.5 ngày)
+### A10. Audit log consolidate (2 trang trùng) (XS — 0.5 ngày) ✅ DONE 2026-07-28
+
+**Status:** ✅ DONE trong commit `057c0b3`.
+
+**Implemented (Option 1: giữ `/settings/audit-log`):**
+- Delete `src/app/audit-log/page.tsx` (duplicate)
+- Update 3 internal links sang `/settings/audit-log`:
+  - `src/app/page.tsx:58` (dashboard widget "Xem tất cả →")
+  - `src/components/audit/AuditLogTable.tsx:131` (pagination router.push)
+  - `src/components/audit/AuditLogTable.tsx:136` (clear filter router.push)
+- Sidebar đã đúng (1 link duy nhất → `/settings/audit-log`)
+
+**Evidence:**
+- `git show 057c0b3 --stat` cho thấy: 3 files changed, +3 / -126 (xóa 124 dòng của duplicate page)
 
 **Evidence:**
 - `/audit-log/page.tsx` (106 dòng) — ở root
