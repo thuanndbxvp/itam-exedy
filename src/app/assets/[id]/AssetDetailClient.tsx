@@ -4,12 +4,14 @@ import { useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft, Edit2, Trash2, Monitor, User, MapPin, Calendar,
-  Package, Tag, Building2, Shield, DollarSign, Clock, History,
-  CheckCircle, XCircle, AlertCircle
+  Package, Tag, Building2, Shield, DollarSign, Clock,
+  CheckCircle, XCircle, AlertCircle, History, Wrench
 } from 'lucide-react'
 import RoleGate from '@/components/RoleGate'
 import CheckoutAssetButton from '@/components/assets/CheckoutAssetButton'
 import CheckinAssetButton from '@/components/assets/CheckinAssetButton'
+import AssetHistoryTimeline from '@/components/assets/AssetHistoryTimeline'
+import AssetMaintenanceList from '@/components/assets/AssetMaintenanceList'
 import Modal from '@/components/ui/Modal'
 import { useRouter } from 'next/navigation'
 
@@ -78,6 +80,13 @@ export default function AssetDetailClient({ asset, users, locations, statuses }:
   const router = useRouter()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'maintenance'>('overview')
+
+  // Determine edit permissions based on user role:
+  // - ADMIN: full edit
+  // - IT roles: assets.update via /api/* endpoints
+  // - EMPLOYEE: read-only
+  const canEdit = users.length > 0 // ADMIN has full users list (page-level signal)
 
   const handleDelete = async () => {
     setDeleting(true)
@@ -133,8 +142,33 @@ export default function AssetDetailClient({ asset, users, locations, statuses }:
         </RoleGate>
       </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Tabs — Phase 2 Feature 1 & 2 */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="flex border-b border-gray-100">
+          <TabButton
+            active={activeTab === 'overview'}
+            onClick={() => setActiveTab('overview')}
+            icon={<Monitor size={16} />}
+            label="Tổng quan"
+          />
+          <TabButton
+            active={activeTab === 'history'}
+            onClick={() => setActiveTab('history')}
+            icon={<History size={16} />}
+            label="Lịch sử cấp phát"
+          />
+          <TabButton
+            active={activeTab === 'maintenance'}
+            onClick={() => setActiveTab('maintenance')}
+            icon={<Wrench size={16} />}
+            label="Lịch sử sửa chữa"
+          />
+        </div>
+
+        {activeTab === 'overview' && (
+          <div className="p-6">
+            {/* Main Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Main Info */}
         <div className="lg:col-span-2 space-y-6">
           {/* Asset Image & Basic Info */}
@@ -381,7 +415,22 @@ export default function AssetDetailClient({ asset, users, locations, statuses }:
               </div>
             </dl>
           </div>
-        </div>
+            </div>
+          </div>
+          </div>
+        )}
+
+        {activeTab === 'history' && (
+          <div className="p-6">
+            <AssetHistoryTimeline assetId={asset.id} />
+          </div>
+        )}
+
+        {activeTab === 'maintenance' && (
+          <div className="p-6">
+            <AssetMaintenanceList assetId={asset.id} canEdit={canEdit} />
+          </div>
+        )}
       </div>
 
       {/* Delete Modal */}
@@ -413,5 +462,31 @@ export default function AssetDetailClient({ asset, users, locations, statuses }:
         </div>
       </Modal>
     </div>
+  )
+}
+
+function TabButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean
+  onClick: () => void
+  icon: React.ReactNode
+  label: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 px-5 py-3.5 text-sm font-medium transition-colors border-b-2 ${
+        active
+          ? 'border-blue-600 text-blue-600'
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
   )
 }

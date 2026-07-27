@@ -199,8 +199,9 @@ model Supplier {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  assets   Asset[]
-  licenses License[]
+  assets       Asset[]
+  licenses     License[]
+  maintenances AssetMaintenance[]
 }
 
 model Depreciation {
@@ -374,6 +375,7 @@ model User {
   ticketNotifications HelpdeskNotification[]
   teamMemberships     TeamMember[]
   teamsLed            Team[]                 @relation("TeamLead")
+  assetMaintenances   AssetMaintenance[]     @relation("AssetMaintenanceCreator")
 
   @@index([companyId])
   @@index([managerId])
@@ -445,13 +447,46 @@ model Asset {
   deletedAt DateTime?
 
   licenseSeats LicenseSeat[]
-  tickets      Ticket[]      @relation("TicketAsset")
+  tickets      Ticket[]           @relation("TicketAsset")
+  maintenances AssetMaintenance[]
 
   @@index([modelId])
   @@index([statusId])
   @@index([assignedUserId])
   @@index([assignedLocationId])
   @@index([companyId])
+}
+
+// ============================================================================
+// ASSET MAINTENANCE (Phase 2 — Feature 2: Lịch sử sửa chữa)
+// ============================================================================
+
+model AssetMaintenance {
+  id      String @id @default(cuid())
+  assetId String
+  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  title String
+
+  supplierId String?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+
+  cost Decimal? @db.Decimal(15, 2)
+
+  startDate      DateTime?
+  completionDate DateTime?
+
+  notes String? @db.Text
+
+  createdById String?
+  createdBy   User?     @relation("AssetMaintenanceCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([assetId])
+  @@index([supplierId])
+  @@index([startDate])
 }
 
 // ============================================================================

@@ -41,8 +41,10 @@ export async function GET() {
         orderBy: [{ license: { name: "asc" } }],
         select: {
           id: true,
+          // F9 fix (security audit): KHÔNG trả productKey qua endpoint my-assets.
+          // Ai có quyền xem full key thì dùng license detail UI (masked cho non-ADMIN).
           license: {
-            select: { id: true, name: true, productKey: true },
+            select: { id: true, name: true },
           },
         },
       }),
@@ -60,7 +62,7 @@ export async function GET() {
         id: s.id,
         licenseId: s.license.id,
         licenseName: s.license.name,
-        productKey: s.license.productKey,
+        // productKey đã loại bỏ — user tự vào `/licenses/[id]` nếu muốn xem (masked).
       })),
     });
   } catch (err) {

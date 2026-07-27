@@ -10,7 +10,21 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   try {
     await requirePermissionApi('users.read')
     const { id } = await params
-    const user = await prisma.user.findUnique({ where: { id }, include: { department: true } })
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true, firstName: true, lastName: true, username: true, email: true,
+        employeeNum: true, jobTitle: true, phone: true, mobile: true,
+        address: true, city: true, state: true, country: true, zip: true,
+        notes: true, avatar: true, activated: true, role: true, customRoleId: true,
+        companyId: true, departmentId: true, locationId: true, managerId: true,
+        twoFactorEnrolled: true, twoFactorOptin: true, locale: true,
+        remote: true, vip: true, autoassignLicenses: true,
+        createdAt: true, updatedAt: true, deletedAt: true,
+        department: { select: { id: true, name: true } },
+        // EXCLUDE: password, twoFactorSecret
+      },
+    })
     if (!user) {
       return NextResponse.json({ ok: false, code: 'NOT_FOUND', message: 'Không tìm thấy.' }, { status: 404 })
     }
@@ -32,6 +46,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ ok: false, code: 'NOT_FOUND', message: 'Không tìm thấy.' }, { status: 404 })
     }
 
+    // F1 fix (security audit): role + customRoleId thay đổi đòi hỏi quyền users.manage_roles.
+    // users.update chỉ cho phép sửa thông tin cá nhân (tên, job title, dept).
+    if (role !== undefined || customRoleId !== undefined) {
+      await requirePermissionApi('users.manage_roles')
+    }
+
     const updateData: Record<string, unknown> = {}
     if (firstName) updateData.firstName = firstName
     if (lastName !== undefined) updateData.lastName = lastName || null
@@ -48,7 +68,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
     if (password) updateData.password = await bcrypt.hash(password, 10)
 
-    const updated = await prisma.user.update({ where: { id }, data: updateData })
+    const updated = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true, firstName: true, lastName: true, username: true, email: true,
+        employeeNum: true, jobTitle: true, phone: true, mobile: true,
+        address: true, city: true, state: true, country: true, zip: true,
+        avatar: true, activated: true, role: true, customRoleId: true,
+        companyId: true, departmentId: true, locationId: true, managerId: true,
+        twoFactorEnrolled: true, twoFactorOptin: true, locale: true,
+        remote: true, vip: true, autoassignLicenses: true,
+        createdAt: true, updatedAt: true, deletedAt: true,
+      },
+    })
     invalidatePermissionCache(id)
 
     // Audit — KHÔNG ghi password (chỉ note "đã đổi mật khẩu" nếu có).

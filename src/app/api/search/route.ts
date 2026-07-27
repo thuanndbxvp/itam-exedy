@@ -21,6 +21,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 })
   }
 
+  const userId = session.user.id
+  const role = session.user.role
+  // F2 fix (security audit): EMPLOYEE chỉ search asset/license của mình + user lookup limited.
+  // IT roles mới có full visibility.
+  const isPrivileged = role === 'ADMIN' || role === 'IT_MANAGER' || role === 'IT_STAFF'
+
   const { searchParams } = new URL(request.url)
   const q = searchParams.get('q')?.trim() ?? ''
   const types = (searchParams.get('type') ?? 'ASSET,USER,LICENSE').split(',')
@@ -37,15 +43,27 @@ export async function GET(request: NextRequest) {
   }
 
   if (types.includes('ASSET')) {
+    // EMPLOYEE: chỉ thấy asset đang được giao cho mình.
+    const assetWhere = isPrivileged
+      ? {
+          deletedAt: null,
+          OR: [
+            { assetTag: { contains: q, mode: 'insensitive' as const } },
+            { name: { contains: q, mode: 'insensitive' as const } },
+            { serial: { contains: q, mode: 'insensitive' as const } },
+          ],
+        }
+      : {
+          deletedAt: null,
+          assignedUserId: userId,
+          OR: [
+            { assetTag: { contains: q, mode: 'insensitive' as const } },
+            { name: { contains: q, mode: 'insensitive' as const } },
+            { serial: { contains: q, mode: 'insensitive' as const } },
+          ],
+        }
     const assets = await prisma.asset.findMany({
-      where: {
-        deletedAt: null,
-        OR: [
-          { assetTag: { contains: q, mode: 'insensitive' } },
-          { name: { contains: q, mode: 'insensitive' } },
-          { serial: { contains: q, mode: 'insensitive' } },
-        ],
-      },
+      where: assetWhere,
       select: { id: true, assetTag: true, name: true, serial: true },
       take: limit,
       orderBy: { createdAt: 'desc' },
@@ -61,39 +79,53 @@ export async function GET(request: NextRequest) {
   }
 
   if (types.includes('USER')) {
+    // EMPLOYEE: tìm user (cho helpdesk tạo ticket) nhưng chỉ trả firstName/lastName (KHÔNG email).
     const users = await prisma.user.findMany({
       where: {
         deletedAt: null,
         OR: [
           { firstName: { contains: q, mode: 'insensitive' } },
           { lastName: { contains: q, mode: 'insensitive' } },
-          { email: { contains: q, mode: 'insensitive' } },
           { employeeNum: { contains: q, mode: 'insensitive' } },
+          ...(isPrivileged
+            ? [{ email: { contains: q, mode: 'insensitive' as const } }]
+            : []),
         ],
       },
       select: { id: true, firstName: true, lastName: true, email: true },
       take: limit,
       orderBy: { createdAt: 'desc' },
     })
-    results.USER = users.map((u) => ({
-      id: u.id,
-      firstName: u.firstName,
-      lastName: u.lastName ?? undefined,
-      email: u.email ?? undefined,
-      type: 'USER' as const,
-      href: `/settings/users/${u.id}`,
-    }))
+    results.USER = users.map((u) => {
+      // F2 leak: ẩn email cho non-privileged users.
+      const item: SearchResult = {
+        id: u.id,
+        firstName: u.firstName,
+        lastName: u.lastName ?? undefined,
+        type: 'USER' as const,
+        href: `/settings/users/${u.id}`,
+      }
+      if (isPrivileged) item.email = u.email ?? undefined
+      return item
+    })
   }
 
   if (types.includes('LICENSE')) {
+    // EMPLOYEE: chỉ thấy license seat của mình.
+    const licenseWhere = isPrivileged
+      ? {
+          deletedAt: null,
+          OR: [
+            { name: { contains: q, mode: 'insensitive' as const } },
+          ],
+        }
+      : {
+          deletedAt: null,
+          seats: { some: { assignedUserId: userId, deletedAt: null } },
+          name: { contains: q, mode: 'insensitive' as const },
+        }
     const licenses = await prisma.license.findMany({
-      where: {
-        deletedAt: null,
-        OR: [
-          { name: { contains: q, mode: 'insensitive' } },
-          { productKey: { contains: q, mode: 'insensitive' } },
-        ],
-      },
+      where: licenseWhere,
       select: { id: true, name: true },
       take: limit,
       orderBy: { createdAt: 'desc' },

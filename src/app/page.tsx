@@ -1,11 +1,28 @@
 import prisma from '@/lib/prisma'
-import { Monitor, CheckCircle, XCircle, Activity } from 'lucide-react'
+import { Monitor, CheckCircle, Activity } from 'lucide-react'
 import Link from 'next/link'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import DashboardClient from '@/components/dashboard/DashboardClient'
+import EmployeeDashboard from '@/components/dashboard/EmployeeDashboard'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 
 export default async function DashboardPage() {
+  // F10 fix (security audit): rẽ nhánh dashboard theo role.
+  // EMPLOYEE → EmployeeDashboard (giao diện tối giản, không có stats toàn hệ thống hay audit log).
+  // IT roles → giữ nguyên AdminDashboard với stats + audit log.
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) {
+    return null
+  }
+
+  const isEmployee = session.user.role === 'EMPLOYEE'
+
+  if (isEmployee) {
+    return <EmployeeDashboard firstName={session.user.firstName || 'bạn'} />
+  }
+
   const recentLogs = await prisma.actionLog.findMany({
     take: 8,
     include: { user: true },
@@ -58,7 +75,7 @@ export default async function DashboardPage() {
                     ) : log.actionType === 'CHECKOUT' ? (
                       <Monitor className="w-5 h-5 text-blue-500" />
                     ) : (
-                      <XCircle className="w-5 h-5 text-orange-500" />
+                      <Activity className="w-5 h-5 text-orange-500" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">

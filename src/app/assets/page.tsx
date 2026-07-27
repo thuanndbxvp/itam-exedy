@@ -1,5 +1,7 @@
 import { Suspense } from 'react'
 import prisma from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import AssetsPageClient from './AssetsPageClient'
 import FilterPanel from '@/components/assets/FilterPanel'
 import Pagination from '@/components/ui/Pagination'
@@ -22,7 +24,15 @@ async function getPageData(params: PageProps['searchParams']) {
   const page = Math.max(1, parseInt(p.page ?? '1'))
   const skip = (page - 1) * ITEMS_PER_PAGE
 
+  // F4 fix (security audit): EMPLOYEE chỉ thấy asset của mình (assignedUserId === user.id).
+  const session = await getServerSession(authOptions)
+  const isEmployee = session?.user?.role === 'EMPLOYEE'
+  const userId = session?.user?.id
+
   const where: Record<string, unknown> = { deletedAt: null }
+  if (isEmployee && userId) {
+    where.assignedUserId = userId
+  }
 
   if (p.statusId) where.statusId = p.statusId
   if (p.categoryId) where.categoryId = p.categoryId
@@ -40,6 +50,7 @@ async function getPageData(params: PageProps['searchParams']) {
     ]
   }
 
+  // EMPLOYEE: không cần load full user list (chỉ xem của mình).
   const [assetsRaw, total, statuses, categories, locations, users] = await Promise.all([
     prisma.asset.findMany({
       where,
@@ -58,11 +69,13 @@ async function getPageData(params: PageProps['searchParams']) {
     prisma.statusLabel.findMany({ orderBy: { name: 'asc' } }),
     prisma.category.findMany({ where: { deletedAt: null }, orderBy: { name: 'asc' } }),
     prisma.location.findMany({ where: { deletedAt: null }, orderBy: { name: 'asc' } }),
-    prisma.user.findMany({
-      where: { activated: true, deletedAt: null },
-      select: { id: true, firstName: true, lastName: true, email: true },
-      orderBy: { firstName: 'asc' },
-    }),
+    isEmployee
+      ? Promise.resolve([])
+      : prisma.user.findMany({
+          where: { activated: true, deletedAt: null },
+          select: { id: true, firstName: true, lastName: true, email: true },
+          orderBy: { firstName: 'asc' },
+        }),
   ])
 
   // Serialize: convert Prisma Decimal → number (Plain objects only for Server → Client)

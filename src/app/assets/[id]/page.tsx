@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation'
 import prisma from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import AssetDetailClient from './AssetDetailClient'
 
 interface PageProps {
@@ -18,6 +20,14 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function AssetDetailPage({ params }: PageProps) {
   const { id } = await params
+
+  // F5 fix (security audit): EMPLOYEE chỉ xem được asset của chính mình.
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) notFound()
+  const isPrivileged =
+    session.user.role === 'ADMIN' ||
+    session.user.role === 'IT_MANAGER' ||
+    session.user.role === 'IT_STAFF'
 
   const asset = await prisma.asset.findUnique({
     where: { id, deletedAt: null },
@@ -39,21 +49,31 @@ export default async function AssetDetailPage({ params }: PageProps) {
 
   if (!asset) notFound()
 
-  const [allUsers, allLocations, allStatuses] = await Promise.all([
-    prisma.user.findMany({
-      where: { deletedAt: null, activated: true },
-      select: { id: true, firstName: true, lastName: true, email: true },
-      orderBy: { firstName: 'asc' },
-    }),
-    prisma.location.findMany({
-      where: { deletedAt: null },
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' },
-    }),
-    prisma.statusLabel.findMany({
-      orderBy: { name: 'asc' },
-    }),
-  ])
+  // F5 enforcement: EMPLOYEE không phải chủ sở hữu → 404 (giấu tồn tại).
+  if (!isPrivileged && asset.assignedUserId !== session.user.id) {
+    notFound()
+  }
+
+  // F5 fix phụ: chỉ load users/locations cho phần edit khi user có quyền.
+  // EMPLOYEE chỉ xem, không edit.
+  const isAdmin = session.user.role === 'ADMIN'
+  const [allUsers, allLocations, allStatuses] = isAdmin
+    ? await Promise.all([
+        prisma.user.findMany({
+          where: { deletedAt: null, activated: true },
+          select: { id: true, firstName: true, lastName: true, email: true },
+          orderBy: { firstName: 'asc' },
+        }),
+        prisma.location.findMany({
+          where: { deletedAt: null },
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' },
+        }),
+        prisma.statusLabel.findMany({
+          orderBy: { name: 'asc' },
+        }),
+      ])
+    : [[], [], []]
 
   // Serialize dates
   const serialized = {

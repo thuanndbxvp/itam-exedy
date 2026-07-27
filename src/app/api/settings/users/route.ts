@@ -9,7 +9,19 @@ export async function GET() {
     await requirePermissionApi('users.read')
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
-      include: { department: true, company: true },
+      select: {
+        id: true, firstName: true, lastName: true, username: true, email: true,
+        employeeNum: true, jobTitle: true, phone: true, mobile: true,
+        address: true, city: true, state: true, country: true, zip: true,
+        notes: true, avatar: true, activated: true, role: true, customRoleId: true,
+        companyId: true, departmentId: true, locationId: true, managerId: true,
+        twoFactorEnrolled: true, twoFactorOptin: true, locale: true,
+        remote: true, vip: true, autoassignLicenses: true,
+        createdAt: true, updatedAt: true, deletedAt: true,
+        department: { select: { id: true, name: true } },
+        company: { select: { id: true, name: true } },
+        // EXCLUDE: password, twoFactorSecret — F16 fix
+      },
     })
     return okResponse(users)
   } catch (e) {
@@ -48,6 +60,17 @@ export async function POST(req: NextRequest) {
         departmentId: departmentId || null,
         customRoleId: customRoleId || null,
         activated: true,
+      },
+      select: {
+        id: true, firstName: true, lastName: true, username: true, email: true,
+        employeeNum: true, jobTitle: true, phone: true, mobile: true,
+        address: true, city: true, state: true, country: true, zip: true,
+        avatar: true, activated: true, role: true, customRoleId: true,
+        companyId: true, departmentId: true, locationId: true, managerId: true,
+        twoFactorEnrolled: true, twoFactorOptin: true, locale: true,
+        remote: true, vip: true, autoassignLicenses: true,
+        createdAt: true, updatedAt: true, deletedAt: true,
+        // EXCLUDE: password, twoFactorSecret — F16 fix
       },
     })
     await recordAudit(user.id, 'CREATE', 'USER', created.id, `Tạo người dùng "${[firstName, created.lastName].filter(Boolean).join(' ')}"`, {

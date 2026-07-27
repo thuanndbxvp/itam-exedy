@@ -51,3 +51,10 @@ curl-results.txt
 *.backup-*
 
 /src/generated/prisma
+
+# scratch / test artifacts (runtime test sessions)
+admin-session.txt
+check_db.ts
+cj.txt
+csrf.json
+login-response.txt

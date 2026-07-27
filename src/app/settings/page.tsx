@@ -69,6 +69,7 @@ const SETTINGS_GROUPS: SettingGroup[] = [
       { label: 'Bảo mật',     description: 'Mật khẩu, 2FA, phiên đăng nhập', href: '/settings/security', icon: Shield },
       { label: 'Email',       description: 'SMTP và mẫu email thông báo', href: '/settings/email',    icon: Mail },
       { label: 'Phân quyền (RBAC)', description: 'Quản lý role và quyền chi tiết', href: '/settings/permissions', icon: KeyRound },
+      { label: 'Quản trị Helpdesk', description: 'Quy tắc phân luồng và gán vé tự động', href: '/admin/helpdesk', icon: Settings },
     ],
   },
   {

@@ -1,14 +1,37 @@
 import prisma from '@/lib/prisma'
 import Link from 'next/link'
-import { Plus, Search, Filter, MoreVertical, Key, Edit2, Trash2, Archive, ExternalLink } from 'lucide-react'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { Plus, Search, Filter, Key, Edit2, Archive, ExternalLink } from 'lucide-react'
+
+/**
+ * F9 fix (security audit): mask productKey cho non-ADMIN.
+ */
+function maskProductKey(key: string | null): string {
+  if (!key) return ''
+  const cleaned = key.replace(/[^a-zA-Z0-9]/g, '')
+  const last4 = cleaned.slice(-4)
+  return `••••-••••-••••-${last4}`
+}
 
 export default async function LicensesPage() {
-  // Load kèm `seats` relation để đếm số LicenseSeat hiện có (Count via include).
-  // Nếu include seats, Prisma sẽ chạy 1 query riêng cho seats — N+1 chỉ xảy ra nếu loop `lic.seats`.
-  // Ở đây chỉ đọc `seats.length` nên OK.
+  // F7 fix (security audit): EMPLOYEE chỉ thấy license có seat của mình.
+  // F9 fix (security audit): mask productKey cho non-ADMIN.
+  const session = await getServerSession(authOptions)
+  const userId = session?.user?.id
+  const role = session?.user?.role
+  const isAdmin = role === 'ADMIN'
+  const isEmployee = role === 'EMPLOYEE'
+
   const licenses = await prisma.license.findMany({
-    include: { seats: true },
-    orderBy: { createdAt: 'desc' }
+    where: isEmployee && userId
+      ? {
+          deletedAt: null,
+          seats: { some: { assignedUserId: userId, deletedAt: null } },
+        }
+      : { deletedAt: null },
+    include: { seats: { where: { deletedAt: null } } },
+    orderBy: { createdAt: 'desc' },
   })
 
   return (
@@ -29,13 +52,15 @@ export default async function LicensesPage() {
           </button>
         </div>
 
-        <Link
-          href="/licenses/new"
-          className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition shadow-sm font-medium whitespace-nowrap"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Thêm Bản Quyền</span>
-        </Link>
+        {isAdmin && (
+          <Link
+            href="/licenses/new"
+            className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition shadow-sm font-medium whitespace-nowrap"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Thêm Bản Quyền</span>
+          </Link>
+        )}
       </div>
 
       {/* Data Table Card */}
@@ -57,7 +82,11 @@ export default async function LicensesPage() {
                   <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                     <div className="flex flex-col items-center justify-center space-y-3">
                       <Archive className="w-10 h-10 text-gray-300" />
-                      <p>Chưa có bản quyền phần mềm nào. Hãy thêm mới!</p>
+                      <p>
+                        {isEmployee
+                          ? 'Bạn hiện chưa được cấp license nào.'
+                          : 'Chưa có bản quyền phần mềm nào. Hãy thêm mới!'}
+                      </p>
                     </div>
                   </td>
                 </tr>
@@ -80,10 +109,14 @@ export default async function LicensesPage() {
                       </Link>
                     </td>
 
-                    {/* Cột 2 — giữ nguyên */}
+                    {/* Cột 2 — F9 fix: mask productKey cho non-ADMIN */}
                     <td className="px-6 py-4">
                       <span className="font-mono text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded border border-gray-200">
-                        {lic.productKey || 'Không áp dụng'}
+                        {lic.productKey
+                          ? isAdmin
+                            ? lic.productKey
+                            : maskProductKey(lic.productKey)
+                          : 'Không áp dụng'}
                       </span>
                     </td>
 
@@ -105,13 +138,15 @@ export default async function LicensesPage() {
                     {/* Cột 5 */}
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end space-x-2">
-                        <Link
-                          href={`/licenses/${lic.id}/edit`}
-                          className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
-                          title="Sửa"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Link>
+                        {isAdmin && (
+                          <Link
+                            href={`/licenses/${lic.id}/edit`}
+                            className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                            title="Sửa"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Link>
+                        )}
                         <Link
                           href={`/licenses/${lic.id}`}
                           className="p-1.5 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition"
