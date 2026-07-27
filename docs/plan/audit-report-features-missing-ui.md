@@ -328,6 +328,37 @@ src/components/settings/UsersTable.tsx                (MODIFY, +60 dòng — Ava
 
 **Effort:** M (1.5-2 ngày) — **GIẢM 0.5 NGÀY so với báo cáo gốc** vì RBAC đã có sẵn, không cần scaffold permission system.
 
+**✅ DONE (2026-07-28)** — Tier 2 đã implement trong 3 commits:
+- `de00dfd` `feat(api): A3 part 1 — extend user PUT/POST whitelist with 18 fields + unique validation`
+- `97b7ec6` `feat(ui): A3 part 2 — full User form (4 sections + 25 fields) + UsersTable avatar/contact/status`
+- `b62671e` `docs: A3 user-fields scaffolding (MSEW + CONTEXT + SKILL-ROUTING + ACCEPTANCE)`
+
+**Acceptance status (verified):**
+- ✅ Edit User / New User hiển thị đầy đủ **25 editable fields** (phân thành 5 sections: Identity / Contact / Org / Permissions / Notes)
+- ✅ PUT body whitelist mở rộng: username, employeeNum, phone, mobile, address, city, state, country, zip, notes, avatar, activated, companyId, locationId, managerId, locale, remote, vip, autoassignLicenses
+- ✅ POST body whitelist tương tự + pre-check unique email/username/employeeNum trả 409 (không phải Prisma P2002)
+- ✅ nullable() helper: empty string → null (tránh FK constraint fail)
+- ✅ User `activated = false` → check ở login (existing logic — flag vẫn được persist đúng)
+- ✅ Username/Email/EmployeeNum unique → API trả 409 với message tiếng Việt
+- ✅ Bảng UsersTable hiển thị Avatar (URL → <img>, fallback → initials gradient), VIP/Remote badge, EmployeeNum + Phone combo, status dot (Hoạt động / Vô hiệu)
+- ✅ **S1 security**: API không chấp nhận `password` (chỉ PUT khi đổi mật khẩu) và KHÔNG BAO GIỜ trả về `twoFactorSecret`
+- ✅ **S2 security**: response `select` exclude password + twoFactorSecret (giữ nguyên từ trước)
+- ✅ **S3 security**: role + customRoleId changes vẫn yêu cầu `users.manage_roles` (giữ nguyên từ trước)
+
+**Files changed:**
+- `src/app/api/settings/users/[id]/route.ts` (PUT whitelist + unique validation)
+- `src/app/api/settings/users/route.ts` (POST whitelist + 3-way unique pre-check)
+- `src/app/settings/users/[id]/page.tsx` (fetch companies/locations/managers)
+- `src/app/settings/users/new/page.tsx` (fetch companies/locations/managers)
+- `src/app/settings/users/[id]/EditUserForm.tsx` (rewrite với 5 fieldsets + ToggleRow)
+- `src/app/settings/users/new/NewUserForm.tsx` (rewrite với 5 fieldsets + ToggleRow)
+- `src/components/settings/UsersTable.tsx` (Avatar column + status dot + VIP/Remote badges)
+
+**Out of scope (deferred):**
+- Avatar upload thật sự (Epic I sẽ wire `src/lib/upload.ts` thành production S3)
+- Crop / resize avatar (Epic I)
+- 2FA UI toggle (B10 - schema migration cần trước)
+
 ---
 
 ### A4. Asset "Mark audited" action (S — 0.5-1 ngày)
@@ -1405,7 +1436,7 @@ src/app/api/account/preferences/route.ts              (NEW, ~80 dòng — GET/PU
 SPRINT A (top 10, ~10-12 ngày — RECALIBRATED 2026-07-28):
 [x] A1. License filter button            [XS] (0.5h — Server Component, no API) — ✅ DONE commit `85d9fb7` + `ef8062b` 2026-07-28
 [x] A2. Audit log drill-down + diff      [XS] (0.5 ngày — JsonDiff extract, reuse FieldDiff) — ✅ DONE commits `0ed359b` + `9dd06ff` 2026-07-28
-[ ] A3. User form full fields (~31)       [M]  (1.5-2 ngày — extend API body whitelist)
+[x] A3. User form full fields (~25)       [M]  (1.5-2 ngày — extend API body whitelist) — ✅ DONE commits `de00dfd` + `97b7ec6` 2026-07-28
 [ ] A4. Asset "Mark audited" action      [S]  (0.5-1 ngày)
 [ ] A5. Depreciation CRUD UI             [M]  (1.5 ngày — API exist, no scaffold)
 [ ] A6. Ticket filter (5 filters)        [M]  (1-2 ngày — use helpdesk.* keys)
@@ -1666,7 +1697,7 @@ Cross-check từng feature với code đã phát triển trong 7 commits gần n
 | **UP-1/2/3/4** | User Panel MVP (profile + avatar + change password + security info) | ✅ **DONE** | commit `57edb99` — `/account/profile`, `/account/password`, `/account/security` đã có sẵn. **BỎ khỏi backlog**, không cần code lại |
 | **A1** | License filter button | ⚠️ MISMATCH | `/licenses/page.tsx` dùng **Server Component + prisma.findMany** (KHÔNG qua API). Báo cáo nói "API support query params" — SAI. Filter phải implement bằng URL searchParams + Server Component, KHÔNG phải client-side filter |
 | **A2** | AuditLog drill-down + diff | ✅ **DONE 2026-07-28** | Tier 2 implement commits `0ed359b` + `9dd06ff`. JsonDiff extracted, AuditLogTable moved to `/audit/`, drill-down (15 entity types) + inline JsonDiff expand row. `AssetHistoryTimeline.tsx` + `LicenseHistoryTimeline.tsx` đã refactor import JsonDiff. Effort đúng estimate (0.5 ngày) |
-| **A3** | User form full fields | ⚠️ RBAC conflict | API PUT `/api/settings/users/[id]` (line 42) chỉ nhận `{ firstName, lastName, jobTitle, email, password, role, departmentId, customRoleId }` — thiếu ~14 fields. CẦN update API body schema trước khi update form |
+| **A3** | User form full fields | ✅ **DONE 2026-07-28** | Tier 2 implement commits `de00dfd` + `97b7ec6`. PUT/POST whitelist mở rộng 25 fields. Forms chia 5 sections (Identity/Contact/Org/Permissions/Notes) + ToggleRow cho 4 flags boolean. UsersTable có Avatar + status dot + VIP/Remote badges. Unique validation cho email/username/employeeNum trả 409. KHÔNG whitelist password/twoFactorSecret |
 | **A4** | Asset "Mark audited" | ✅ CLEAN | Đúng, không có endpoint |
 | **A5** | Depreciation CRUD UI | ✅ CLEAN | Đúng, thiếu |
 | **A6** | Ticket filter | ⚠️ RBAC key conflict | Permission catalog KHÔNG có `tickets.*`, chỉ có `helpdesk.*`. Báo cáo nói `tickets.assign` etc — SAI, phải dùng `helpdesk.assign/reassign/close`. Reassign permission ĐÃ CÓ (`helpdesk.reassign`, commit 2c64cd5) |
