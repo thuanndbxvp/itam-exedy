@@ -128,12 +128,12 @@ export default function AuditLogTable({
       if (value) params.set(key, value)
     })
     params.set('page', '1')
-    router.push(`/audit-log?${params.toString()}`)
+    router.push(`/settings/audit-log?${params.toString()}`)
   }
 
   function clearFilters() {
     setFilters({ actionType: '', itemType: '', userId: '', from: '', to: '' })
-    router.push('/audit-log')
+    router.push('/settings/audit-log')
   }
 
   function toggleExpand(id: string) {

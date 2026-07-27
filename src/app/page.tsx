@@ -55,7 +55,7 @@ export default async function DashboardPage() {
             <Activity className="w-5 h-5 text-gray-400 mr-2" />
             <h3 className="text-lg font-semibold text-gray-800">Hoạt động gần đây</h3>
           </div>
-          <Link href="/audit-log" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+          <Link href="/settings/audit-log" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
             Xem tất cả →
           </Link>
         </div>
