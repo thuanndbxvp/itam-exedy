@@ -1,9 +1,12 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import { cookies } from "next/headers";
 import prisma from "@/lib/prisma";
 import { recordLoginActionLog } from "@/app/actions/account-preferences";
 import { headers } from "next/headers";
+
+const PASSED_2FA_COOKIE = '2fa_passed';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -16,24 +19,52 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email) return null;
 
+        // Sprint B17: Nếu cookie `2fa_passed=1` hiện diện (đã verify OTP ở bước 2),
+        // bỏ qua bcrypt check (vẫn check nhẹ user tồn tại + active).
+        // Cookie TTL 60s → chỉ dùng ngay cho cuộc signIn() liền kề.
+        let twoFactorBypass = false;
+        try {
+          const cStore = await cookies();
+          twoFactorBypass = cStore.get(PASSED_2FA_COOKIE)?.value === '1';
+          // Clear ngay sau khi đọc để không reuse nhiều lần
+          if (twoFactorBypass) {
+            cStore.delete(PASSED_2FA_COOKIE);
+          }
+        } catch {
+          // ignore
+        }
+
         const user = await prisma.user.findUnique({
           where: { email: credentials.email }
         });
 
         if (!user) return null;
+        if (!user.activated || user.deletedAt) return null;
 
-        // Epic D: luôn verify bcrypt nếu user có password. Phase 2 (LDAP/SSO)
-        // sẽ phân nhánh ở đây.
-        if (!user.password) {
-          // User chưa set password (vd: tài khoản hệ thống system@internal.local)
-          // → reject nếu Phase 1.
-          return null;
+        // Nếu 2FA enrolled VÀ không có bypass cookie → reject (gate)
+        if (user.twoFactorEnrolled && !twoFactorBypass) {
+          // Signal cho UI biết cần OTP (dùng NextAuth error string)
+          throw new Error('REQUIRES_2FA');
         }
 
-        if (!credentials.password) return null;
+        // Nếu bypass → cho pass thẳng (cookie đã verify OTP trước đó)
+        if (twoFactorBypass) {
+          // Vẫn cần password field không rỗng cho NextAuth schema hợp lệ
+          if (!credentials.password) return null;
+        } else {
+          // Epic D: luôn verify bcrypt nếu user có password. Phase 2 (LDAP/SSO)
+          // sẽ phân nhánh ở đây.
+          if (!user.password) {
+            // User chưa set password (vd: tài khoản hệ thống system@internal.local)
+            // → reject nếu Phase 1.
+            return null;
+          }
 
-        const ok = await bcrypt.compare(credentials.password, user.password);
-        if (!ok) return null;
+          if (!credentials.password) return null;
+
+          const ok = await bcrypt.compare(credentials.password, user.password);
+          if (!ok) return null;
+        }
 
         // Sprint B13: ghi LOGIN action log (non-blocking)
         try {

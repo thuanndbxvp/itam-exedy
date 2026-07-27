@@ -49,6 +49,7 @@
 | 2026-07-28 | Sprint B6-B9 (Asset Image + Asset-to-Asset + License Company + Reports) | `601f6f9` + `498b8ed` | ~3h | Base64 image upload, transferable API, sidebar nav, SVG charts |
 | 2026-07-28 | Sprint B10-B13 (Account panel: notifications/appearance/2FA/login history) | `d6bb4f9` + `09c6fb6` | ~3h | UserPreference forms, theme cookie + anti-FOUC, LOGIN audit trail |
 | 2026-07-28 | Sprint B14-B15 (CSV helper + Users/Audit export) | bundle | ~2h | `lib/csv.ts` shared util (BOM+CRLF+RFC4180), `/api/users/export` (HR roll), `/api/audit-log/export` (compliance report) |
+| 2026-07-28 | Sprint B16-B17 (Forgot password + 2FA TOTP) | bundle | ~5h | otplib+qrcode, PasswordResetToken migration, /api/auth/{forgot,reset}-password, 2FA setup/verify/disable, 2-step login challenge với HMAC pending cookie |
 
 **Sprint B14-B15 status (2026-07-28): ✅ DONE.** Shared CSV layer chuẩn hoá + 2 endpoint admin mới:
 - B14: `src/lib/csv.ts` 4 helper (`escapeCsvCell`, `buildCsv`, `csvResponse`, `parseCsv`) + 2 formatter (`formatCsvDate`, `formatCsvNumber`). Refactor `/api/assets/export` (thêm notes/EOL/requestable/BYOD/warrantyMonths/purchaseOrder/createdAt) và `/api/licenses/export` dùng helper — backward compatible filename.
@@ -1584,9 +1585,9 @@ SPRINT B (nice-to-have, ~12-15 ngày — RECALIBRATED):
 [ ] B12. Active sessions management      [M]  (1.5 ngày)
 [ ] B13. Per-user history timeline       [S]  (1 ngày)
 [ ] B14. CSV Import License/User         [M]  (4 ngày total)
-[ ] B15. CSV Export others               [M]  (4 ngày total) ← B15 PARTIAL: Users + Audit done trong B14_B15 bundle (CSV Import License/User = vẫn pending)
-[ ] B16. Forgot password email flow      [M]  (2 ngày)
-[ ] B17. 2FA TOTP enrollment             [L]  (3-4 ngày)
+[~] B15. CSV Export others               — PARTIAL (Users+Audit done in B14_B15; CSV Import License/User still pending)
+[x] B16. Forgot password email flow      — DONE (DB+UI+API)
+[x] B17. 2FA TOTP enrollment             — DONE (DB+UI+3-step login challenge)
 
 SPRINT C (large refactor, ~25 ngày — KHÔNG ĐỔI):
 [ ] C1. QR code / barcode label          [L]  (3 ngày)
@@ -1844,8 +1845,8 @@ Cross-check từng feature với code đã phát triển trong 7 commits gần n
 | **B13** | Per-user history timeline | ✅ CLEAN | Đúng |
 | **B14** | CSV Import License/User | ✅ CLEAN | Đúng |
 | **B15** | CSV Export others | ✅ CLEAN | Đúng |
-| **B16** | Forgot password | ⚠️ Partial infra | Epic H (commit 9598685) đã có `sendEmail()` + `crypto.ts`. NHƯNG signature khác với MSEW-user-panel: code hiện tại dùng `html: string` (đã render sẵn), KHÔNG phải `react: EmailComponent` như MSEW. Forgot password CẦN dùng đúng signature mới |
-| **B17** | 2FA TOTP | ✅ CLEAN | Đúng |
+| **B16** | Forgot password | ❌ STALE | Báo cáo cũ — Sprint B16_B17 DONE: PasswordResetToken table, /api/auth/{forgot,reset}-password, /reset-password page, rate limit 3/email/15min |
+| **B17** | 2FA TOTP | ❌ STALE | Báo cáo cũ — Sprint B16_B17 DONE: otplib+qrcode, /api/auth/2fa/{setup,verify,disable}, 2-step login challenge với HMAC pending cookie |
 | **C1** | QR code / barcode label | ✅ CLEAN | Đúng |
 | **C2** | Ticket attachments | ✅ CLEAN | TicketAttachment model đã có. API/UI thiếu |
 | **C3** | EULA acceptance flow | ✅ CLEAN | Đúng |

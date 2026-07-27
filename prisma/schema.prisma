@@ -94,6 +94,10 @@ enum ActionType {
   LOGIN
   LOGOUT
   TWO_FACTOR_OPTIN_TOGGLED
+  // Sprint B16
+  PASSWORD_RESET
+  TWO_FACTOR_ENABLED
+  TWO_FACTOR_DISABLED
 }
 
 enum ItemType {
@@ -396,6 +400,8 @@ model User {
   assetMaintenances   AssetMaintenance[]     @relation("AssetMaintenanceCreator")
 
   preference UserPreference?
+
+  passwordResetTokens PasswordResetToken[]
 
   @@index([companyId])
   @@index([managerId])
@@ -929,4 +935,30 @@ model UserPreference {
   updatedAt DateTime @updatedAt
 
   @@index([userId, muteUntil])
+}
+
+// ============================================================================
+// SPRINT B16: Password Reset Token (one-time use, TTL 1h)
+// ============================================================================
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // SHA-256 hex digest của raw token (DB không bao giờ lưu plain).
+  // Raw token chỉ xuất hiện trong URL email — không log, không persist.
+  tokenHash String   @unique
+
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  // Thông tin audit
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }

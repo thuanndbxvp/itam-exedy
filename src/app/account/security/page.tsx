@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import SecurityInfoCard from '@/components/account/SecurityInfoCard'
-import TwoFactorToggle from '@/components/account/TwoFactorToggle'
+import TwoFactorSetup from '@/components/account/TwoFactorSetup'
 import LoginHistoryCard from '@/components/account/LoginHistoryCard'
 
 export default async function SecurityPage() {
@@ -18,7 +18,6 @@ export default async function SecurityPage() {
       username: true,
       passwordChangedAt: true,
       twoFactorEnrolled: true,
-      twoFactorOptin: true,
       createdAt: true,
     },
   })
@@ -57,8 +56,8 @@ export default async function SecurityPage() {
         accountCreatedAt={user.createdAt}
       />
 
-      {/* B12: toggle 2FA intent */}
-      <TwoFactorToggle initialOptin={user.twoFactorOptin} />
+      {/* B17: 2FA TOTP enrollment (replaces B12 intent toggle) */}
+      <TwoFactorSetup initialEnrolled={user.twoFactorEnrolled} />
 
       {/* B13: login history */}
       <LoginHistoryCard history={loginHistoryRaw} />
