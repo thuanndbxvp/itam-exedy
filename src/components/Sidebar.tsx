@@ -105,14 +105,14 @@ const SETTINGS_GROUPS = [
 ] as const
 
 const navigation: NavItem[] = [
-  { name: 'Dashboard',          href: '/',                icon: LayoutDashboard, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'reports.view' },
+  { name: 'Dashboard',          href: '/',                icon: LayoutDashboard, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'] },
   { name: 'Tài sản (Assets)',   href: '/assets',          icon: Monitor,          allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'assets.read' },
   { name: 'Bản quyền (Licenses)', href: '/licenses',      icon: Key,              allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'licenses.read' },
   { 
     name: 'Helpdesk',           
     href: '/helpdesk',        
     icon: LifeBuoy,         
-    allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], 
+    allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'],
     permissionKey: 'helpdesk.view',
   },
   {
