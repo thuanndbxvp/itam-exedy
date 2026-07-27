@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Shield, Plus, Pencil, Trash2, Loader2, X, Check } from 'lucide-react'
 import { useToast } from '@/components/Toast'
+import { SYSTEM_ROLE_PERMISSIONS } from '@/lib/permissions/catalog'
 
 interface PermissionDef {
   key: string
@@ -43,6 +44,8 @@ export default function RolesManager() {
     color: '#6366f1',
     permissionIds: [] as string[],
   })
+
+  const defaultPerms = useMemo(() => SYSTEM_ROLE_PERMISSIONS[form.baseRole] || [], [form.baseRole])
 
   async function refresh() {
     setLoading(true)
@@ -334,30 +337,37 @@ export default function RolesManager() {
                         </div>
                         <div className="divide-y divide-gray-100">
                           {perms.map((p) => {
-                            const checked = form.permissionIds.includes(p.key)
+                            const isDefault = defaultPerms.includes(p.key)
+                            const isCustomChecked = form.permissionIds.includes(p.key)
+                            const checked = isDefault || isCustomChecked
                             return (
                               <label
                                 key={p.key}
-                                className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                                className={`flex items-center gap-3 px-4 py-2 ${isDefault ? 'opacity-75 cursor-not-allowed bg-gray-50/50' : 'hover:bg-gray-50 cursor-pointer'}`}
                               >
                                 <input
                                   type="checkbox"
                                   checked={checked}
+                                  disabled={isDefault}
                                   onChange={() => {
+                                    if (isDefault) return
                                     setForm((f) => ({
                                       ...f,
-                                      permissionIds: checked
+                                      permissionIds: isCustomChecked
                                         ? f.permissionIds.filter((k) => k !== p.key)
                                         : [...f.permissionIds, p.key],
                                     }))
                                   }}
-                                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                  className={`h-4 w-4 text-blue-600 rounded focus:ring-blue-500 ${isDefault ? 'border-gray-200 bg-gray-100' : 'border-gray-300'}`}
                                 />
                                 <div className="flex-1">
-                                  <p className="text-sm text-gray-900">{p.label}</p>
+                                  <p className="text-sm text-gray-900">
+                                    {p.label}
+                                    {isDefault && <span className="ml-2 text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded uppercase font-semibold">Mặc định</span>}
+                                  </p>
                                   <code className="text-xs font-mono text-gray-500">{p.key}</code>
                                 </div>
-                                {checked && <Check size={14} className="text-emerald-600" />}
+                                {checked && <Check size={14} className={isDefault ? 'text-gray-400' : 'text-emerald-600'} />}
                               </label>
                             )
                           })}

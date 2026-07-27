@@ -1,7 +1,8 @@
 'use client'
 
-import { Search, LogOut } from 'lucide-react'
+import { Search, LogOut, User as UserIcon } from 'lucide-react'
 import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { useState } from 'react'
 import NotificationBell from './NotificationBell'
@@ -103,6 +104,14 @@ export default function Header() {
                   <p className="text-sm font-semibold text-gray-900">{userDisplayName}</p>
                   <p className="text-xs text-gray-500 truncate">{session?.user?.email}</p>
                 </div>
+                <Link
+                  href="/account/profile"
+                  onClick={() => setShowMenu(false)}
+                  className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                >
+                  <UserIcon size={16} />
+                  <span>Profile</span>
+                </Link>
                 <button
                   onClick={() => signOut({ callbackUrl: '/login' })}
                   className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"

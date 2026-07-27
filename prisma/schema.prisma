@@ -351,6 +351,8 @@ model User {
   twoFactorEnrolled Boolean @default(false)
   twoFactorOptin    Boolean @default(false)
 
+  passwordChangedAt DateTime?
+
   locale             String  @default("vi-VN")
   remote             Boolean @default(false)
   vip                Boolean @default(false)

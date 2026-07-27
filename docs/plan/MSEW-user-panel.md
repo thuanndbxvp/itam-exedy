@@ -1390,6 +1390,64 @@ Phase E: Polish (optional)
 
 ---
 
-**HẾT MSEW-user-panel.md**
+## 11. Blocker Resolution (2026-07-28 update)
 
-Tổng kết: User Panel chưa có trong master roadmap. Đề xuất **Phase 4.5** (giữa Phase 4 và Phase 5) — tận dụng Epic H+I infrastructure sẵn có. Effort ~3 ngày MVP. Trả lời câu hỏi của sếp: User Panel **không nằm trong Epic H+I hiện tại**, cần Phase riêng.
+Tier 2 đã từ chối code khi chưa có scaffolding files. Tier 1 tạo 4 file scaffold + giải quyết 2 blockers sau:
+
+### Blocker #2: Scope creep (chưa rõ MVP vs full)
+
+**Triệu chứng:** MSEW đề xuất 3-7 ngày, có 10 features. Tier 2 không biết nên code feature nào trước.
+
+**Giải pháp:** Tạo `ACCEPTANCE-user-panel.md` định nghĩa MVP scope chỉ 1 ngày (P0 only):
+- ✅ IN: UP-1 Profile (7 fields edit), UP-2 Avatar upload, UP-3 Change password, UP-4 Security info (read-only)
+- ❌ OUT (defer Phase 5+): Forgot password, 2FA, Notification prefs, API tokens, Email change, Sessions
+
+**Effort MVP:** ~10.75h ≈ 1.4 ngày (verify trong WORKFLOW-STATUS section 9).
+
+### Blocker #4: Thiếu SKILL ROUTING + WORKFLOW 8-step
+
+**Triệu chứng:** Tier 2 không biết:
+- Dùng agent nào cho phần nào
+- Thứ tự step là gì
+- Khi nào escalate
+
+**Giải pháp:** Tạo 2 file:
+- `SKILL-ROUTING-user-panel.md` — matrix 10 bước × agent/skill (xem file)
+- `docs/exec/WORKFLOW-STATUS-user-panel.md` — 8-step loop + status checklist
+
+### Điều kiện giải quyết hoàn toàn
+
+```
+✅ File 1: docs/plan/CONTEXT-user-panel.md (background + impact)
+✅ File 2: docs/plan/SKILL-ROUTING-user-panel.md (agent × task matrix)
+✅ File 3: docs/plan/ACCEPTANCE-user-panel.md (Definition of Done)
+✅ File 4: docs/exec/WORKFLOW-STATUS-user-panel.md (8-step status)
+✅ MSEW updated với Blocker Resolution section (this)
+```
+
+→ **Tier 2 có thể bắt đầu code.**
+
+---
+
+## 12. Updated MVP scope (2026-07-28 slice)
+
+So với MSEW gốc đề xuất 10 features (3-7 ngày), MVP hiện tại scope xuống còn **4 features (1.4 ngày)**:
+
+| Feature | Trong MVP | Lý do | Phase sau |
+|---------|-----------|-------|-----------|
+| Profile (7 fields) | ✅ P0 | Core self-service | — |
+| Avatar upload | ✅ P0 | Reuse Epic I | — |
+| Change password | ✅ P0 | Security cơ bản | — |
+| Security info card | ✅ P0 | Read-only, effort nhỏ | Expand sessions ở Phase 5 |
+| Forgot password | ❌ Defer | Cần email service production | Phase 5 |
+| Notification prefs | ❌ Defer | Cần wire Epic H triggers | Phase 5 |
+| 2FA TOTP | ❌ Defer | Effort lớn (3-4 ngày) | Phase 5 |
+| Active sessions | ❌ Defer | Cần NextAuth event tracking | Phase 5 |
+| API tokens | ❌ Defer | API chưa có auth flow | Phase 6 |
+| Email change OTP | ❌ Defer | Cần SMS/email gateway | Phase 5 |
+
+→ Nếu sau MVP user request thêm features → tạo MSEW mới, không scope creep.
+
+---
+
+**HẾT MSEW-user-panel.md** (rev. 2026-07-28)
