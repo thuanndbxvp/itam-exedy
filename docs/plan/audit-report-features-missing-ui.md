@@ -47,6 +47,7 @@
 | 2026-07-28 | Sprint A.5 HOTFIX - dup licenseId | `fab595c` | ~1h | Backend throw InvalidStateError + frontend disable targets |
 | 2026-07-28 | Sprint B1-B5 (Category/Settings CRUD) | `84d8e06` + `a00c23d` | ~2h | Full EULA/Status/Location/Dept/settings fields |
 | 2026-07-28 | Sprint B6-B9 (Asset Image + Asset-to-Asset + License Company + Reports) | `601f6f9` + `498b8ed` | ~3h | Base64 image upload, transferable API, sidebar nav, SVG charts |
+| 2026-07-28 | Sprint B10-B13 (Account panel: notifications/appearance/2FA/login history) | `d6bb4f9` + `09c6fb6` | ~3h | UserPreference forms, theme cookie + anti-FOUC, LOGIN audit trail |
 
 **Sprint A status (2026-07-28): ✅ 8/10 done.** Còn lại: A8 bulk seat ops (deferred từ bundle trước). Tổng effort thực tế ~17.5h (~2.2 ngày) thay vì ước tính 6.5-8 ngày ban đầu (cao tốc nhờ patterns A1 đã sẵn + tái sử dụng Modal/Toast).
 
@@ -66,6 +67,15 @@
 - B8 (License companyId): Dropdown Company trong LicenseForm — bind `License.companyId` DB (đã có FK). Load qua `prisma.company.findMany` (không có `deletedAt`).
 - B9 (Reports page): `/reports` với 6 stat counters + Bar Chart theo Status + Donut/Pie Chart theo Category + Table Top 10 licenses sắp hết hạn. Permission `reports.view`. 2 API endpoints mới: `/api/reports/assets-by-department` (cat proxy), `/api/reports/licenses-expiring?withinDays=60`. SVG charts (zero deps). Sidebar nav gated bởi `reports.view`.
 - NF1: zero schema migration (Asset.image / assignedAssetId / License.companyId đều có sẵn).
+
+**Sprint B10-B13 status (2026-07-28): ✅ DONE.** Account panel self-service hoàn thiện — `d6bb4f9` + `09c6fb6`:
+- B10 (Notifications): `/account/notifications` form chọn `emailDigestFrequency` (NEVER/DAILY/WEEKLY) + `muteUntil` (datetime picker). Server action `updateNotificationPrefsAction` + defensive backfill `UserPreference`.
+- B11 (Appearance): `/account/appearance` 3 theme radio cards (Light/Dark/System) + locale select. Cookie `theme` set sau save + anti-FOUC inline script trong root layout `<head>` đọc cookie và apply `<html class="dark">` ngay từ request đầu (tránh flash sáng → tối khi refresh).
+- B12 (2FA intent): `TwoFactorToggle` component chỉ lưu flag `User.twoFactorOptin` + `twoFactorEnrolled` (Phase sau mới issue OTP thật). UI có AlertCircle ghi chú "OTP sẽ được triển khai Phase sau".
+- B13 (Login History): `LoginHistoryCard` top 20 LOGIN action từ `ActionLog` (capture IP + UserAgent qua `headers()` từ Next.js). Schema: extend `ActionType` enum với 3 values (LOGIN/LOGOUT/TWO_FACTOR_OPTIN_TOGGLED) qua raw SQL `sprint_b13_action_type_login.sql`.
+- API mới: `/api/me/preferences` GET (auto-backfill).
+- UserPanelNav: 5 items (Profile/Password/Security/Notifications/Appearance).
+- Migration: `prisma db execute --file prisma/sql/sprint_b13_action_type_login.sql` (idempotent với `IF NOT EXISTS`).
 - B1 (Category): EULA + acceptance + checkin email ✅
 - B2 (Status): 4 loại (deployable / pending / undeployable / archived) ✅
 - B3 (Location): 6 fields address (skip address2 vì schema không có) ✅
