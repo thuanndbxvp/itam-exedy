@@ -4,10 +4,11 @@
  * Tạo row HelpdeskNotification cho user nhận được event (ticket assigned,
  * comment mới, status đổi…). UI bell sẽ polling /api/notifications mỗi 30s.
  *
- * Không gửi email ở phase này (chưa có SMTP).
+ * Sprint C9: cũng fanout tới external notification channels (Slack webhook).
  */
 import type { HelpdeskNotificationKind } from "@prisma/client";
 import prisma from "@/lib/prisma";
+import { deliverExternalChannels } from "@/lib/notification-channel";
 
 interface NotifyOpts {
   userId: string;
@@ -46,6 +47,14 @@ export async function notify(opts: NotifyOpts): Promise<void> {
       body: opts.body,
       link: opts.link,
     },
+  });
+
+  // Sprint C9: fanout tới external channels (Slack) — best-effort, không await.
+  void deliverExternalChannels({
+    kind: opts.kind,
+    title: opts.title,
+    body: opts.body,
+    link: opts.link,
   });
 }
 

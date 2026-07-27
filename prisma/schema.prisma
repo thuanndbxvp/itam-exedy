@@ -407,6 +407,9 @@ model User {
   passwordResetTokens PasswordResetToken[]
   eulaAcceptances     EulaAcceptance[]
   savedFilters        SavedFilter[]
+  apiTokensCreated       ApiToken[]            @relation("ApiTokenCreatedBy")
+  emailTemplatesUpdated  EmailTemplate[]       @relation("EmailTemplateUpdatedBy")
+  notificationChannelsCreated NotificationChannel[] @relation("NotificationChannelCreatedBy")
 
   @@index([companyId])
   @@index([managerId])
@@ -1015,4 +1018,99 @@ model SavedFilter {
   @@index([userId])
   @@index([scope])
   @@index([scope, isPublic])
+}
+
+// ============================================================================
+// SPRINT C7: API Token — Bearer token cho 3rd-party integrations
+// ============================================================================
+
+model ApiToken {
+  id          String   @id @default(cuid())
+  name        String
+
+  /// 8-char prefix dùng để identify (e.g., `tk_a1b2c3...`).
+  /// Hiển thị trong UI để user phân biệt các token.
+  tokenPrefix String
+
+  /// SHA-256 hex hash của raw token. Raw token chỉ show ONCE khi tạo.
+  /// (Phase C7+ có thể wrap trong AES-256-GCM nếu cần FIPS.)
+  tokenHash   String   @unique
+
+  /// JSON array scopes: e.g., `["assets.read","licenses.read"]`.
+  scopes      Json
+
+  /// Token có expire không? Null = no expiry.
+  expiresAt   DateTime?
+
+  /// Last time token used (cập nhật mỗi successful call).
+  lastUsedAt  DateTime?
+
+  /// Soft-revoke: API vẫn lookup DB nhưng throw 401 nếu revokedAt != null.
+  revokedAt   DateTime?
+  revokedById String?
+
+  createdById String
+  createdBy   User     @relation("ApiTokenCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime @default(now())
+
+  @@index([tokenHash])
+  @@index([tokenPrefix])
+  @@index([revokedAt])
+}
+
+// ============================================================================
+// SPRINT C8: Email Template — admin customizable subject + htmlBody
+// ============================================================================
+
+model EmailTemplate {
+  /// ENUM key: TICKET_ASSIGNED | TICKET_COMMENTED | TICKET_STATUS_CHANGED |
+  ///          TICKET_CLOSED | PASSWORD_RESET | ASSET_CHECKOUT
+  key         String         @id
+
+  subject     String
+  htmlBody    String         @db.Text
+
+  /// Available variable names (JSON array of strings) — UI show these in preview.
+  /// E.g., `["userName","ticketCode","link"]`.
+  variables   Json
+
+  updatedAt   DateTime       @updatedAt
+  updatedById String?
+  updatedBy   User?          @relation("EmailTemplateUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([updatedAt])
+}
+
+// ============================================================================
+// SPRINT C9: Notification Channel — Slack webhook outbound
+// ============================================================================
+
+model NotificationChannel {
+  id                 String    @id @default(cuid())
+  name               String
+
+  /// `SLACK` (MVP), `WEBHOOK` (generic JSON POST).
+  kind               String
+
+  /// Webhook URL.
+  /// MVP: lưu plaintext trong DB. Phase 2 có thể wrap trong AES-256-GCM.
+  url                String
+
+  enabled            Boolean   @default(true)
+
+  /// Optional: chỉ forward các notification kind này (empty = forward all).
+  /// JSON array: e.g., `["TICKET_CREATED","TICKET_ASSIGNED"]`.
+  filterKinds        Json
+
+  lastDeliveryAt     DateTime?
+  lastDeliveryError  String?
+
+  createdById        String
+  createdBy          User      @relation("NotificationChannelCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  @@index([kind])
+  @@index([enabled])
 }
