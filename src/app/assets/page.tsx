@@ -141,14 +141,16 @@ export default async function AssetsPage({ searchParams }: PageProps) {
             />
           }
         />
-        <div className="flex items-center justify-end bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3 mt-4">
-          <Pagination
-            currentPage={data.page}
-            totalPages={data.totalPages}
-            totalItems={data.total}
-            itemsPerPage={ITEMS_PER_PAGE}
-          />
-        </div>
+        {data.totalPages > 1 && (
+          <div className="flex items-center justify-end bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3 mt-4">
+            <Pagination
+              currentPage={data.page}
+              totalPages={data.totalPages}
+              totalItems={data.total}
+              itemsPerPage={ITEMS_PER_PAGE}
+            />
+          </div>
+        )}
       </Suspense>
     </div>
   )

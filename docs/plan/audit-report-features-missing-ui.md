@@ -46,6 +46,7 @@
 | 2026-07-28 | Sprint A.5 P2 - Asset License tab | `25b99e2` | ~2.5h | AssignLicenseModal 3-step wizard + Assign/Thu hồi UI |
 | 2026-07-28 | Sprint A.5 HOTFIX - dup licenseId | `fab595c` | ~1h | Backend throw InvalidStateError + frontend disable targets |
 | 2026-07-28 | Sprint B1-B5 (Category/Settings CRUD) | `84d8e06` + `a00c23d` | ~2h | Full EULA/Status/Location/Dept/settings fields |
+| 2026-07-28 | Sprint B6-B9 (Asset Image + Asset-to-Asset + License Company + Reports) | `601f6f9` + `498b8ed` | ~3h | Base64 image upload, transferable API, sidebar nav, SVG charts |
 
 **Sprint A status (2026-07-28): ✅ 8/10 done.** Còn lại: A8 bulk seat ops (deferred từ bundle trước). Tổng effort thực tế ~17.5h (~2.2 ngày) thay vì ước tính 6.5-8 ngày ban đầu (cao tốc nhờ patterns A1 đã sẵn + tái sử dụng Modal/Toast).
 
@@ -58,6 +59,13 @@
 - ✅ HOTFIX license-bugs: chặn user/asset nhận 2 seat cùng licenseId — `fab595c`
 
 **Sprint B1-B5 status (2026-07-28): ✅ DONE.** 5/5 module settings CRUD hoàn thiện (Category EULA, Status 4-type radio, Location đủ fields, Department locationId, Settings supportEmail) — `84d8e06` + `a00c23d`. Effort thực tế ~2h nhờ EntityTable pattern reuse. NF1: sử dụng fields có sẵn trong schema, không migrate DB.
+
+**Sprint B6-B9 status (2026-07-28): ✅ DONE.** 4/4 feature triển khai xong — `601f6f9` + `498b8ed`:
+- B6 (Asset Image): `AssetImagePicker` Client Component → encode Base64 data-URI ≤5MB → lưu `Asset.image` → 1.5MB cap ở server action. UI preview + drag-drop + clear.
+- B7 (Asset-to-Asset checkout): New command `checkoutAssetToAsset` + server-action `checkoutAssetToAssetCmd` + API `/api/assets/transferable?excludeId=X`. CheckoutAssetModal có 3 tabs (Nhân viên / Vị trí / **Thiết bị**). Có cycle-detection 1 cấp.
+- B8 (License companyId): Dropdown Company trong LicenseForm — bind `License.companyId` DB (đã có FK). Load qua `prisma.company.findMany` (không có `deletedAt`).
+- B9 (Reports page): `/reports` với 6 stat counters + Bar Chart theo Status + Donut/Pie Chart theo Category + Table Top 10 licenses sắp hết hạn. Permission `reports.view`. 2 API endpoints mới: `/api/reports/assets-by-department` (cat proxy), `/api/reports/licenses-expiring?withinDays=60`. SVG charts (zero deps). Sidebar nav gated bởi `reports.view`.
+- NF1: zero schema migration (Asset.image / assignedAssetId / License.companyId đều có sẵn).
 - B1 (Category): EULA + acceptance + checkin email ✅
 - B2 (Status): 4 loại (deployable / pending / undeployable / archived) ✅
 - B3 (Location): 6 fields address (skip address2 vì schema không có) ✅
