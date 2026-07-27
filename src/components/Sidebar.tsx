@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import {
   LayoutDashboard, Monitor, Key, Settings, Menu, X, LifeBuoy, Inbox,
-  Briefcase, LayoutGrid, Server, Activity, ChevronDown, ChevronRight, KeyRound, Wrench, BarChart3
+  Briefcase, LayoutGrid, Server, Activity, ChevronDown, ChevronRight, KeyRound, Wrench, BarChart3, DollarSign
 } from 'lucide-react'
 import RoleGate from './RoleGate'
 
@@ -128,6 +128,10 @@ const navigation: NavItem[] = [
     icon: BarChart3,
     allowedRoles: ['ADMIN', 'IT_MANAGER'],
     permissionKey: 'reports.view',
+    children: [
+      { label: 'Tổng quan', href: '/reports', icon: BarChart3, permissionKey: 'reports.view' },
+      { label: 'Chi phí IT', href: '/reports/costs', icon: DollarSign, permissionKey: 'reports.view' },
+    ],
   },
   {
     name: 'Cài đặt (Settings)',

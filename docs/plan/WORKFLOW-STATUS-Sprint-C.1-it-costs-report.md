@@ -1,9 +1,11 @@
-# WORKFLOW-STATUS: Sprint C.1 - IT Costs Report
+# WORKFLOW-STATUS: Sprint-C.1-it-costs-report
 
-**Người lập:** Tier 1 (Planner)
+**Người lập:** Tier 2
 
-## Trạng thái hiện tại
-`[ ] Not Started`
+## Trạng thái: `[x] DONE` — 2026-07-28
 
-## Lịch sử cập nhật
-- **[2026-07-28]**: Tier 1 khởi tạo bộ tài liệu quy trình đầy đủ (MSEW, CONTEXT, SKILL-ROUTING, ACCEPTANCE, WORKFLOW-STATUS) cho tính năng Báo cáo chi phí IT theo yêu cầu của Sếp. Đã sẵn sàng giao cho Tier 2.
+## Effort
+- API: ~30min (3 query song song + Decimal conversion)
+- UI: ~1h (4 cards + pie + table + presets)
+- Sidebar: ~15min (submenu refactor)
+- Total: ~2h
