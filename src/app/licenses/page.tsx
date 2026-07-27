@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { Plus, Key, Edit2, Archive, ExternalLink } from 'lucide-react'
 import LicenseFilterBar from '@/components/licenses/LicenseFilterBar'
+import ExportLicensesButton from '@/components/licenses/ExportLicensesButton'
 
 /**
  * F9 fix (security audit): mask productKey cho non-ADMIN.
@@ -99,15 +100,21 @@ export default async function LicensesPage({ searchParams }: LicensesPageProps) 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <LicenseFilterBar initialSearch={rawSearch} initialStatus={status} />
 
-        {isAdmin && (
-          <Link
-            href="/licenses/new"
-            className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition shadow-sm font-medium whitespace-nowrap"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Thêm Bản Quyền</span>
-          </Link>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <ExportLicensesButton
+            searchParams={new URLSearchParams({ ...(rawSearch && { search: rawSearch }), ...(status !== 'all' && { status }) })}
+            canExport={isAdmin}
+          />
+          {isAdmin && (
+            <Link
+              href="/licenses/new"
+              className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition shadow-sm font-medium whitespace-nowrap"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Thêm Bản Quyền</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Active filter chips */}
