@@ -276,7 +276,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
           ticketId: id,
           kind: "TICKET_STATUS_CHANGED",
           title: `${ticket.code} → ${body.status}`,
-          body: null,
+          body: undefined,
           link: `/helpdesk/${ticket.code}`,
         });
       }
