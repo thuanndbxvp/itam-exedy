@@ -1,0 +1,46 @@
+'use server'
+
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import prisma from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
+import { getActorUserId } from '@/lib/audit'
+
+export async function createLicense(data: {
+  name: string
+  productKey?: string
+  seatsTotal: number  // giữ signature cũ (form gửi lên) — convert sang nested seats.create
+}) {
+  const session = await getServerSession(authOptions)
+  const actorId = await getActorUserId(session?.user?.id ?? null)
+
+  // Validate: seatsTotal phải ≥ 1 (Form đã enforce min=1, defensive ở backend)
+  const seatCount = Math.max(1, Math.floor(data.seatsTotal ?? 1))
+
+  const license = await prisma.license.create({
+    data: {
+      name: data.name,
+      productKey: data.productKey ?? null,
+      // Nested write: tạo LicenseSeat cùng License trong 1 transaction.
+      // Sau khi tạo, `lic.seats` là array có `seatCount` phần tử.
+      seats: {
+        create: Array.from({ length: seatCount }).map(() => ({
+          notes: 'Auto-created seat',
+        })),
+      },
+    },
+  })
+
+  await prisma.actionLog.create({
+    data: {
+      actionType: 'CREATE',
+      itemId: license.id,
+      itemType: 'LICENSE',
+      userId: actorId,
+      notes: `Tạo mới bản quyền (${seatCount} seats)`,
+    },
+  })
+
+  revalidatePath('/licenses')
+  return license
+}

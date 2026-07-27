@@ -1,0 +1,146 @@
+import prisma from '@/lib/prisma'
+import Link from 'next/link'
+import { Plus, Search, Filter, MoreVertical, Edit2, Archive, Trash2 } from 'lucide-react'
+
+export default async function AssetsPage() {
+  const assets = await prisma.asset.findMany({
+    include: {
+      status: true,
+      assignedTo: true,
+    },
+    orderBy: { createdAt: 'desc' }
+  })
+
+  // Helper cho màu Status
+  const getStatusColor = (type: string) => {
+    switch(type) {
+      case 'DEPLOYABLE': return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+      case 'DEPLOYED': return 'bg-blue-100 text-blue-700 border-blue-200'
+      case 'BROKEN': return 'bg-rose-100 text-rose-700 border-rose-200'
+      default: return 'bg-gray-100 text-gray-700 border-gray-200'
+    }
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header Actions */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-1 items-center space-x-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input 
+              type="text" 
+              placeholder="Tìm theo mã thẻ, tên, serial..." 
+              className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm transition"
+            />
+          </div>
+          <button className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 shadow-sm transition">
+            <Filter className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <Link 
+          href="/assets/new" 
+          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition shadow-sm font-medium whitespace-nowrap"
+        >
+          <Plus className="w-5 h-5" />
+          <span>Thêm Tài Sản</span>
+        </Link>
+      </div>
+
+      {/* Data Table Card */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="bg-slate-50/80 border-b border-gray-100 text-gray-500">
+                <th className="px-6 py-4 font-medium whitespace-nowrap">Tài sản (Asset)</th>
+                <th className="px-6 py-4 font-medium whitespace-nowrap">Trạng thái</th>
+                <th className="px-6 py-4 font-medium whitespace-nowrap">Người/Vị trí giữ</th>
+                <th className="px-6 py-4 font-medium whitespace-nowrap">Ngày tạo</th>
+                <th className="px-6 py-4 font-medium text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {assets.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                    <div className="flex flex-col items-center justify-center space-y-3">
+                      <Archive className="w-10 h-10 text-gray-300" />
+                      <p>Kho lưu trữ đang trống. Hãy bắt đầu thêm tài sản đầu tiên!</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                assets.map(asset => (
+                  <tr key={asset.id} className="hover:bg-slate-50/50 transition group">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs uppercase">
+                          {asset.assetTag.slice(0,2)}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                            {asset.name}
+                          </p>
+                          <p className="text-xs text-gray-500 font-mono mt-0.5">
+                            {asset.assetTag} • {asset.serial || 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(asset.status?.type || '')}`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
+                        {asset.status?.name || 'Không rõ'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">
+                      {asset.assignedTo ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">
+                            {asset.assignedTo.name.charAt(0)}
+                          </div>
+                          <span>{asset.assignedTo.name}</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 italic">---</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-gray-500 text-sm">
+                      {new Date(asset.createdAt).toLocaleDateString('vi-VN')}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Sửa">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Xóa">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <button className="p-1.5 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        
+        {/* Pagination Footer */}
+        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+          <span className="text-sm text-gray-500">
+            Hiển thị <span className="font-medium text-gray-900">{assets.length}</span> tài sản
+          </span>
+          <div className="flex space-x-2">
+            <button className="px-3 py-1.5 border border-gray-200 rounded-lg bg-white text-sm font-medium text-gray-600 hover:bg-gray-50 shadow-sm" disabled>Trước</button>
+            <button className="px-3 py-1.5 border border-gray-200 rounded-lg bg-white text-sm font-medium text-gray-600 hover:bg-gray-50 shadow-sm" disabled>Sau</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

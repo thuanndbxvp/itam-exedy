@@ -1,0 +1,104 @@
+'use client'
+
+import { Bell, Search, LogOut } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
+import { useState } from 'react'
+
+export default function Header() {
+  const pathname = usePathname()
+  const { data: session } = useSession()
+  const [showMenu, setShowMenu] = useState(false)
+
+  // Tạo title dựa trên path
+  const getPageTitle = () => {
+    if (pathname === '/') return 'Dashboard'
+    if (pathname.startsWith('/assets/new')) return 'Thêm mới Tài sản'
+    if (pathname.startsWith('/assets')) return 'Quản lý Tài sản'
+    if (pathname.startsWith('/licenses/new')) return 'Thêm mới Bản quyền'
+    if (pathname.startsWith('/licenses')) return 'Quản lý Bản quyền'
+    if (pathname.startsWith('/settings')) return 'Cài đặt Hệ thống'
+    return 'Hệ thống Quản lý'
+  }
+
+  // Hiển thị tên user từ session (A2 đã có firstName trong session.user)
+  // Fallback: nếu chưa login (status=unauthenticated) → proxy sẽ redirect → không vào đây
+  const userDisplayName = session?.user?.firstName
+    ? `${session.user.firstName}${session.user.lastName ? ' ' + session.user.lastName : ''}`
+    : '...'
+
+  const userRole = session?.user?.role ?? 'EMPLOYEE'
+
+  return (
+    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-30">
+      <div className="flex-1 ml-10 lg:ml-0 flex items-center">
+        <h1 className="text-xl font-semibold text-gray-800 tracking-tight">
+          {getPageTitle()}
+        </h1>
+      </div>
+
+      <div className="flex items-center space-x-4">
+        {/* Search */}
+        <div className="hidden md:flex items-center relative">
+          <Search
+            size={18}
+            className="absolute left-3 text-gray-400 cursor-pointer hover:text-gray-600 transition"
+            onClick={() => window.dispatchEvent(new Event('open-global-search'))}
+          />
+          <input
+            type="text"
+            readOnly
+            placeholder="Tìm kiếm nhanh (nhấn /)..."
+            onFocus={() => window.dispatchEvent(new Event('open-global-search'))}
+            className="pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-full outline-none cursor-pointer hover:bg-white transition-all w-64"
+          />
+        </div>
+
+        {/* Notifications */}
+        <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
+          <Bell size={20} />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+        </button>
+
+        {/* User Menu */}
+        <div className="h-8 w-px bg-gray-200 mx-2"></div>
+        <div className="relative">
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            className="flex items-center space-x-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+          >
+            <span>{userDisplayName}</span>
+            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+              userRole === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
+            }`}>
+              {userRole}
+            </span>
+          </button>
+
+          {showMenu && (
+            <>
+              {/* Backdrop để click ra ngoài thì đóng menu */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowMenu(false)}
+              />
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 z-50 py-1">
+                <div className="px-4 py-2 border-b border-gray-100">
+                  <p className="text-sm font-semibold text-gray-900">{userDisplayName}</p>
+                  <p className="text-xs text-gray-500 truncate">{session?.user?.email}</p>
+                </div>
+                <button
+                  onClick={() => signOut({ callbackUrl: '/login' })}
+                  className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                >
+                  <LogOut size={16} />
+                  <span>Đăng xuất</span>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
+  )
+}

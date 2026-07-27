@@ -1,0 +1,71 @@
+'use server'
+
+import prisma from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
+
+export async function createAsset(data: {
+  assetTag: string
+  name: string
+  serial?: string
+  model: string
+  categoryId: string
+  statusId: string
+}) {
+  const asset = await prisma.asset.create({
+    data,
+  })
+  
+  await prisma.actionLog.create({
+    data: {
+      actionType: 'CREATE',
+      itemId: asset.id,
+      itemType: 'ASSET',
+      userId: 'system', // TODO: Lấy từ session thực tế
+      notes: 'Tạo mới tài sản',
+    }
+  })
+
+  revalidatePath('/assets')
+  return asset
+}
+
+export async function checkoutAsset(assetId: string, userId: string, notes?: string) {
+  const asset = await prisma.asset.update({
+    where: { id: assetId },
+    data: { assignedToId: userId }
+  })
+
+  await prisma.actionLog.create({
+    data: {
+      actionType: 'CHECKOUT',
+      itemId: asset.id,
+      itemType: 'ASSET',
+      targetId: userId,
+      userId: 'system', // TODO: Lấy từ session thực tế
+      notes: notes || 'Cấp phát tài sản',
+    }
+  })
+
+  revalidatePath('/assets')
+  return asset
+}
+
+export async function checkinAsset(assetId: string, notes?: string) {
+  const asset = await prisma.asset.update({
+    where: { id: assetId },
+    data: { assignedToId: null }
+  })
+
+  await prisma.actionLog.create({
+    data: {
+      actionType: 'CHECKIN',
+      itemId: asset.id,
+      itemType: 'ASSET',
+      userId: 'system', // TODO: Lấy từ session thực tế
+      notes: notes || 'Thu hồi tài sản',
+    }
+  })
+
+  revalidatePath('/assets')
+  return asset
+}

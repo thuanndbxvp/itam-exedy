@@ -1,0 +1,523 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+
+enum StatusMetaType {
+  DEPLOYABLE
+  PENDING
+  UNDEPLOYABLE
+  ARCHIVED
+}
+
+enum ActionType {
+  CREATE
+  UPDATE
+  CHECKOUT
+  CHECKIN
+  AUDIT
+  DELETE
+  RESTORE
+  NOTE_ADDED
+  ACCEPTED
+  DECLINED
+}
+
+enum ItemType {
+  ASSET
+  LICENSE
+  LICENSE_SEAT
+  USER
+  CATEGORY
+  LOCATION
+  DEPARTMENT
+  MANUFACTURER
+  SUPPLIER
+  STATUS_LABEL
+  ASSET_MODEL
+  DEPRECIATION
+  COMPANY
+}
+
+enum TargetType {
+  USER
+  LOCATION
+  ASSET
+}
+
+enum DepreciationType {
+  LINEAR
+  HALF_YEAR
+}
+
+// ============================================================================
+// COMPANY (FMCS — disabled ở Phase 1)
+// ============================================================================
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users       CompanyUser[] @relation("CompanyUsers")
+  members     User[]        @relation("CompanyMember")
+  locations   Location[]
+  assets      Asset[]
+  licenses    License[]
+  departments Department[]
+}
+
+model CompanyUser {
+  companyId String
+  userId    String
+  company   Company @relation("CompanyUsers", fields: [companyId], references: [id], onDelete: Cascade)
+  user      User    @relation("CompanyUsers", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([companyId, userId])
+}
+
+// ============================================================================
+// MASTER DATA
+// ============================================================================
+
+model Category {
+  id                String    @id @default(cuid())
+  name              String
+  categoryType      String    @default("ASSET")
+  color             String?
+  eulaText          String?   @db.Text
+  requireAcceptance Boolean   @default(false)
+  checkinEmail      String?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  assets      Asset[]      @relation("AssetCategory")
+  assetModels AssetModel[] @relation("CategoryAssetModel")
+  licenses    License[]    @relation("CategoryLicense")
+}
+
+model Manufacturer {
+  id           String    @id @default(cuid())
+  name         String    @unique
+  url          String?
+  supportUrl   String?
+  supportPhone String?
+  supportEmail String?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  assets      Asset[]      @relation("AssetManufacturer")
+  assetModels AssetModel[] @relation("ManufacturerAssetModel")
+  licenses    License[]    @relation("ManufacturerLicense")
+}
+
+model Supplier {
+  id        String    @id @default(cuid())
+  name      String
+  contact   String?
+  address   String?
+  phone     String?
+  email     String?
+  url       String?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  assets   Asset[]
+  licenses License[]
+}
+
+model Depreciation {
+  id               String           @id @default(cuid())
+  name             String           @unique
+  months           Int
+  depreciationType DepreciationType @default(LINEAR)
+  minimumValue     Decimal          @default(0) @db.Decimal(15, 2)
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  deletedAt        DateTime?
+
+  assetModels AssetModel[]
+  assets      Asset[]
+}
+
+model AssetModel {
+  id             String        @id @default(cuid())
+  name           String
+  modelNumber    String?
+  categoryId     String
+  category       Category      @relation("CategoryAssetModel", fields: [categoryId], references: [id], onDelete: Restrict)
+  manufacturerId String?
+  manufacturer   Manufacturer? @relation("ManufacturerAssetModel", fields: [manufacturerId], references: [id], onDelete: SetNull)
+  depreciationId String?
+  depreciation   Depreciation? @relation(fields: [depreciationId], references: [id], onDelete: SetNull)
+  eol            Int?
+  requireSerial  Boolean       @default(false)
+  notes          String?
+  image          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+
+  assets Asset[]
+
+  @@unique([name, manufacturerId])
+  @@index([categoryId])
+}
+
+model Location {
+  id        String     @id @default(cuid())
+  name      String
+  address   String?
+  city      String?
+  state     String?
+  country   String?
+  zip       String?
+  parentId  String?
+  parent    Location?  @relation("LocationTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Location[] @relation("LocationTree")
+  managerId String?
+  manager   User?      @relation("LocationManager", fields: [managerId], references: [id], onDelete: SetNull)
+  companyId String?
+  company   Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  notes     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  deletedAt DateTime?
+
+  assetsCurrent Asset[] @relation("AssetCurrentLocation")
+  assetsRtd     Asset[] @relation("AssetRtdLocation")
+  usersHome     User[]  @relation("UserHomeLocation")
+
+  @@index([parentId])
+  @@index([companyId])
+}
+
+model Department {
+  id         String    @id @default(cuid())
+  name       String
+  managerId  String?
+  manager    User?     @relation("DepartmentManager", fields: [managerId], references: [id], onDelete: SetNull)
+  companyId  String?
+  company    Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  locationId String?
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  users User[]
+
+  @@index([companyId])
+}
+
+model StatusLabel {
+  id           String    @id @default(cuid())
+  name         String    @unique
+  deployable   Boolean   @default(false)
+  pending      Boolean   @default(false)
+  archived     Boolean   @default(false)
+  color        String?
+  showInNav    Boolean   @default(true)
+  defaultLabel Boolean   @default(false)
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  assets Asset[]
+}
+
+// ============================================================================
+// USER
+// ============================================================================
+
+model User {
+  id          String  @id @default(cuid())
+  firstName   String
+  lastName    String?
+  username    String? @unique
+  email       String? @unique
+  password    String?
+  employeeNum String? @unique
+  jobTitle    String?
+  phone       String?
+  mobile      String?
+  address     String?
+  city        String?
+  state       String?
+  country     String?
+  zip         String?
+  notes       String?
+  avatar      String?
+  activated   Boolean @default(true)
+  role        Role    @default(EMPLOYEE)
+
+  companyId    String?
+  company      Company?    @relation("CompanyMember", fields: [companyId], references: [id], onDelete: SetNull)
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  locationId   String?
+  location     Location?   @relation("UserHomeLocation", fields: [locationId], references: [id], onDelete: SetNull)
+  managerId    String?
+  manager      User?       @relation("UserManager", fields: [managerId], references: [id], onDelete: SetNull)
+  subordinates User[]      @relation("UserManager")
+
+  twoFactorSecret   String? @db.Text
+  twoFactorEnrolled Boolean @default(false)
+  twoFactorOptin    Boolean @default(false)
+
+  locale             String  @default("vi-VN")
+  remote             Boolean @default(false)
+  vip                Boolean @default(false)
+  autoassignLicenses Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  managedLocations     Location[]    @relation("LocationManager")
+  managedDepartments   Department[]  @relation("DepartmentManager")
+  companies            CompanyUser[] @relation("CompanyUsers")
+  assetAssigned        Asset[]       @relation("AssetAssignedUser")
+  licenseSeatsAssigned LicenseSeat[] @relation("LicenseSeatAssignedUser")
+  logs                 ActionLog[]   @relation("ActionLogActor")
+
+  @@index([companyId])
+  @@index([managerId])
+}
+
+// ============================================================================
+// ASSET
+// ============================================================================
+
+model Asset {
+  id       String  @id @default(cuid())
+  assetTag String  @unique
+  name     String
+  serial   String?
+  image    String?
+
+  modelId String?
+  model   AssetModel? @relation(fields: [modelId], references: [id], onDelete: SetNull)
+
+  categoryId     String?
+  category       Category?     @relation("AssetCategory", fields: [categoryId], references: [id], onDelete: SetNull)
+  manufacturerId String?
+  manufacturer   Manufacturer? @relation("AssetManufacturer", fields: [manufacturerId], references: [id], onDelete: SetNull)
+
+  statusId String
+  status   StatusLabel @relation(fields: [statusId], references: [id], onDelete: Restrict)
+
+  assignedUserId     String?
+  assignedUser       User?     @relation("AssetAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  assignedLocationId String?
+  assignedLocation   Location? @relation("AssetCurrentLocation", fields: [assignedLocationId], references: [id], onDelete: SetNull)
+  assignedAssetId    String?
+  assignedAsset      Asset?    @relation("AssetAssignedAsset", fields: [assignedAssetId], references: [id], onDelete: SetNull)
+  assignedToAssets   Asset[]   @relation("AssetAssignedAsset")
+
+  rtdLocationId String?
+  rtdLocation   Location? @relation("AssetRtdLocation", fields: [rtdLocationId], references: [id], onDelete: SetNull)
+
+  purchaseDate   DateTime?
+  purchaseCost   Decimal?  @db.Decimal(15, 2)
+  supplierId     String?
+  supplier       Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  orderNumber    String?
+  warrantyMonths Int?
+
+  assetEolDate   DateTime?
+  eolExplicit    Boolean       @default(false)
+  depreciationId String?
+  depreciation   Depreciation? @relation(fields: [depreciationId], references: [id], onDelete: SetNull)
+
+  requestable Boolean @default(true)
+  byod        Boolean @default(false)
+
+  lastAuditDate   DateTime?
+  nextAuditDate   DateTime?
+  lastCheckout    DateTime?
+  lastCheckin     DateTime?
+  expectedCheckin DateTime?
+
+  checkoutCounter Int @default(0)
+  checkinCounter  Int @default(0)
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  notes     String?   @db.Text
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  licenseSeats LicenseSeat[]
+
+  @@index([modelId])
+  @@index([statusId])
+  @@index([assignedUserId])
+  @@index([assignedLocationId])
+  @@index([companyId])
+}
+
+// ============================================================================
+// LICENSE & LICENSE SEAT
+// ============================================================================
+
+model License {
+  id              String    @id @default(cuid())
+  name            String
+  productKey      String?
+  serial          String?
+  expirationDate  DateTime?
+  terminationDate DateTime?
+  reassignable    Boolean   @default(true)
+  maintained      Boolean   @default(true)
+
+  purchaseDate  DateTime?
+  purchaseCost  Decimal?  @db.Decimal(15, 2)
+  purchaseOrder String?
+  orderNumber   String?
+
+  supplierId     String?
+  supplier       Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  manufacturerId String?
+  manufacturer   Manufacturer? @relation("ManufacturerLicense", fields: [manufacturerId], references: [id], onDelete: SetNull)
+  categoryId     String?
+  category       Category?     @relation("CategoryLicense", fields: [categoryId], references: [id], onDelete: SetNull)
+  companyId      String?
+  company        Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  notes        String? @db.Text
+  licenseEmail String?
+  licenseName  String?
+  minAmt       Int?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  seats LicenseSeat[]
+
+  @@index([categoryId])
+  @@index([manufacturerId])
+  @@index([companyId])
+}
+
+model LicenseSeat {
+  id        String  @id @default(cuid())
+  licenseId String
+  license   License @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
+  assignedUserId  String?
+  assignedUser    User?   @relation("LicenseSeatAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  assignedAssetId String?
+  assignedAsset   Asset?  @relation(fields: [assignedAssetId], references: [id], onDelete: SetNull)
+
+  notes              String?
+  unreassignableSeat Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  @@index([licenseId])
+  @@index([assignedUserId])
+  @@index([assignedAssetId])
+}
+
+// ============================================================================
+// SYSTEM SETTINGS (Singleton)
+// ============================================================================
+
+model Setting {
+  id        String   @id @default("system")
+  updatedAt DateTime @updatedAt
+
+  // General
+  companyName             String  @default("Công ty TNHH IT Manager")
+  companyId               String?
+  currency                String  @default("VND")
+  timezone                String  @default("Asia/Ho_Chi_Minh")
+  locale                  String  @default("vi-VN")
+
+  // Branding
+  logoUrl       String?
+  primaryColor  String  @default("#2563eb")
+
+  // Feature flags
+  fullMultipleCompaniesSupport Boolean @default(false)
+  autoassignAssetsToLocation   Boolean @default(false)
+
+  // Security
+  passwordMinLength      Int @default(8)
+  passwordRequireSpecial Boolean @default(false)
+  sessionTimeoutMinutes  Int @default(480)
+  twoFactorEnabled       Boolean @default(false)
+
+  // Email
+  emailFrom     String?
+  emailFromName String?
+  smtpHost      String?
+  smtpPort      Int?
+  smtpUsername  String?
+  smtpPassword  String?
+  smtpEncryption String?
+  emailDomain   String?
+
+  // Flexible JSON cho các config ít dùng
+  extras Json @default("{}")
+
+  @@map("setting")
+  @@ignore
+}
+
+// ============================================================================
+// ACTION LOG
+// ============================================================================
+
+model ActionLog {
+  id         String      @id @default(cuid())
+  actionType ActionType
+  itemType   ItemType
+  itemId     String
+  targetType TargetType?
+  targetId   String?
+  userId     String
+  user       User        @relation("ActionLogActor", fields: [userId], references: [id], onDelete: Restrict)
+
+  notes     String?  @db.Text
+  oldValues Json?
+  newValues Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([itemType, itemId])
+  @@index([targetType, targetId])
+  @@index([userId])
+  @@index([createdAt])
+}
