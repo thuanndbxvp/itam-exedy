@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, Suspense, useMemo, useCallback } from 'react'
+import { useEffect, useState, Suspense, useCallback } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -136,7 +136,6 @@ function HelpdeskContent() {
     if (session?.user?.role) {
       load()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, filterStatus, filterPriority, filterTeamId, filterAssigneeId, isIt, session?.user?.role])
 
   const handleTabChange = useCallback((newTab: Tab) => {

@@ -6,11 +6,6 @@ import { Plus, Pencil, Trash2, Users, ChevronDown, X, Loader2, UserCheck } from 
 import Modal from '@/components/ui/Modal'
 import { useToast } from '@/components/Toast'
 
-interface Member {
-  userId: string
-  isLead: boolean
-}
-
 interface Team {
   id: string
   name: string

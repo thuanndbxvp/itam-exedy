@@ -37,7 +37,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requirePermissionApi('helpdesk.manage_teams')
+    await requirePermissionApi('helpdesk.manage_teams')
     const body = await req.json()
     const { name, description, category, leadId, userIds, isActive } = body
 
