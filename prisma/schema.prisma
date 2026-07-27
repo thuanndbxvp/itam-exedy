@@ -90,6 +90,10 @@ enum ActionType {
   NOTE_ADDED
   ACCEPTED
   DECLINED
+  // Sprint B13
+  LOGIN
+  LOGOUT
+  TWO_FACTOR_OPTIN_TOGGLED
 }
 
 enum ItemType {

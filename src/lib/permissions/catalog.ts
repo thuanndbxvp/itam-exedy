@@ -96,6 +96,7 @@ export const SYSTEM_ROLE_PERMISSIONS: Record<string, string[]> = {
   EMPLOYEE: [
     'assets.read',
     'licenses.read',
+    'helpdesk.view',
     'helpdesk.create_ticket',
     'helpdesk.comment',
     'users.read',

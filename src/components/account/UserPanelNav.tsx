@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { User, Lock, Shield } from 'lucide-react'
+import { User, Lock, Shield, Bell, Palette } from 'lucide-react'
 
 interface NavUser {
   firstName?: string | null
@@ -19,6 +19,8 @@ const items: NavItem[] = [
   { href: '/account/profile', label: 'Profile', icon: User },
   { href: '/account/password', label: 'Mật khẩu', icon: Lock },
   { href: '/account/security', label: 'Bảo mật', icon: Shield },
+  { href: '/account/notifications', label: 'Thông báo', icon: Bell },
+  { href: '/account/appearance', label: 'Giao diện', icon: Palette },
 ]
 
 export default function UserPanelNav({ user }: { user: NavUser }) {

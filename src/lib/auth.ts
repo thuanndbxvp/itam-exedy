@@ -2,6 +2,8 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
+import { recordLoginActionLog } from "@/app/actions/account-preferences";
+import { headers } from "next/headers";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -32,6 +34,19 @@ export const authOptions: NextAuthOptions = {
 
         const ok = await bcrypt.compare(credentials.password, user.password);
         if (!ok) return null;
+
+        // Sprint B13: ghi LOGIN action log (non-blocking)
+        try {
+          const hdrs = await headers();
+          const ipAddress =
+            hdrs.get('x-forwarded-for')?.split(',')[0].trim() ??
+            hdrs.get('x-real-ip') ??
+            null;
+          const userAgent = hdrs.get('user-agent') ?? null;
+          await recordLoginActionLog({ userId: user.id, ipAddress, userAgent });
+        } catch {
+          // ignore — login vẫn thành công
+        }
 
         // Trả về session object — NextAuth sẽ đẩy vào JWT callback bên dưới
         return {
