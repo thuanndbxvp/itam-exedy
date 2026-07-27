@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, Edit2, Trash2, Monitor, User, MapPin, Calendar,
   Package, Tag, Building2, Shield, DollarSign, Clock,
-  CheckCircle, XCircle, AlertCircle, History, Wrench
+  CheckCircle, XCircle, AlertCircle, History, Wrench, Key, Plus, Loader2
 } from 'lucide-react'
 import RoleGate from '@/components/RoleGate'
 import CheckoutAssetButton from '@/components/assets/CheckoutAssetButton'
@@ -13,8 +13,24 @@ import CheckinAssetButton from '@/components/assets/CheckinAssetButton'
 import MarkAuditedButton from '@/components/assets/MarkAuditedButton'
 import AssetHistoryTimeline from '@/components/assets/AssetHistoryTimeline'
 import AssetMaintenanceList from '@/components/assets/AssetMaintenanceList'
+import AssignLicenseModal from '@/components/licenses/AssignLicenseModal'
+import { useToast } from '@/components/Toast'
 import Modal from '@/components/ui/Modal'
 import { useRouter } from 'next/navigation'
+
+interface LicenseSeatLite {
+  id: string
+  licenseId: string
+  notes: string | null
+  seatLabel: string
+  license: {
+    id: string
+    name: string
+    productKey: string | null
+    expirationDate: string | null
+  }
+  createdAt: string
+}
 
 interface Asset {
   id: string
@@ -51,6 +67,7 @@ interface Asset {
   notes: string | null
   createdAt: string
   updatedAt: string
+  licenseSeats: LicenseSeatLite[]
 }
 
 interface Props {
@@ -79,9 +96,14 @@ const getStatusBadge = (status: Asset['status']) => {
 
 export default function AssetDetailClient({ asset, users, locations, statuses }: Props) {
   const router = useRouter()
+  const { showCommandResult } = useToast()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'maintenance'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'maintenance' | 'licenses'>('overview')
+  const [showAssignModal, setShowAssignModal] = useState(false)
+  const [checkinSeatId, setCheckinSeatId] = useState<string | null>(null)
+  const [checkingIn, setCheckingIn] = useState(false)
+  const [confirmCheckinSeat, setConfirmCheckinSeat] = useState<LicenseSeatLite | null>(null)
 
   // Determine edit permissions based on user role:
   // - ADMIN: full edit
@@ -101,6 +123,27 @@ export default function AssetDetailClient({ asset, users, locations, statuses }:
       console.error(e)
     }
     setDeleting(false)
+  }
+
+  async function handleCheckinSeat(seatId: string) {
+    setCheckinSeatId(seatId)
+    try {
+      const res = await fetch('/api/licenses/checkin-seat', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ seatId }),
+      })
+      const json = await res.json()
+      showCommandResult(json)
+      if (json.ok) {
+        router.refresh()
+      }
+    } catch (e) {
+      showCommandResult({ ok: false, code: 'INTERNAL', message: String(e) })
+    } finally {
+      setCheckinSeatId(null)
+      setConfirmCheckinSeat(null)
+    }
   }
 
   return (
@@ -164,6 +207,12 @@ export default function AssetDetailClient({ asset, users, locations, statuses }:
             onClick={() => setActiveTab('maintenance')}
             icon={<Wrench size={16} />}
             label="Lịch sử sửa chữa"
+          />
+          <TabButton
+            active={activeTab === 'licenses'}
+            onClick={() => setActiveTab('licenses')}
+            icon={<Key size={16} />}
+            label={`Bản quyền (${asset.licenseSeats?.length ?? 0})`}
           />
         </div>
 
@@ -433,7 +482,162 @@ export default function AssetDetailClient({ asset, users, locations, statuses }:
             <AssetMaintenanceList assetId={asset.id} canEdit={canEdit} />
           </div>
         )}
+
+        {activeTab === 'licenses' && (
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-gray-900">Bản quyền đã cài/cấp phát trên thiết bị này</h2>
+              {canEdit && (
+                <button
+                  onClick={() => setShowAssignModal(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                >
+                  <Plus size={16} />
+                  Gán bản quyền
+                </button>
+              )}
+            </div>
+
+            {!asset.licenseSeats || asset.licenseSeats.length === 0 ? (
+              <div className="bg-gray-50 rounded-xl p-12 text-center">
+                <Key size={48} className="mx-auto text-gray-300 mb-3" />
+                <p className="text-gray-500">Chưa có bản quyền nào được gán trực tiếp cho thiết bị này.</p>
+                {canEdit && (
+                  <button
+                    onClick={() => setShowAssignModal(true)}
+                    className="mt-3 text-blue-600 hover:underline text-sm"
+                  >
+                    Gán ngay →
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                        Phần mềm
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                        Product Key
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                        Seat
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                        Hết hạn
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
+                        Thao tác
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {asset.licenseSeats.map((seat) => {
+                      const isExpired =
+                        seat.license.expirationDate && new Date(seat.license.expirationDate) < new Date()
+                      return (
+                        <tr key={seat.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-3">
+                            <Link
+                              href={`/licenses/${seat.license.id}`}
+                              className="font-medium text-blue-600 hover:underline"
+                            >
+                              {seat.license.name}
+                            </Link>
+                          </td>
+                          <td className="px-6 py-3">
+                            <span className="font-mono text-xs text-gray-700">
+                              {seat.license.productKey
+                                ? `••••${seat.license.productKey.slice(-4)}`
+                                : '—'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-3 text-gray-600">#{seat.seatLabel}</td>
+                          <td className="px-6 py-3 text-xs">
+                            {seat.license.expirationDate ? (
+                              <span className={isExpired ? 'text-red-600' : 'text-gray-700'}>
+                                {new Date(seat.license.expirationDate).toLocaleDateString('vi-VN')}
+                                {isExpired && ' (hết hạn)'}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-3 text-right">
+                            {canEdit && (
+                              <button
+                                onClick={() => setConfirmCheckinSeat(seat)}
+                                disabled={checkingIn && checkinSeatId === seat.id}
+                                className="inline-flex items-center gap-1 text-red-600 hover:bg-red-50 px-2 py-1 rounded text-xs font-medium transition disabled:opacity-50"
+                              >
+                                {checkingIn && checkinSeatId === seat.id ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : (
+                                  <Trash2 size={12} />
+                                )}
+                                Thu hồi
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Assign License Modal */}
+      <AssignLicenseModal
+        open={showAssignModal}
+        onClose={() => setShowAssignModal(false)}
+        assetId={asset.id}
+        assetTag={asset.assetTag}
+      />
+
+      {/* Confirm Checkin Modal */}
+      <Modal
+        open={!!confirmCheckinSeat}
+        onClose={() => {
+          if (!checkingIn) setConfirmCheckinSeat(null)
+        }}
+        title="Thu hồi bản quyền"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Thu hồi seat{' '}
+            <strong className="font-mono">#{confirmCheckinSeat?.seatLabel}</strong> của license{' '}
+            <strong>{confirmCheckinSeat?.license.name}</strong> khỏi thiết bị này?
+          </p>
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+            Sau khi thu hồi, seat sẽ trở về trạng thái trống và có thể được cấp phát lại.
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setConfirmCheckinSeat(null)}
+              disabled={checkingIn}
+              className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm disabled:opacity-50"
+            >
+              Hủy
+            </button>
+            <button
+              onClick={() => confirmCheckinSeat && handleCheckinSeat(confirmCheckinSeat.id)}
+              disabled={checkingIn}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50"
+            >
+              {checkingIn && <Loader2 size={14} className="animate-spin" />}
+              Thu hồi
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Delete Modal */}
       <Modal

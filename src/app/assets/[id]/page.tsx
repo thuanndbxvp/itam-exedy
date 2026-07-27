@@ -44,6 +44,20 @@ export default async function AssetDetailPage({ params }: PageProps) {
       model: { select: { id: true, name: true, modelNumber: true } },
       supplier: { select: { id: true, name: true } },
       depreciation: { select: { id: true, name: true, months: true } },
+      licenseSeats: {
+        where: { deletedAt: null },
+        orderBy: { createdAt: 'asc' },
+        include: {
+          license: {
+            select: {
+              id: true,
+              name: true,
+              productKey: true,
+              expirationDate: true,
+            },
+          },
+        },
+      },
     },
   })
 
@@ -75,9 +89,24 @@ export default async function AssetDetailPage({ params }: PageProps) {
       ])
     : [[], [], []]
 
-  // Serialize dates
+  // Serialize dates + licenseSeats
+  const serializedSeats = (asset.licenseSeats ?? []).map((s) => ({
+    id: s.id,
+    licenseId: s.licenseId,
+    notes: s.notes,
+    seatLabel: s.id.slice(-6),
+    license: {
+      id: s.license.id,
+      name: s.license.name,
+      productKey: s.license.productKey,
+      expirationDate: s.license.expirationDate?.toISOString() ?? null,
+    },
+    createdAt: s.createdAt.toISOString(),
+  }))
+
   const serialized = {
     ...asset,
+    licenseSeats: serializedSeats,
     assignedUserId: asset.assignedUserId,
     assignedLocationId: asset.assignedLocationId,
     assignedAssetId: asset.assignedAssetId,
