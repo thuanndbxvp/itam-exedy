@@ -39,7 +39,35 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const actor = await requirePermissionApi('users.update')
     const { id } = await params
     const body = await req.json()
-    const { firstName, lastName, jobTitle, email, password, role, departmentId, customRoleId } = body
+    const {
+      firstName,
+      lastName,
+      jobTitle,
+      email,
+      username,
+      employeeNum,
+      phone,
+      mobile,
+      address,
+      city,
+      state,
+      country,
+      zip,
+      notes,
+      avatar,
+      activated,
+      password,
+      role,
+      departmentId,
+      customRoleId,
+      companyId,
+      locationId,
+      managerId,
+      locale,
+      remote,
+      vip,
+      autoassignLicenses,
+    } = body
 
     const existing = await prisma.user.findUnique({ where: { id } })
     if (!existing) {
@@ -52,19 +80,64 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       await requirePermissionApi('users.manage_roles')
     }
 
+    /**
+     * Helper: empty string → null (cho optional FK + string fields).
+     * Tránh Prisma set empty string thay vì null, gây lỗi FK constraint hoặc
+     * empty username/email không hợp lệ với unique index.
+     */
+    const nullable = (v: unknown): unknown => {
+      if (v === '' || v === undefined) return null
+      return v
+    }
+
     const updateData: Record<string, unknown> = {}
     if (firstName) updateData.firstName = firstName
-    if (lastName !== undefined) updateData.lastName = lastName || null
-    if (jobTitle !== undefined) updateData.jobTitle = jobTitle || null
+    if (lastName !== undefined) updateData.lastName = nullable(lastName)
+    if (jobTitle !== undefined) updateData.jobTitle = nullable(jobTitle)
     if (role) updateData.role = role
-    if (departmentId !== undefined) updateData.departmentId = departmentId || null
-    if (customRoleId !== undefined) updateData.customRoleId = customRoleId || null
+    if (departmentId !== undefined) updateData.departmentId = nullable(departmentId)
+    if (customRoleId !== undefined) updateData.customRoleId = nullable(customRoleId)
+    if (companyId !== undefined) updateData.companyId = nullable(companyId)
+    if (locationId !== undefined) updateData.locationId = nullable(locationId)
+    if (managerId !== undefined) updateData.managerId = nullable(managerId)
+    if (username !== undefined) updateData.username = nullable(username)
+    if (employeeNum !== undefined) updateData.employeeNum = nullable(employeeNum)
+    if (phone !== undefined) updateData.phone = nullable(phone)
+    if (mobile !== undefined) updateData.mobile = nullable(mobile)
+    if (address !== undefined) updateData.address = nullable(address)
+    if (city !== undefined) updateData.city = nullable(city)
+    if (state !== undefined) updateData.state = nullable(state)
+    if (country !== undefined) updateData.country = nullable(country)
+    if (zip !== undefined) updateData.zip = nullable(zip)
+    if (notes !== undefined) updateData.notes = nullable(notes)
+    if (avatar !== undefined) updateData.avatar = nullable(avatar)
+    if (typeof activated === 'boolean') updateData.activated = activated
+    if (typeof remote === 'boolean') updateData.remote = remote
+    if (typeof vip === 'boolean') updateData.vip = vip
+    if (typeof autoassignLicenses === 'boolean') updateData.autoassignLicenses = autoassignLicenses
+    if (locale !== undefined && typeof locale === 'string' && locale.length > 0) updateData.locale = locale
+
     if (email && email !== existing.email) {
       const conflict = await prisma.user.findUnique({ where: { email } })
       if (conflict) {
         return NextResponse.json({ ok: false, code: 'CONFLICT', message: 'Email đã tồn tại.' }, { status: 409 })
       }
       updateData.email = email
+    }
+    // A3: unique validation cho username — P2002 là Prisma unique violation code
+    if (username && username !== existing.username) {
+      const conflict = await prisma.user.findUnique({ where: { username } })
+      if (conflict) {
+        return NextResponse.json({ ok: false, code: 'CONFLICT', message: 'Username đã tồn tại.' }, { status: 409 })
+      }
+      updateData.username = username
+    }
+    if (employeeNum && employeeNum !== existing.employeeNum) {
+      const conflict = await prisma.user.findUnique({ where: { employeeNum } })
+      if (conflict) {
+        return NextResponse.json({ ok: false, code: 'CONFLICT', message: 'Mã nhân viên đã tồn tại.' }, { status: 409 })
+      }
+      updateData.employeeNum = employeeNum
     }
     if (password) updateData.password = await bcrypt.hash(password, 10)
 
@@ -75,11 +148,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         id: true, firstName: true, lastName: true, username: true, email: true,
         employeeNum: true, jobTitle: true, phone: true, mobile: true,
         address: true, city: true, state: true, country: true, zip: true,
-        avatar: true, activated: true, role: true, customRoleId: true,
+        notes: true, avatar: true, activated: true, role: true, customRoleId: true,
         companyId: true, departmentId: true, locationId: true, managerId: true,
         twoFactorEnrolled: true, twoFactorOptin: true, locale: true,
         remote: true, vip: true, autoassignLicenses: true,
         createdAt: true, updatedAt: true, deletedAt: true,
+        // EXCLUDE: password, twoFactorSecret
       },
     })
     invalidatePermissionCache(id)
@@ -93,8 +167,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       id,
       `Cập nhật người dùng "${name}"${password ? ' (đổi mật khẩu)' : ''}`,
       {
-        oldValues: { firstName: existing.firstName, lastName: existing.lastName, email: existing.email, role: existing.role, departmentId: existing.departmentId },
-        newValues: { firstName: updated.firstName, lastName: updated.lastName, email: updated.email, role: updated.role, departmentId: updated.departmentId },
+        oldValues: {
+          firstName: existing.firstName, lastName: existing.lastName, email: existing.email,
+          role: existing.role, departmentId: existing.departmentId,
+          activated: existing.activated, jobTitle: existing.jobTitle,
+        },
+        newValues: {
+          firstName: updated.firstName, lastName: updated.lastName, email: updated.email,
+          role: updated.role, departmentId: updated.departmentId,
+          activated: updated.activated, jobTitle: updated.jobTitle,
+        },
       },
     )
 
