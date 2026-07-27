@@ -3,28 +3,21 @@
 import { Download } from 'lucide-react'
 
 interface Props {
-  /** Bộ lọc hiện tại của trang (search, status) để truyền cho API */
-  searchParams: URLSearchParams
+  /** Query string hiện tại của trang (search, status) để truyền cho API */
+  queryString: string
   canExport: boolean
 }
 
 /**
  * ExportLicensesButton — Link download CSV từ /api/licenses/export.
  *
- * Truyền kèm searchParams hiện tại để CSV export đúng theo filter đang chọn.
+ * Truyền kèm queryString hiện tại để CSV export đúng theo filter đang chọn.
  * Dùng thẻ <a download> nên không cần fetch.
  */
-export default function ExportLicensesButton({ searchParams, canExport }: Props) {
+export default function ExportLicensesButton({ queryString, canExport }: Props) {
   if (!canExport) return null
 
-  const params = new URLSearchParams()
-  const search = searchParams.get('search')?.trim()
-  const status = searchParams.get('status')
-  if (search) params.set('search', search)
-  if (status && status !== 'all') params.set('status', status)
-
-  const qs = params.toString()
-  const href = qs ? `/api/licenses/export?${qs}` : '/api/licenses/export'
+  const href = queryString ? `/api/licenses/export?${queryString}` : '/api/licenses/export'
 
   return (
     <a

@@ -102,7 +102,7 @@ export default async function LicensesPage({ searchParams }: LicensesPageProps) 
 
         <div className="flex items-center gap-2 flex-wrap">
           <ExportLicensesButton
-            searchParams={new URLSearchParams({ ...(rawSearch && { search: rawSearch }), ...(status !== 'all' && { status }) })}
+            queryString={new URLSearchParams({ ...(rawSearch && { search: rawSearch }), ...(status !== 'all' && { status }) }).toString()}
             canExport={isAdmin}
           />
           {isAdmin && (
