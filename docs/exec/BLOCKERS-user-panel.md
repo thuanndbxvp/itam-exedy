@@ -1,12 +1,17 @@
 # BLOCKERS — user-panel
 
-## Blocker #1 — Epic H (Notifications) infrastructure chưa có
-- **Type**: Missing Info (dependency not yet built)
+> **Cập nhật 2026-07-28 01:32** sau khi Epic H (email-settings-self-hosted) đã hoàn thành (commit 9598685).
+> - Blocker #1 — Epic H infrastructure: ✅ ĐÃ CÓ (`src/lib/notifications/email.ts`)
+> - Blocker #3 — `getSettings`: ✅ CÓ SẴN; `rate-limit` vẫn thiếu (Tier 2 có thể tạo)
+> - Blocker #2, #4, #5: vẫn còn
+
+## Blocker #1 — Epic H (Notifications) infrastructure ✅ ĐÃ CÓ (2026-07-28)
+- **Type**: Resolved
 - **Discovered at**: MSEW Step 5 (Server actions) + Step 6 (Email template) + §5 (Notification service)
-- **Description**: MSEW tham chiếu `import { sendEmail } from '@/lib/notifications/email'` và `import PasswordResetEmail from '@/emails/PasswordResetEmail'`. Source hiện tại KHÔNG CÓ `src/lib/notifications/` và KHÔNG CÓ `src/emails/`.
-- **Suggestion**: Tầng 1 cần hoàn thành Epic H trước khi Tier 2 code user-panel. Hoặc tách user-panel chỉ làm Phase A (Profile + Avatar + Change password) và dời Phase B (Forgot password) sau Epic H.
-- **Severity**: 🔴 FATAL — sẽ crash runtime ngay khi forgot-password flow được trigger.
-- **Awaiting**: Planner review / Phase ordering
+- **Description**: `src/lib/notifications/email.ts` đã được tạo ở commit `9598685` — `sendEmail({ to, subject, html })` available.
+- **Còn thiếu**: `src/emails/PasswordResetEmail.tsx` (chưa có — sẽ tạo khi code Phase B).
+- **API mismatch nhỏ**: MSEW dùng `react: ReactElement` (qua @react-email/components render). Hiện tại `sendEmail` chỉ nhận `html: string` (đã render sẵn). Cần update `EmailPayload` để hỗ trợ cả 2 — không khó, Tier 2 sẽ tự xử lý trong Phase B.
+- **Severity**: 🟡 PARTIAL — code được Phase A (Profile + Change Password — không cần email). Phase B cần update email.ts để hỗ trợ React Email.
 
 ## Blocker #2 — Epic I (File Storage) infrastructure chưa có
 - **Type**: Missing Info
@@ -16,15 +21,15 @@
 - **Severity**: 🔴 FATAL — `require('@/lib/upload')` sẽ throw MODULE_NOT_FOUND.
 - **Awaiting**: Planner review
 
-## Blocker #3 — Thiếu helper modules `rate-limit` + `settings`
+## Blocker #3 — Helper modules: `rate-limit` vẫn chưa có; `getSettings` ✅
 - **Type**: Missing Info
 - **Discovered at**: MSEW Step 5 (`changePasswordAction`, `requestPasswordResetAction`)
 - **Description**:
+  - `import { getSettings } from '@/lib/settings'` — ✅ ĐÃ CÓ
   - `import { rateLimit } from '@/lib/rate-limit'` — file không tồn tại
-  - `import { getSettings } from '@/lib/settings'` — cần xác nhận Epic H đã có
-- **Suggestion**: Cần Tier 2 build sẵn 2 module helper này trước, hoặc Planner update MSEW để bỏ rate-limit / settings cache inline.
+- **Suggestion**: Tier 2 có thể tạo module `rate-limit` minimal (in-memory, sliding window) trước khi code user-panel. Hoặc Planner update MSEW để bỏ rate-limit / inline thẳng.
 - **Severity**: 🟡 HIGH — sẽ crash runtime khi user đổi password hoặc request reset.
-- **Awaiting**: Planner
+- **Awaiting**: Tier 2 sẽ tự tạo nếu sếp OK
 
 ## Blocker #4 — Schema conflict với User model hiện tại
 - **Type**: Wrong Skill (Data model conflict)

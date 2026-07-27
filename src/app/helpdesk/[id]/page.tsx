@@ -100,6 +100,10 @@ export default function TicketDetailPage() {
   const [isInternal, setIsInternal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
+  const [myPerms, setMyPerms] = useState<string[]>([])
+  const [showReassign, setShowReassign] = useState(false)
+  const [itUsers, setItUsers] = useState<any[]>([])
+  const [selectedAssignee, setSelectedAssignee] = useState('')
 
   const isIt =
     session?.user?.role === 'IT_STAFF' ||
@@ -110,12 +114,19 @@ export default function TicketDetailPage() {
     setLoading(true)
     setError(null)
     try {
-      const r = await fetch(`/api/tickets/by-code/${encodeURIComponent(code)}`, { cache: 'no-store' })
-      const json = await r.json()
+      const [r1, r2] = await Promise.all([
+        fetch(`/api/tickets/by-code/${encodeURIComponent(code)}`, { cache: 'no-store' }),
+        fetch('/api/me/permissions', { cache: 'no-store' })
+      ])
+      const json = await r1.json()
+      const permJson = await r2.json()
       if (json.ok) {
         setTicket(json.data.ticket)
       } else {
         setError(json.message ?? 'Không tìm thấy ticket.')
+      }
+      if (permJson.ok) {
+        setMyPerms(permJson.data.permissions || [])
       }
     } catch {
       setError('Lỗi kết nối.')
@@ -174,6 +185,45 @@ export default function TicketDetailPage() {
     }
   }
 
+  async function doReassign() {
+    if (!ticket || !selectedAssignee) return
+    if (!confirm('Xác nhận chuyển ticket này cho nhân sự khác?')) return
+    setActionLoading(true)
+    try {
+      const r = await fetch(`/api/tickets/${ticket.id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'reassign', assigneeId: selectedAssignee }),
+      })
+      const json = await r.json()
+      if (json.ok) {
+        setShowReassign(false)
+        await load()
+      } else {
+        setError(json.message ?? 'Chuyển ticket thất bại.')
+      }
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  async function openReassign() {
+    setShowReassign(true)
+    if (itUsers.length === 0) {
+      try {
+        const r = await fetch('/api/settings/users')
+        const json = await r.json()
+        if (json.ok) {
+          const eligible = json.data.filter((u: any) => u.role !== 'EMPLOYEE')
+          setItUsers(eligible)
+          if (eligible.length > 0) setSelectedAssignee(eligible[0].id)
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
+  }
+
   function actionLabel(a: string) {
     if (a === 'claim') return 'Nhận xử lý ticket này'
     if (a === 'close') return 'Đóng ticket'
@@ -205,6 +255,7 @@ export default function TicketDetailPage() {
   const canClaim = isIt && ticket.status === 'NEW' && !ticket.assigneeId
   const canClose = ticket.status !== 'CLOSED' && (ticket.reporterId === session?.user?.id || isIt)
   const canReopen = isIt && (ticket.status === 'CLOSED' || ticket.status === 'REJECTED')
+  const canReassign = myPerms.includes('helpdesk.reassign') && ticket.status !== 'CLOSED' && ticket.status !== 'REJECTED'
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -288,8 +339,8 @@ export default function TicketDetailPage() {
         </div>
 
         {/* Actions */}
-        {(canClaim || canClose || canReopen) && (
-          <div className="mt-5 pt-4 border-t border-gray-100 flex items-center gap-2">
+        {(canClaim || canClose || canReopen || canReassign) && (
+          <div className="mt-5 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-2">
             {canClaim && (
               <button
                 onClick={() => doAction('claim')}
@@ -297,6 +348,15 @@ export default function TicketDetailPage() {
                 className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
               >
                 <UserCheck size={14} /> Nhận xử lý
+              </button>
+            )}
+            {canReassign && !showReassign && (
+              <button
+                onClick={openReassign}
+                disabled={actionLoading}
+                className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+              >
+                <UserCheck size={14} /> Chuyển ticket
               </button>
             )}
             {canClose && (
@@ -316,6 +376,37 @@ export default function TicketDetailPage() {
               >
                 <RotateCcw size={14} /> Mở lại
               </button>
+            )}
+
+            {/* Reassign select */}
+            {showReassign && (
+              <div className="flex items-center gap-2 ml-auto p-1.5 bg-gray-50 rounded-lg border border-gray-200">
+                <select
+                  value={selectedAssignee}
+                  onChange={(e) => setSelectedAssignee(e.target.value)}
+                  className="px-2 py-1.5 border border-gray-300 rounded text-sm outline-none min-w-[200px]"
+                >
+                  {itUsers.length === 0 && <option value="">Đang tải...</option>}
+                  {itUsers.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.firstName} {u.lastName} ({u.email})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={doReassign}
+                  disabled={actionLoading || !selectedAssignee}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-sm font-medium disabled:opacity-60"
+                >
+                  Xác nhận
+                </button>
+                <button
+                  onClick={() => setShowReassign(false)}
+                  className="text-gray-500 hover:text-gray-700 px-2 py-1.5 text-sm font-medium"
+                >
+                  Hủy
+                </button>
+              </div>
             )}
           </div>
         )}

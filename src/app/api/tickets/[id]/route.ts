@@ -94,7 +94,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 // ============================================================================
 
 interface PatchBody {
-  action?: "claim" | "close" | "reopen" | "update";
+  action?: "claim" | "close" | "reopen" | "update" | "reassign";
   status?: TicketStatus;
   priority?: TicketPriority;
   assigneeId?: string | null;
@@ -150,6 +150,33 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         link: `/helpdesk/${ticket.code}`,
       });
 
+      return okResponse({ ticket: updated });
+    }
+
+    if (action === "reassign") {
+      const { hasPermission } = await import("@/lib/permissions");
+      const ok = await hasPermission(user as any, "helpdesk.reassign");
+      if (!ok) throw new ForbiddenError("Bạn không có quyền chuyển ticket.");
+      if (!body.assigneeId) throw new ValidationError("Thiếu assigneeId");
+
+      const newAssignee = await prisma.user.findUnique({ where: { id: body.assigneeId } });
+      if (!newAssignee) throw new ValidationError("Người nhận không tồn tại");
+
+      const updated = await prisma.ticket.update({
+        where: { id },
+        data: { assigneeId: body.assigneeId, status: ticket.status === "NEW" ? "ASSIGNED" : ticket.status },
+      });
+
+      if (body.assigneeId !== user.id) {
+        await notify({
+          userId: body.assigneeId,
+          ticketId: id,
+          kind: "TICKET_ASSIGNED",
+          title: `${ticket.code} được chuyển cho bạn`,
+          body: `${user.firstName} đã chuyển ticket này cho bạn.`,
+          link: `/helpdesk/${ticket.code}`,
+        });
+      }
       return okResponse({ ticket: updated });
     }
 

@@ -44,6 +44,7 @@ export const PERMISSIONS: PermissionDef[] = [
   { key: 'helpdesk.view',       resource: 'helpdesk', action: 'view',       label: 'Xem ticket',         group: 'Helpdesk' },
   { key: 'helpdesk.create_ticket', resource: 'helpdesk', action: 'create_ticket', label: 'Tạo ticket',  group: 'Helpdesk', description: 'Tạo ticket helpdesk' },
   { key: 'helpdesk.claim',      resource: 'helpdesk', action: 'claim',      label: 'Nhận ticket',        group: 'Helpdesk', description: 'Assign cho mình' },
+  { key: 'helpdesk.reassign',   resource: 'helpdesk', action: 'reassign',   label: 'Chuyển ticket',      group: 'Helpdesk', description: 'Chuyển ticket cho người khác' },
   { key: 'helpdesk.close',      resource: 'helpdesk', action: 'close',      label: 'Đóng ticket',        group: 'Helpdesk' },
   { key: 'helpdesk.comment',    resource: 'helpdesk', action: 'comment',    label: 'Bình luận ticket',   group: 'Helpdesk' },
   { key: 'helpdesk.manage_rules', resource: 'helpdesk', action: 'manage_rules', label: 'Quản lý rule',    group: 'Helpdesk', description: 'Cấu hình auto-assign rule' },
