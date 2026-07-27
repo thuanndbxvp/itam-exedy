@@ -24,6 +24,7 @@ export default function Header() {
     if (pathname === '/helpdesk/inbox') return 'Hộp thư Helpdesk (IT)'
     if (pathname.startsWith('/helpdesk')) return 'Helpdesk của tôi'
     if (pathname.startsWith('/admin/helpdesk')) return 'Quản trị Helpdesk'
+    if (pathname.startsWith('/reports')) return 'Báo cáo'
     return 'Hệ thống Quản lý'
   }
 

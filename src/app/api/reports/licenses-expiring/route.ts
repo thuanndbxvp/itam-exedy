@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
         _count: { select: { seats: true } },
         seats: {
           where: { deletedAt: null },
-          select: { id: true, assignedToUserId: true, assignedToAssetId: true },
+          select: { id: true, assignedUserId: true, assignedAssetId: true },
         },
       },
     })
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     const result = licenses.map((l) => {
       const totalSeats = l._count.seats
       const usedSeats = l.seats.filter(
-        (s) => s.assignedToUserId || s.assignedToAssetId
+        (s) => s.assignedUserId || s.assignedAssetId
       ).length
       const daysUntil = l.expirationDate
         ? Math.ceil(
