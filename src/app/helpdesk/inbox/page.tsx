@@ -187,7 +187,7 @@ export default function InboxPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {t.status === 'NEW' && !t.assigneeId && (
+                      {t.status === 'NEW' && !t.assignee && (
                         <button
                           onClick={() => claim(t)}
                           disabled={claiming === t.id}
