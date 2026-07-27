@@ -1,0 +1,20 @@
+-- Sprint B13 - Add LOGIN to ActionType enum.
+-- Cần thiết để ghi lịch sử login vào ActionLog.
+
+DO $$ BEGIN
+  ALTER TYPE "ActionType" ADD VALUE IF NOT EXISTS 'LOGIN';
+EXCEPTION
+  WHEN OTHERS THEN null;
+END $$;
+
+DO $$ BEGIN
+  ALTER TYPE "ActionType" ADD VALUE IF NOT EXISTS 'LOGOUT';
+EXCEPTION
+  WHEN OTHERS THEN null;
+END $$;
+
+DO $$ BEGIN
+  ALTER TYPE "ActionType" ADD VALUE IF NOT EXISTS 'TWO_FACTOR_OPTIN_TOGGLED';
+EXCEPTION
+  WHEN OTHERS THEN null;
+END $$;
