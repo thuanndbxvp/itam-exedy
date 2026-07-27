@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Clock,
 } from 'lucide-react'
+import TicketAttachments from '@/components/helpdesk/TicketAttachments'
 
 interface Comment {
   id: string
@@ -476,6 +477,9 @@ export default function TicketDetailPage() {
           </div>
         ))}
       </div>
+
+      {/* Attachments */}
+      <TicketAttachments ticketId={ticket.id} />
     </div>
   )
 }

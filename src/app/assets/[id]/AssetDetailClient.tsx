@@ -14,6 +14,7 @@ import MarkAuditedButton from '@/components/assets/MarkAuditedButton'
 import AssetHistoryTimeline from '@/components/assets/AssetHistoryTimeline'
 import AssetMaintenanceList from '@/components/assets/AssetMaintenanceList'
 import AssignLicenseModal from '@/components/licenses/AssignLicenseModal'
+import AssetAcceptanceBanner from '@/components/assets/AssetAcceptanceBanner'
 import { useToast } from '@/components/Toast'
 import Modal from '@/components/ui/Modal'
 import { useRouter } from 'next/navigation'
@@ -76,6 +77,9 @@ interface Props {
   locations: { id: string; name: string }[]
   statuses: { id: string; name: string; deployable: boolean; pending: boolean; archived: boolean }[]
   transferableAssets?: { id: string; assetTag: string; name: string }[]
+  /** Sprint C4: banner accept/decline nếu user hiện tại = assignedUserId */
+  acceptanceStatus?: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'NOT_ASSIGNED'
+  currentUserId?: string | null
 }
 
 const formatDate = (dateStr: string | null) => {
@@ -95,7 +99,15 @@ const getStatusBadge = (status: Asset['status']) => {
   return <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Ready to Deploy</span>
 }
 
-export default function AssetDetailClient({ asset, users, locations, statuses, transferableAssets = [] }: Props) {
+export default function AssetDetailClient({
+  asset,
+  users,
+  locations,
+  statuses,
+  transferableAssets = [],
+  acceptanceStatus = 'NOT_ASSIGNED',
+  currentUserId,
+}: Props) {
   const router = useRouter()
   const { showCommandResult } = useToast()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -149,6 +161,15 @@ export default function AssetDetailClient({ asset, users, locations, statuses, t
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      {/* Sprint C4: Asset acceptance banner */}
+      {acceptanceStatus !== 'NOT_ASSIGNED' && currentUserId === asset.assignedUserId && (
+        <AssetAcceptanceBanner
+          assetId={asset.id}
+          assetTag={asset.assetTag}
+          initialStatus={acceptanceStatus}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">

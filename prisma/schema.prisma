@@ -114,6 +114,8 @@ enum ItemType {
   ASSET_MODEL
   DEPRECIATION
   COMPANY
+  TICKET
+  TICKET_ATTACHMENT
 }
 
 enum TargetType {
@@ -184,9 +186,10 @@ model Category {
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
 
-  assets      Asset[]      @relation("AssetCategory")
-  assetModels AssetModel[] @relation("CategoryAssetModel")
-  licenses    License[]    @relation("CategoryLicense")
+  assets         Asset[]         @relation("AssetCategory")
+  assetModels    AssetModel[]    @relation("CategoryAssetModel")
+  licenses       License[]       @relation("CategoryLicense")
+  eulaAcceptances EulaAcceptance[]
 }
 
 model Manufacturer {
@@ -402,6 +405,7 @@ model User {
   preference UserPreference?
 
   passwordResetTokens PasswordResetToken[]
+  eulaAcceptances     EulaAcceptance[]
 
   @@index([companyId])
   @@index([managerId])
@@ -961,4 +965,26 @@ model PasswordResetToken {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+// ============================================================================
+// SPRINT C3: EULA Acceptance — user đã đọc & đồng ý category EULA
+// ============================================================================
+
+model EulaAcceptance {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  /// SHA-256 hash của `Category.eulaText` tại thời điểm accept.
+  /// Nếu admin edit EULA sau → hash đổi → user phải accept lại.
+  version     String
+
+  acceptedAt  DateTime @default(now())
+  ipAddress   String?
+
+  @@unique([userId, categoryId])
+  @@index([categoryId])
 }

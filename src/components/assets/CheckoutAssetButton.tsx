@@ -3,22 +3,29 @@
 import { useState } from 'react'
 import { ShoppingCart } from 'lucide-react'
 import CheckoutAssetModal from './CheckoutAssetModal'
+import EulaModal from './EulaModal'
 
 interface CheckoutAssetButtonProps {
   assetId: string
   assetTag: string
-  /** Server Component parent load sẵn để truyền xuống — tránh fetch từ client. */
   users: { id: string; firstName: string; lastName: string | null; email: string | null }[]
   locations: { id: string; name: string }[]
-  /** Sprint B7: list asset khả thi để chọn khi gán cho thiết bị khác. */
   assets: { id: string; assetTag: string; name: string }[]
+  /**
+   * Sprint C3: nếu category có EULA requireAcceptance → check EULA trước khi mở checkout modal.
+   * Server-side pre-calc để tránh client fetch.
+   */
+  eulaGate?: {
+    categoryId: string
+    categoryName: string
+    eulaText: string
+    alreadyAccepted: boolean
+  } | null
 }
 
 /**
  * Nút "Cấp phát" — mở CheckoutAssetModal.
- *
- * Phase 1: chỉ hiển thị cho ADMIN (wrap trong <RoleGate> ở assets/page.tsx).
- * Server action `checkoutAssetCmd` enforce `requirePermission('assets.checkout')` — UI chỉ là cosmetic.
+ * C3: nếu asset thuộc category yêu cầu EULA + user chưa accept → show EulaModal trước.
  */
 export default function CheckoutAssetButton({
   assetId,
@@ -26,19 +33,47 @@ export default function CheckoutAssetButton({
   users,
   locations,
   assets,
+  eulaGate,
 }: CheckoutAssetButtonProps) {
   const [open, setOpen] = useState(false)
+  const [eulaOpen, setEulaOpen] = useState(false)
+
+  function handleClick() {
+    if (eulaGate && !eulaGate.alreadyAccepted) {
+      setEulaOpen(true)
+      return
+    }
+    setOpen(true)
+  }
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={handleClick}
         className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition border border-blue-200"
       >
         <ShoppingCart size={14} className="mr-1" />
         Cấp phát
       </button>
+
+      {/* C3: EULA gate trước khi checkout */}
+      {eulaGate && (
+        <EulaModal
+          open={eulaOpen}
+          categoryId={eulaGate.categoryId}
+          categoryName={eulaGate.categoryName}
+          eulaText={eulaGate.eulaText}
+          onAccept={() => {
+            setEulaOpen(false)
+            setOpen(true)
+          }}
+          onDecline={() => {
+            setEulaOpen(false)
+          }}
+        />
+      )}
+
       <CheckoutAssetModal
         open={open}
         onClose={() => setOpen(false)}

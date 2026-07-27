@@ -71,6 +71,25 @@ export default async function AssetDetailPage({ params }: PageProps) {
   // F5 fix phụ: chỉ load users/locations cho phần edit khi user có quyền.
   // EMPLOYEE chỉ xem, không edit.
   const isAdmin = session.user.role === 'ADMIN'
+
+  // C4: Tính acceptance status cho current user
+  let acceptanceStatus: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'NOT_ASSIGNED' = 'NOT_ASSIGNED'
+  if (asset.assignedUserId === session.user.id) {
+    const lastAcceptance = await prisma.actionLog.findFirst({
+      where: {
+        itemType: 'ASSET',
+        itemId: asset.id,
+        userId: session.user.id,
+        actionType: { in: ['ACCEPTED', 'DECLINED'] },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { actionType: true },
+    })
+    if (lastAcceptance?.actionType === 'ACCEPTED') acceptanceStatus = 'ACCEPTED'
+    else if (lastAcceptance?.actionType === 'DECLINED') acceptanceStatus = 'DECLINED'
+    else acceptanceStatus = 'PENDING'
+  }
+
   const [allUsers, allLocations, allStatuses, transferableAssets] = isAdmin
     ? await Promise.all([
         prisma.user.findMany({
@@ -144,6 +163,8 @@ export default async function AssetDetailPage({ params }: PageProps) {
       locations={allLocations}
       statuses={allStatuses}
       transferableAssets={transferableAssets}
+      acceptanceStatus={acceptanceStatus}
+      currentUserId={session?.user?.id ?? null}
     />
   )
 }

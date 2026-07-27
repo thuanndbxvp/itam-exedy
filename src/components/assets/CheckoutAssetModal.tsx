@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Modal from '@/components/ui/Modal'
 import {
@@ -10,6 +10,7 @@ import {
 } from '@/app/actions/asset'
 import { useToast } from '@/components/Toast'
 import { User, MapPin, Loader2, MonitorSmartphone } from 'lucide-react'
+import EulaModal from './EulaModal'
 
 interface CheckoutAssetModalProps {
   open: boolean
@@ -25,6 +26,13 @@ interface CheckoutAssetModalProps {
 
 type TargetType = 'USER' | 'LOCATION' | 'ASSET'
 
+interface EulaGate {
+  categoryId: string
+  categoryName: string
+  eulaText: string
+  alreadyAccepted: boolean
+}
+
 export default function CheckoutAssetModal({
   open,
   onClose,
@@ -33,8 +41,7 @@ export default function CheckoutAssetModal({
   users,
   locations,
   assets,
-}: CheckoutAssetModalProps) {
-  const router = useRouter()
+}: CheckoutAssetModalProps) {  const router = useRouter()
   const { showCommandResult } = useToast()
   const [targetType, setTargetType] = useState<TargetType>('USER')
   const [targetUserId, setTargetUserId] = useState<string>('')
@@ -44,6 +51,11 @@ export default function CheckoutAssetModal({
   const [expectedCheckin, setExpectedCheckin] = useState<string>('')
   const [isPending, startTransition] = useTransition()
 
+  // C3: EULA gate state
+  const [eulaGate, setEulaGate] = useState<EulaGate | null>(null)
+  const [eulaOpen, setEulaOpen] = useState(false)
+  const [eulaChecked, setEulaChecked] = useState(false)
+
   function reset() {
     setTargetUserId('')
     setTargetLocationId('')
@@ -51,9 +63,48 @@ export default function CheckoutAssetModal({
     setNotes('')
     setExpectedCheckin('')
     setTargetType('USER')
+    setEulaChecked(false)
   }
 
+  // C3: Khi mở modal → fetch EULA gate status cho asset này
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/assets/${assetId}/eula-gate`, { cache: 'no-store' })
+        const json = await res.json()
+        if (cancelled) return
+        if (json.ok && json.data.requireAcceptance && !json.data.alreadyAccepted) {
+          setEulaGate({
+            categoryId: json.data.categoryId,
+            categoryName: json.data.categoryName,
+            eulaText: json.data.eulaText,
+            alreadyAccepted: false,
+          })
+          setEulaOpen(true)
+        } else {
+          setEulaGate(null)
+          setEulaOpen(false)
+        }
+      } catch {
+        if (!cancelled) {
+          setEulaGate(null)
+          setEulaOpen(false)
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [open, assetId])
+
   function handleSubmit() {
+    // C3: nếu EULA gate đang mở → block submit (force user qua modal trước)
+    if (eulaGate && !eulaChecked) {
+      setEulaOpen(true)
+      return
+    }
     startTransition(async () => {
       let result: unknown
       if (targetType === 'USER') {
@@ -123,8 +174,9 @@ export default function CheckoutAssetModal({
   }
 
   return (
-    <Modal
-      open={open}
+    <>
+      <Modal
+        open={open}
       onClose={handleClose}
       title={`Cấp phát asset "${assetTag}"`}
       size="md"
@@ -310,5 +362,28 @@ export default function CheckoutAssetModal({
         </div>
       </div>
     </Modal>
+
+    {/* C3: EULA gate (chỉ render nếu asset.category requireAcceptance + user chưa accept) */}
+    {eulaGate && (
+      <EulaModal
+        open={eulaOpen}
+        categoryId={eulaGate.categoryId}
+        categoryName={eulaGate.categoryName}
+        eulaText={eulaGate.eulaText}
+        onAccept={() => {
+          setEulaChecked(true)
+          setEulaOpen(false)
+        }}
+        onDecline={() => {
+          setEulaOpen(false)
+          showCommandResult({
+            ok: false,
+            code: 'EULA_DECLINED',
+            message: 'Bạn cần đồng ý EULA để checkout asset này.',
+          })
+        }}
+      />
+    )}
+    </>
   )
 }
