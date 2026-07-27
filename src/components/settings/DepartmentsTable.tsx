@@ -1,10 +1,11 @@
 'use client'
 
 import EntityTable from '@/components/settings/EntityTable'
-import { Network, Building2, User as UserIcon } from 'lucide-react'
+import { Network, Building2, User as UserIcon, MapPin } from 'lucide-react'
 
 interface CompanyOpt { id: string; name: string }
 interface ManagerOpt { id: string; firstName: string; lastName: string | null }
+interface LocationOpt { id: string; name: string }
 
 export interface DepartmentRow {
   id: string
@@ -12,8 +13,10 @@ export interface DepartmentRow {
   notes: string | null
   managerId: string | null
   companyId: string | null
+  locationId: string | null
   manager?: ManagerOpt | null
   company?: CompanyOpt | null
+  location?: LocationOpt | null
   _count?: { users: number }
 }
 
@@ -21,9 +24,10 @@ interface Props {
   departments: DepartmentRow[]
   companies: CompanyOpt[]
   managers: ManagerOpt[]
+  locations: LocationOpt[]
 }
 
-export default function DepartmentsTable({ departments, companies, managers }: Props) {
+export default function DepartmentsTable({ departments, companies, managers, locations }: Props) {
   return (
     <EntityTable
       rows={departments}
@@ -42,6 +46,7 @@ export default function DepartmentsTable({ departments, companies, managers }: P
         emptyFormValues: () => ({
           name: '',
           companyId: '',
+          locationId: '',
           managerId: '',
           notes: '',
         }),
@@ -49,6 +54,7 @@ export default function DepartmentsTable({ departments, companies, managers }: P
           id: row.id,
           name: row.name,
           companyId: row.companyId ?? '',
+          locationId: row.locationId ?? '',
           managerId: row.managerId ?? '',
           notes: row.notes ?? '',
         }),
@@ -66,6 +72,13 @@ export default function DepartmentsTable({ departments, companies, managers }: P
             label: 'Công ty',
             placeholder: '— Không gắn với công ty —',
             options: companies.map((c) => ({ value: c.id, label: c.name })),
+          },
+          {
+            kind: 'select',
+            name: 'locationId',
+            label: 'Vị trí / Địa điểm',
+            placeholder: '— Không gắn với vị trí —',
+            options: locations.map((l) => ({ value: l.id, label: l.name })),
           },
           {
             kind: 'select',
@@ -123,6 +136,19 @@ export default function DepartmentsTable({ departments, companies, managers }: P
               <span className="inline-flex items-center gap-1.5 text-sm text-gray-600">
                 <UserIcon size={14} className="text-gray-400" />
                 {[d.manager.firstName, d.manager.lastName].filter(Boolean).join(' ')}
+              </span>
+            ) : (
+              <span className="text-gray-400">—</span>
+            ),
+        },
+        {
+          key: 'location',
+          label: 'Vị trí',
+          render: (d) =>
+            d.location ? (
+              <span className="inline-flex items-center gap-1.5 text-sm text-gray-600">
+                <MapPin size={14} className="text-gray-400" />
+                {d.location.name}
               </span>
             ) : (
               <span className="text-gray-400">—</span>

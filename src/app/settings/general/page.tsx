@@ -15,7 +15,11 @@ export default async function GeneralSettingsPage() {
     )
   }
 
-  const settings = { ...result.data! }
+  const settings = {
+    ...result.data!,
+    // Map DB emailFrom -> UI supportEmail
+    supportEmail: result.data!.emailFrom ?? '',
+  }
 
   const fields = [
     {
@@ -25,6 +29,14 @@ export default async function GeneralSettingsPage() {
       type: 'text' as const,
       required: true,
       description: 'Tên hiển thị trên dashboard và email thông báo.',
+    },
+    {
+      name: 'supportEmail',
+      label: 'Email hỗ trợ',
+      icon: 'globe' as const,
+      type: 'email' as const,
+      description: 'Địa chỉ email liên hệ người dùng gặp sự cố. Cũng được dùng làm email gửi đi mặc định.',
+      placeholder: 'VD: support@congty.com',
     },
     {
       name: 'currency',
@@ -84,6 +96,7 @@ export default async function GeneralSettingsPage() {
             currency: data.currency as string,
             timezone: data.timezone as string,
             locale: data.locale as string,
+            supportEmail: (data.supportEmail as string) ?? '',
           })
         }}
       />

@@ -15,6 +15,7 @@ export default function NewStatusPage() {
     deployable: false,
     pending: false,
     archived: false,
+    undeployable: false,
     color: '#3B82F6',
   })
 
@@ -68,11 +69,12 @@ export default function NewStatusPage() {
             <label className="block text-sm font-medium text-gray-700 mb-3">Loại trạng thái</label>
             <div className="space-y-3">
               {[
-                { key: 'deployable', label: 'Sẵn sàng cấp phát', color: 'bg-green-500' },
-                { key: 'pending', label: 'Chờ duyệt', color: 'bg-yellow-500' },
-                { key: 'archived', label: 'Lưu trữ', color: 'bg-gray-500' },
+                { key: 'deployable', label: 'Sẵn sàng cấp phát', color: 'bg-green-500', hint: 'Có thể cấp phát cho nhân sự' },
+                { key: 'pending', label: 'Chờ duyệt', color: 'bg-yellow-500', hint: 'Đang trong quy trình xử lý' },
+                { key: 'undeployable', label: 'Không khả dụng', color: 'bg-red-500', hint: 'Không thể cấp phát (đang sửa chữa, mất…)' },
+                { key: 'archived', label: 'Lưu trữ', color: 'bg-gray-500', hint: 'Ngừng sử dụng, chỉ lưu hồ sơ' },
               ].map((opt) => (
-                <label key={opt.key} className="flex items-center gap-3 cursor-pointer">
+                <label key={opt.key} className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="radio"
                     name="type"
@@ -84,10 +86,13 @@ export default function NewStatusPage() {
                       archived: false,
                       [opt.key]: true,
                     }))}
-                    className="text-blue-600 focus:ring-blue-500"
+                    className="mt-1 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className={`w-3 h-3 rounded-full ${opt.color}`} />
-                  <span className="text-sm text-gray-700">{opt.label}</span>
+                  <span className={`mt-1 w-3 h-3 rounded-full ${opt.color}`} />
+                  <div>
+                    <p className="text-sm text-gray-700 font-medium">{opt.label}</p>
+                    <p className="text-xs text-gray-500">{opt.hint}</p>
+                  </div>
                 </label>
               ))}
             </div>

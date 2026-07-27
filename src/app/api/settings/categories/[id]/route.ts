@@ -8,7 +8,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const user = await requirePermissionApi('settings.update')
     const { id } = await params
-    const { name, categoryType, color } = await req.json()
+    const {
+      name, categoryType, color,
+      eulaText, requireAcceptance, checkinEmail,
+    } = await req.json()
     const existing = await prisma.category.findUnique({ where: { id } })
     if (!existing) {
       return NextResponse.json({ ok: false, code: 'NOT_FOUND', message: 'Không tìm thấy.' }, { status: 404 })
@@ -19,6 +22,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         name: name ?? existing.name,
         categoryType: categoryType ?? existing.categoryType,
         color: color !== undefined ? color : existing.color,
+        eulaText: eulaText !== undefined ? (eulaText?.trim() || null) : existing.eulaText,
+        requireAcceptance: requireAcceptance !== undefined ? !!requireAcceptance : existing.requireAcceptance,
+        checkinEmail: checkinEmail !== undefined ? (checkinEmail?.trim() || null) : existing.checkinEmail,
       },
     })
     await recordAudit(
@@ -27,7 +33,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       'CATEGORY',
       id,
       `Cập nhật danh mục "${updated.name}"`,
-      { oldValues: { name: existing.name, categoryType: existing.categoryType, color: existing.color }, newValues: { name: updated.name, categoryType: updated.categoryType, color: updated.color } },
+      {
+        oldValues: {
+          name: existing.name, categoryType: existing.categoryType, color: existing.color,
+          eulaText: existing.eulaText, requireAcceptance: existing.requireAcceptance, checkinEmail: existing.checkinEmail,
+        },
+        newValues: {
+          name: updated.name, categoryType: updated.categoryType, color: updated.color,
+          eulaText: updated.eulaText, requireAcceptance: updated.requireAcceptance, checkinEmail: updated.checkinEmail,
+        },
+      },
     )
     return okResponse(updated)
   } catch (e) {

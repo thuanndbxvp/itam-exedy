@@ -24,7 +24,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const user = await requirePermissionApi('settings.update')
-    const { name, managerId, companyId, notes } = await req.json()
+    const { name, managerId, companyId, locationId, notes } = await req.json()
     if (!name?.trim()) {
       return NextResponse.json(
         { ok: false, code: 'VALIDATION', message: 'Tên phòng ban không được trống.' },
@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
           name: name.trim(),
           managerId: managerId || null,
           companyId: companyId || null,
+          locationId: locationId || null,
           notes: notes || null,
         },
       })

@@ -20,6 +20,7 @@ export async function updateGeneralSettingsAction(data: {
   currency: string
   timezone: string
   locale: string
+  supportEmail?: string
 }): Promise<CommandResult<void>> {
   return runCommand(async () => {
     await requirePermission('settings.update')
@@ -31,6 +32,7 @@ export async function updateGeneralSettingsAction(data: {
       currency: data.currency,
       timezone: data.timezone,
       locale: data.locale,
+      emailFrom: data.supportEmail?.trim() || null,
     })
     revalidatePath('/')
     revalidatePath('/settings/general')
@@ -41,8 +43,20 @@ export async function updateGeneralSettingsAction(data: {
       'system',
       'Cập nhật cài đặt chung',
       {
-        oldValues: { companyName: oldSettings.companyName, currency: oldSettings.currency, timezone: oldSettings.timezone, locale: oldSettings.locale },
-        newValues: { companyName: data.companyName, currency: data.currency, timezone: data.timezone, locale: data.locale },
+        oldValues: {
+          companyName: oldSettings.companyName,
+          currency: oldSettings.currency,
+          timezone: oldSettings.timezone,
+          locale: oldSettings.locale,
+          supportEmail: oldSettings.emailFrom,
+        },
+        newValues: {
+          companyName: data.companyName,
+          currency: data.currency,
+          timezone: data.timezone,
+          locale: data.locale,
+          supportEmail: data.supportEmail?.trim() || null,
+        },
       },
     )
   }, 'updateGeneralSettings')

@@ -12,6 +12,7 @@ async function getDepartments() {
     include: {
       manager: { select: { id: true, firstName: true, lastName: true } },
       company: { select: { id: true, name: true } },
+      location: { select: { id: true, name: true } },
       _count: { select: { users: true } },
     },
   })
@@ -29,6 +30,14 @@ async function getPotentialManagers() {
   })
 }
 
+async function getLocations() {
+  return prisma.location.findMany({
+    where: { deletedAt: null },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true },
+  })
+}
+
 export default async function DepartmentsPage() {
   try {
     await requirePermission('settings.read')
@@ -36,10 +45,11 @@ export default async function DepartmentsPage() {
     redirect('/')
   }
 
-  const [departments, companies, managers] = await Promise.all([
+  const [departments, companies, managers, locations] = await Promise.all([
     getDepartments(),
     getCompanies(),
     getPotentialManagers(),
+    getLocations(),
   ])
 
   return (
@@ -50,7 +60,12 @@ export default async function DepartmentsPage() {
           <p className="text-gray-500">Quản lý các phòng ban, công ty và trưởng phòng trong hệ thống.</p>
         </div>
       </div>
-      <DepartmentsTable departments={departments} companies={companies} managers={managers} />
+      <DepartmentsTable
+        departments={departments}
+        companies={companies}
+        managers={managers}
+        locations={locations}
+      />
     </div>
   )
 }

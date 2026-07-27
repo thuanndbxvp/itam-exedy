@@ -58,7 +58,9 @@ export default async function LicenseDetailPage({ params }: LicenseDetailPagePro
   const isPrivileged =
     userRole === 'ADMIN' || userRole === 'IT_MANAGER' || userRole === 'IT_STAFF'
   if (!isPrivileged) {
-    const ownsSeat = license.seats.some((s) => s.assignedUserId === userId)
+    const ownsSeat = license.seats.some(
+      (s) => s.assignedUserId === userId || s.assignedAsset?.assignedUserId === userId
+    )
     if (!ownsSeat) notFound()
   }
 

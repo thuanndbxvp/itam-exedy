@@ -46,6 +46,27 @@ export default function CategoriesTable({ categories }: Props) {
               />
             ) : null,
         },
+        {
+          key: 'acceptance',
+          label: 'EULA / Check-in',
+          render: (c) => (
+            <div className="flex flex-col gap-1 text-xs">
+              {c.requireAcceptance ? (
+                <span className="inline-flex items-center w-fit px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded font-medium">
+                  Yêu cầu EULA
+                </span>
+              ) : null}
+              {c.checkinEmail ? (
+                <span className="inline-flex items-center w-fit px-2 py-0.5 bg-blue-50 text-blue-700 rounded">
+                  ✉ {c.checkinEmail}
+                </span>
+              ) : null}
+              {!c.requireAcceptance && !c.checkinEmail ? (
+                <span className="text-gray-400">—</span>
+              ) : null}
+            </div>
+          ),
+        },
       ]}
     />
   )

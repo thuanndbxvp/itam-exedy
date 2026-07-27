@@ -8,7 +8,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const user = await requirePermissionApi('settings.update')
     const { id } = await params
-    const { name, managerId, companyId, notes } = await req.json()
+    const { name, managerId, companyId, locationId, notes } = await req.json()
     const existing = await prisma.department.findUnique({ where: { id } })
     if (!existing) {
       return NextResponse.json({ ok: false, code: 'NOT_FOUND', message: 'Không tìm thấy.' }, { status: 404 })
@@ -19,6 +19,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         name: name ?? existing.name,
         managerId: managerId !== undefined ? managerId || null : existing.managerId,
         companyId: companyId !== undefined ? companyId || null : existing.companyId,
+        locationId: locationId !== undefined ? locationId || null : existing.locationId,
         notes: notes !== undefined ? notes : existing.notes,
       },
     })
@@ -29,8 +30,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       id,
       `Cập nhật phòng ban "${updated.name}"`,
       {
-        oldValues: { managerId: existing.managerId, companyId: existing.companyId, notes: existing.notes },
-        newValues: { managerId: updated.managerId, companyId: updated.companyId, notes: updated.notes },
+        oldValues: {
+          managerId: existing.managerId,
+          companyId: existing.companyId,
+          locationId: existing.locationId,
+          notes: existing.notes,
+        },
+        newValues: {
+          managerId: updated.managerId,
+          companyId: updated.companyId,
+          locationId: updated.locationId,
+          notes: updated.notes,
+        },
       },
     )
     return okResponse(updated)

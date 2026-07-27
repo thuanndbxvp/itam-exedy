@@ -82,7 +82,17 @@ export default async function LicensesPage({ searchParams }: LicensesPageProps) 
       AND: [
         { deletedAt: null },
         ...(isEmployee && userId
-          ? [{ seats: { some: { assignedUserId: userId, deletedAt: null } } }]
+          ? [{
+              seats: {
+                some: {
+                  deletedAt: null,
+                  OR: [
+                    { assignedUserId: userId },
+                    { assignedAsset: { assignedUserId: userId } }
+                  ]
+                }
+              }
+            }]
           : []),
         ...(rawSearch.length > 0
           ? [{ name: { contains: rawSearch, mode: 'insensitive' as const } }]

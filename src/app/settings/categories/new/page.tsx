@@ -12,7 +12,14 @@ export default function NewCategoryPage() {
   const router = useRouter()
   const { showCommandResult } = useToast()
   const [isPending, setIsPending] = useState(false)
-  const [form, setForm] = useState({ name: '', categoryType: 'ASSET', color: '#3B82F6' })
+  const [form, setForm] = useState({
+    name: '',
+    categoryType: 'ASSET',
+    color: '#3B82F6',
+    eulaText: '',
+    requireAcceptance: false,
+    checkinEmail: '',
+  })
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -58,6 +65,45 @@ export default function NewCategoryPage() {
                     className="w-7 h-7 rounded-full border-2 border-gray-200 hover:scale-110 transition"
                     style={{ backgroundColor: c, outline: form.color === c ? '2px solid #3B82F6' : 'none', outlineOffset: '2px' }} />
                 ))}
+              </div>
+            </div>
+          </div>
+
+          {/* B1: EULA / acceptance / check-in email */}
+          <div className="pt-2 border-t border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">EULA &amp; xác nhận</h3>
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.requireAcceptance}
+                  onChange={(e) => setForm((f) => ({ ...f, requireAcceptance: e.target.checked }))}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <p className="text-sm text-gray-700 font-medium">Yêu cầu người dùng chấp nhận EULA</p>
+                  <p className="text-xs text-gray-500">Nhân sự khi nhận tài sản/license sẽ phải xác nhận đồng ý.</p>
+                </div>
+              </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Check-in email (tùy chọn)</label>
+                <input
+                  type="email"
+                  value={form.checkinEmail}
+                  onChange={(e) => setForm((f) => ({ ...f, checkinEmail: e.target.value }))}
+                  placeholder="VD: it-support@congty.com"
+                  className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">EULA / Nội dung thỏa thuận</label>
+                <textarea
+                  rows={6}
+                  value={form.eulaText}
+                  onChange={(e) => setForm((f) => ({ ...f, eulaText: e.target.value }))}
+                  placeholder="Dán văn bản thỏa thuận sử dụng (EULA) vào đây..."
+                  className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition resize-y"
+                />
               </div>
             </div>
           </div>
