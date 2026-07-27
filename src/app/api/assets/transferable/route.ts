@@ -8,7 +8,7 @@
  *
  * Auth: assets.checkout (cùng permission với checkout action).
  */
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import prisma from '@/lib/prisma'
 import { errorResponse, okResponse } from '@/lib/api'
 import { requirePermissionApi } from '@/lib/permissions/http-guard'

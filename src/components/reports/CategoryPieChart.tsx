@@ -19,21 +19,17 @@ export default function CategoryPieChart({ data }: { data: Slice[] }) {
   // Compute donut slices
   const radius = 80
   const circumference = 2 * Math.PI * radius
-  let acc = 0
-  const slices = data.map((d) => {
-    const pct = d.count / total
-    const dashOffset = circumference * (1 - pct)
-    const dash = circumference * pct
-    const slice = {
-      ...d,
-      pct,
-      dash,
-      dashOffset,
-      acc,
-    }
-    acc += pct
-    return slice
-  })
+  // Build slices with cumulative offsets via reduce (immutable).
+  const slices = data.reduce<Array<Slice & { pct: number; dash: number; dashOffset: number; acc: number }>>(
+    (acc, d) => {
+      const pct = d.count / total
+      const dash = circumference * pct
+      const accPct = acc.length === 0 ? 0 : acc[acc.length - 1].acc + acc[acc.length - 1].pct
+      acc.push({ ...d, pct, dash, dashOffset: circumference * (1 - pct), acc: accPct })
+      return acc
+    },
+    []
+  )
 
   return (
     <div className="flex flex-col lg:flex-row items-center gap-6">
@@ -51,7 +47,7 @@ export default function CategoryPieChart({ data }: { data: Slice[] }) {
           stroke="#f3f4f6"
           strokeWidth="32"
         />
-        {slices.map((s, i) => (
+        {slices.map((s) => (
           <circle
             key={s.categoryId}
             cx="90"

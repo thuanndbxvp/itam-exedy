@@ -19,7 +19,6 @@
  *
  * Auth: reports.view.
  */
-import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { errorResponse, okResponse } from '@/lib/api'
 import { requirePermissionApi } from '@/lib/permissions/http-guard'
@@ -28,9 +27,7 @@ export async function GET() {
   try {
     await requirePermissionApi('reports.view')
 
-    // Asset count theo Department (qua Location -> ...)
-    // Schema location không có FK tới Department nên phải đi đường khác:
-    // Lấy asset theo categoryId (relation trực tiếp) làm proxy.
+    // Asset count theo Category (relation trực tiếp asset.categoryId)
     const data = await prisma.asset.groupBy({
       by: ['categoryId'],
       where: { deletedAt: null, categoryId: { not: null } },

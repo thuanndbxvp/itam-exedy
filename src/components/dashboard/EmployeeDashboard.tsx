@@ -60,7 +60,7 @@ export default function EmployeeDashboard({ firstName }: { firstName: string }) 
           setSeats(assetsRes.data?.licenseSeats ?? [])
         }
         if (ticketsRes?.ok) {
-          setTickets(ticketsRes.data?.slice(0, 5) ?? [])
+          setTickets(ticketsRes.data?.tickets?.slice(0, 5) ?? [])
         }
         setLoading(false)
       })
