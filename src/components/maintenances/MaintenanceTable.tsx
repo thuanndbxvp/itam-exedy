@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Calendar, Building2, DollarSign, FileText, Wrench, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Building2, Wrench, AlertTriangle, CheckCircle2 } from 'lucide-react'
 
 interface Item {
   id: string
@@ -53,7 +53,7 @@ export default function MaintenanceTable({ items }: Props) {
         <Wrench size={48} className="mx-auto text-gray-300 mb-3" />
         <p className="text-gray-500">Chưa có phiếu bảo trì nào.</p>
         <p className="text-xs text-gray-400 mt-2">
-          Phiếu bảo trì được tạo từ trang chi tiết tài sản (tab "Lịch sử sửa chữa").
+          Phiếu bảo trì được tạo từ trang chi tiết tài sản (tab &ldquo;Lịch sử sửa chữa&rdquo;).
         </p>
       </div>
     )

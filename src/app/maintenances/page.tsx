@@ -10,7 +10,7 @@ import prisma from '@/lib/prisma'
 import Link from 'next/link'
 import { requirePermission } from '@/lib/permissions/guard'
 import { redirect } from 'next/navigation'
-import { Wrench, Plus } from 'lucide-react'
+import { Wrench } from 'lucide-react'
 import MaintenanceTable from '@/components/maintenances/MaintenanceTable'
 
 type StatusFilter = 'all' | 'pending' | 'in_progress' | 'completed'
