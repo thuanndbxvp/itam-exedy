@@ -15,7 +15,6 @@
 import { useEffect, useState } from 'react'
 import {
   Activity,
-  ArrowRight,
   CheckCircle2,
   CornerDownLeft,
   CornerUpRight,
@@ -27,6 +26,7 @@ import {
   MessageSquarePlus,
   Clock,
 } from 'lucide-react'
+import JsonDiff from '@/components/audit/JsonDiff'
 
 interface HistoryEvent {
   id: string
@@ -76,53 +76,6 @@ function relativeTime(iso: string): string {
   const month = Math.floor(day / 30)
   if (month < 12) return `${month} tháng trước`
   return new Date(iso).toLocaleDateString('vi-VN')
-}
-
-function formatValue(v: unknown): string {
-  if (v == null) return '—'
-  if (typeof v === 'string') return v
-  if (typeof v === 'number' || typeof v === 'boolean') return String(v)
-  return JSON.stringify(v)
-}
-
-/**
- * Render field diff nếu có oldValues/newValues.
- * Chỉ show các field có thay đổi (khác giữa old và new).
- */
-function FieldDiff({
-  oldValues,
-  newValues,
-}: {
-  oldValues: Record<string, unknown> | null
-  newValues: Record<string, unknown> | null
-}) {
-  if (!oldValues && !newValues) return null
-  const fields = new Set<string>()
-  if (oldValues) Object.keys(oldValues).forEach((k) => fields.add(k))
-  if (newValues) Object.keys(newValues).forEach((k) => fields.add(k))
-
-  const changes: Array<{ field: string; oldV: unknown; newV: unknown }> = []
-  fields.forEach((field) => {
-    const oldV = oldValues?.[field]
-    const newV = newValues?.[field]
-    const changed = JSON.stringify(oldV ?? null) !== JSON.stringify(newV ?? null)
-    if (changed) changes.push({ field, oldV, newV })
-  })
-
-  if (changes.length === 0) return null
-
-  return (
-    <div className="mt-2 space-y-1">
-      {changes.map((c) => (
-        <div key={c.field} className="flex items-start gap-2 text-xs">
-          <span className="font-mono text-gray-500 min-w-[110px]">{c.field}</span>
-          <span className="text-red-600 line-through">{formatValue(c.oldV)}</span>
-          <ArrowRight size={10} className="text-gray-400 mt-1 flex-shrink-0" />
-          <span className="text-emerald-700">{formatValue(c.newV)}</span>
-        </div>
-      ))}
-    </div>
-  )
 }
 
 export default function AssetHistoryTimeline({ assetId }: { assetId: string }) {
@@ -209,7 +162,7 @@ export default function AssetHistoryTimeline({ assetId }: { assetId: string }) {
                   <p className="text-sm text-gray-600 mt-2 italic">"{evt.notes}"</p>
                 )}
 
-                <FieldDiff oldValues={evt.oldValues} newValues={evt.newValues} />
+                <JsonDiff oldValues={evt.oldValues} newValues={evt.newValues} />
               </div>
             </div>
           )
