@@ -16,6 +16,17 @@ interface PageProps {
     locationId?: string
     assigned?: string
     search?: string
+    // Sprint C6 advanced filter
+    modelId?: string
+    supplierId?: string
+    purchaseDateFrom?: string
+    purchaseDateTo?: string
+    warrantyMonthsMin?: string
+    warrantyMonthsMax?: string
+    eolDateFrom?: string
+    eolDateTo?: string
+    byod?: string
+    requestable?: string
   }>
 }
 
@@ -50,8 +61,50 @@ async function getPageData(params: PageProps['searchParams']) {
     ]
   }
 
+  // C6: Advanced filter
+  if (p.modelId) where.modelId = p.modelId
+  if (p.supplierId) where.supplierId = p.supplierId
+  if (p.purchaseDateFrom || p.purchaseDateTo) {
+    const purchaseFilter: { gte?: Date; lte?: Date } = {}
+    if (p.purchaseDateFrom) {
+      const d = new Date(p.purchaseDateFrom)
+      if (!isNaN(d.getTime())) purchaseFilter.gte = d
+    }
+    if (p.purchaseDateTo) {
+      const d = new Date(p.purchaseDateTo)
+      if (!isNaN(d.getTime())) purchaseFilter.lte = d
+    }
+    if (purchaseFilter.gte || purchaseFilter.lte) where.purchaseDate = purchaseFilter
+  }
+  if (p.warrantyMonthsMin || p.warrantyMonthsMax) {
+    const w: { gte?: number; lte?: number } = {}
+    if (p.warrantyMonthsMin) {
+      const n = parseInt(p.warrantyMonthsMin)
+      if (!isNaN(n)) w.gte = n
+    }
+    if (p.warrantyMonthsMax) {
+      const n = parseInt(p.warrantyMonthsMax)
+      if (!isNaN(n)) w.lte = n
+    }
+    if (w.gte !== undefined || w.lte !== undefined) where.warrantyMonths = w
+  }
+  if (p.eolDateFrom || p.eolDateTo) {
+    const eol: { gte?: Date; lte?: Date } = {}
+    if (p.eolDateFrom) {
+      const d = new Date(p.eolDateFrom)
+      if (!isNaN(d.getTime())) eol.gte = d
+    }
+    if (p.eolDateTo) {
+      const d = new Date(p.eolDateTo)
+      if (!isNaN(d.getTime())) eol.lte = d
+    }
+    if (eol.gte || eol.lte) where.assetEolDate = eol
+  }
+  if (p.byod === 'true') where.byod = true
+  if (p.requestable === 'true') where.requestable = true
+
   // EMPLOYEE: không cần load full user list (chỉ xem của mình).
-  const [assetsRaw, total, statuses, categories, locations, users, transferableAssets] = await Promise.all([
+  const [assetsRaw, total, statuses, categories, locations, users, transferableAssets, models, suppliers] = await Promise.all([
     prisma.asset.findMany({
       where,
       include: {
@@ -91,6 +144,9 @@ async function getPageData(params: PageProps['searchParams']) {
           take: 200,
           select: { id: true, assetTag: true, name: true },
         }),
+    // C6: dropdowns cho advanced filter
+    prisma.assetModel.findMany({ where: { deletedAt: null }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+    prisma.supplier.findMany({ where: { deletedAt: null }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
   ])
 
   // Serialize: convert Prisma Decimal → number (Plain objects only for Server → Client)
@@ -119,6 +175,8 @@ async function getPageData(params: PageProps['searchParams']) {
     locations,
     users,
     transferableAssets,
+    models,
+    suppliers,
   }
 }
 
@@ -138,6 +196,8 @@ export default async function AssetsPage({ searchParams }: PageProps) {
               statuses={data.statuses}
               categories={data.categories}
               locations={data.locations}
+              models={data.models}
+              suppliers={data.suppliers}
             />
           }
         />
