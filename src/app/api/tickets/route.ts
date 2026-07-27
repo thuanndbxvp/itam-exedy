@@ -57,6 +57,7 @@ export async function GET(req: NextRequest) {
     const priority = sp.get("priority") as TicketPriority | null;
     const mine = sp.get("mine") === "1";
     const teamId = sp.get("teamId");
+    const assigneeId = sp.get("assigneeId");
     const limit = Math.min(parseInt(sp.get("limit") ?? "50", 10) || 50, 200);
 
     const where: Record<string, unknown> = {};
@@ -70,6 +71,9 @@ export async function GET(req: NextRequest) {
     } else if (mine) {
       // IT staff chọn "của tôi"
       where.assigneeId = user.id;
+    } else if (assigneeId) {
+      // Filter theo assignee cu the (A6)
+      where.assigneeId = assigneeId;
     } else if (teamId) {
       where.teamId = teamId;
     }

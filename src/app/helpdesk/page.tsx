@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, Suspense, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Plus, Filter, Loader2, LifeBuoy, UserCheck } from 'lucide-react'
+import TicketFilterBar from '@/components/helpdesk/TicketFilterBar'
 
 interface Ticket {
   id: string
@@ -69,29 +70,60 @@ function HelpdeskContent() {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
   const [claiming, setClaiming] = useState<string | null>(null)
-  
+  const [teams, setTeams] = useState<{ id: string; name: string }[]>([])
+  const [assignees, setAssignees] = useState<{ id: string; firstName: string; lastName: string | null }[]>([])
+
   const isIt = session?.user?.role === 'IT_STAFF' || session?.user?.role === 'IT_MANAGER' || session?.user?.role === 'ADMIN'
-  
+
   const initialTab = (searchParams.get('tab') as Tab) || (isIt ? 'mine' : 'all')
   const [tab, setTab] = useState<Tab>(initialTab)
   const [filterStatus, setFilterStatus] = useState('')
+
+  // A6: priority / teamId / assigneeId tu URL
+  const filterPriority = searchParams.get('priority') ?? ''
+  const filterTeamId = searchParams.get('teamId') ?? ''
+  const filterAssigneeId = searchParams.get('assigneeId') ?? ''
+
+  // Fetch teams + assignees 1 lan cho filter bar (IT only)
+  useEffect(() => {
+    if (!isIt) return
+    let cancelled = false
+    Promise.all([
+      fetch('/api/helpdesk-teams', { cache: 'no-store' }).then((r) => r.json()),
+      fetch('/api/admin/ticket-rules', { cache: 'no-store' }).then((r) => r.json()),
+    ]).then(([tJson, rJson]) => {
+      if (cancelled) return
+      if (tJson.ok) setTeams(tJson.data)
+      if (rJson.ok) setAssignees(rJson.data.users)
+    }).catch(console.error)
+    return () => { cancelled = true }
+  }, [isIt])
 
   useEffect(() => {
     async function load() {
       setLoading(true)
       try {
         let url = '/api/tickets'
-        
+
         if (isIt) {
           if (tab === 'mine') {
             url = '/api/tickets?mine=1'
           } else if (tab === 'new') {
             url = '/api/tickets?status=NEW'
           } else if (tab === 'all') {
-            url = filterStatus ? `/api/tickets?status=${filterStatus}` : '/api/tickets'
+            const params = new URLSearchParams()
+            if (filterStatus) params.set('status', filterStatus)
+            if (filterPriority) params.set('priority', filterPriority)
+            if (filterTeamId) params.set('teamId', filterTeamId)
+            if (filterAssigneeId) params.set('assigneeId', filterAssigneeId)
+            url = params.toString() ? `/api/tickets?${params.toString()}` : '/api/tickets'
           }
         } else {
-          url = filterStatus ? `/api/tickets?status=${filterStatus}` : '/api/tickets'
+          // Employee: status + filter
+          const params = new URLSearchParams()
+          if (filterStatus) params.set('status', filterStatus)
+          if (filterPriority) params.set('priority', filterPriority)
+          url = params.toString() ? `/api/tickets?${params.toString()}` : '/api/tickets'
         }
 
         const r = await fetch(url, { cache: 'no-store' })
@@ -101,21 +133,21 @@ function HelpdeskContent() {
         setLoading(false)
       }
     }
-    // Only reload if we actually know the user role
     if (session?.user?.role) {
       load()
     }
-  }, [tab, filterStatus, isIt, session?.user?.role])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, filterStatus, filterPriority, filterTeamId, filterAssigneeId, isIt, session?.user?.role])
 
-  const handleTabChange = (newTab: Tab) => {
+  const handleTabChange = useCallback((newTab: Tab) => {
     setTab(newTab)
     const newParams = new URLSearchParams(searchParams.toString())
     newParams.set('tab', newTab)
     router.replace(`/helpdesk?${newParams.toString()}`)
-  }
+  }, [searchParams, router])
 
   async function claim(t: Ticket, e: React.MouseEvent) {
-    e.stopPropagation() // Prevent row click
+    e.stopPropagation()
     setClaiming(t.id)
     try {
       const r = await fetch(`/api/tickets/${t.id}`, {
@@ -133,6 +165,9 @@ function HelpdeskContent() {
       setClaiming(null)
     }
   }
+
+  // Chỉ show filter bar khi tab 'all' (IT) hoặc luôn luôn (Employee)
+  const showFilterBar = !isIt || tab === 'all'
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -195,22 +230,32 @@ function HelpdeskContent() {
           </div>
         )}
 
-        {/* Filter (Only show when tab is 'all' or for non-IT) */}
-        {(!isIt || tab === 'all') && (
-          <div className="p-4 border-b border-gray-100 flex items-center gap-3 bg-gray-50/30">
-            <Filter size={16} className="text-gray-400" />
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-            <span className="text-sm text-gray-500 ml-auto">{tickets.length} ticket</span>
+        {/* Filter Bar (A6 — multi-filter via URL searchParams) */}
+        {showFilterBar && (
+          <div className="p-4 border-b border-gray-100 bg-gray-50/30 space-y-3">
+            <TicketFilterBar
+              teams={teams}
+              assignees={assignees}
+              showTeamFilter={isIt}
+              showAssigneeFilter={isIt}
+            />
+            {isIt && (
+              <div className="flex items-center gap-3">
+                <Filter size={16} className="text-gray-400" />
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-sm text-gray-500 ml-auto">{tickets.length} ticket</span>
+              </div>
+            )}
           </div>
         )}
 
