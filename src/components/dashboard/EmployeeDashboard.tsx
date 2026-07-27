@@ -80,7 +80,7 @@ export default function EmployeeDashboard({ firstName }: { firstName: string }) 
           </p>
         </div>
         <Link
-          href="/tickets/new"
+          href="/helpdesk/new"
           className="flex items-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-xl font-medium hover:bg-blue-700 transition shadow-sm"
         >
           <Plus size={18} />
