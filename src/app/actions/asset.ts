@@ -10,6 +10,7 @@ import {
   checkoutAssetToUser,
   checkinAsset,
   checkoutAssetToLocation,
+  checkoutAssetToAsset,
 } from '@/lib/commands/asset';
 import { DomainError } from '@/lib/errors';
 import type { CommandResult } from '@/lib/errors';
@@ -29,6 +30,7 @@ export async function createAsset(data: {
   manufacturerId?: string;
   supplierId?: string;
   statusId: string;
+  image?: string;
   purchaseDate?: string;
   purchaseCost?: number;
   orderNumber?: string;
@@ -54,6 +56,14 @@ export async function createAsset(data: {
     const session = await getServerSession(authOptions);
     const actorId = await getActorUserId(session?.user?.id ?? null);
 
+    // B6: optional image cap 1MB (data-URI size) — refuse larger to protect DB.
+    if (data.image && data.image.length > 1_500_000) {
+      throw new DomainError(
+        'VALIDATION',
+        'Ảnh vượt quá 1.5MB sau khi encode base64. Vui lòng chọn ảnh nhỏ hơn.'
+      );
+    }
+
     const asset = await prisma.asset.create({
       data: {
         assetTag: data.assetTag.trim(),
@@ -64,6 +74,7 @@ export async function createAsset(data: {
         manufacturerId: data.manufacturerId?.trim() || null,
         supplierId: data.supplierId?.trim() || null,
         statusId: data.statusId,
+        image: data.image?.trim() || null,
         purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : null,
         purchaseCost: data.purchaseCost ?? null,
         orderNumber: data.orderNumber?.trim() || null,
@@ -104,6 +115,7 @@ export async function updateAsset(data: {
   manufacturerId?: string;
   supplierId?: string;
   statusId: string;
+  image?: string;
   purchaseDate?: string;
   purchaseCost?: number;
   orderNumber?: string;
@@ -122,6 +134,13 @@ export async function updateAsset(data: {
       throw new DomainError('VALIDATION', 'assetTag, name, statusId là bắt buộc.');
     }
 
+    if (data.image && data.image.length > 1_500_000) {
+      throw new DomainError(
+        'VALIDATION',
+        'Ảnh vượt quá 1.5MB sau khi encode base64. Vui lòng chọn ảnh nhỏ hơn.'
+      );
+    }
+
     const session = await getServerSession(authOptions);
     const actorId = await getActorUserId(session?.user?.id ?? null);
 
@@ -136,6 +155,7 @@ export async function updateAsset(data: {
         manufacturerId: data.manufacturerId?.trim() || null,
         supplierId: data.supplierId?.trim() || null,
         statusId: data.statusId,
+        image: data.image !== undefined ? (data.image?.trim() || null) : undefined,
         purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : null,
         purchaseCost: data.purchaseCost ?? null,
         orderNumber: data.orderNumber?.trim() || null,
@@ -248,4 +268,37 @@ export async function checkoutAssetToLocationCmd(params: {
     revalidatePath('/assets');
     return { id: result.id };
   }, 'checkoutAssetToLocationCmd');
+}
+
+/**
+ * B7 — Checkout Asset cho Asset khác (vd: chuột gán cho laptop).
+ */
+export async function checkoutAssetToAssetCmd(params: {
+  assetId: string;
+  targetAssetId: string;
+  notes?: string;
+  expectedCheckin?: string;
+}): Promise<CommandResult<{ id: string }>> {
+  return runCommand(async () => {
+    // RBAC: cần assets.checkout
+    await requirePermission('assets.checkout');
+
+    const session = await getServerSession(authOptions);
+    const actorId = await getActorUserId(session?.user?.id ?? null);
+
+    const result = await withRowLock('Asset', params.assetId, (tx) =>
+      checkoutAssetToAsset(tx, {
+        assetId: params.assetId,
+        targetAssetId: params.targetAssetId,
+        actorId,
+        notes: params.notes,
+        expectedCheckin: params.expectedCheckin
+          ? new Date(params.expectedCheckin)
+          : null,
+      })
+    );
+
+    revalidatePath('/assets');
+    return { id: result.id };
+  }, 'checkoutAssetToAssetCmd');
 }

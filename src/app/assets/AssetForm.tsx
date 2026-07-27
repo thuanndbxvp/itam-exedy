@@ -1,6 +1,7 @@
 import { createAsset, updateAsset } from '@/app/actions/asset'
 import Link from 'next/link'
 import { ArrowLeft, Save, MonitorSmartphone, Key, DollarSign, MapPin, Wrench } from 'lucide-react'
+import AssetImagePicker from '@/components/assets/AssetImagePicker'
 
 interface Props {
   asset?: {
@@ -13,6 +14,7 @@ interface Props {
     manufacturerId: string | null
     supplierId: string | null
     statusId: string
+    image: string | null
     purchaseDate: string | null
     purchaseCost: number | null
     orderNumber: string | null
@@ -49,6 +51,7 @@ export default function AssetForm({ asset, statuses, categories, models, manufac
       manufacturerId: (formData.get('manufacturerId') as string | null) ?? undefined,
       supplierId: (formData.get('supplierId') as string | null) ?? undefined,
       statusId: formData.get('statusId') as string,
+      image: ((formData.get('image') as string | null)?.trim() || undefined),
       purchaseDate: (formData.get('purchaseDate') as string | null) || undefined,
       purchaseCost: purchaseCostRaw ? Number(purchaseCostRaw) : undefined,
       orderNumber: (formData.get('orderNumber') as string | null) ?? undefined,
@@ -133,6 +136,15 @@ export default function AssetForm({ asset, statuses, categories, models, manufac
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* B6: Asset Image Picker */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Hình ảnh</h3>
+              <AssetImagePicker
+                entityId={asset?.id ?? 'new'}
+                initialImage={asset?.image ?? null}
+              />
             </div>
 
             {/* Purchase Info */}

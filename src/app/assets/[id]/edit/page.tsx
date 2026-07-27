@@ -19,6 +19,7 @@ export default async function EditAssetPage({ params }: PageProps) {
       manufacturerId: true,
       supplierId: true,
       statusId: true,
+      image: true,
       purchaseDate: true,
       purchaseCost: true,
       orderNumber: true,

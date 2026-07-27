@@ -10,6 +10,8 @@ interface CheckoutAssetButtonProps {
   /** Server Component parent load sẵn để truyền xuống — tránh fetch từ client. */
   users: { id: string; firstName: string; lastName: string | null; email: string | null }[]
   locations: { id: string; name: string }[]
+  /** Sprint B7: list asset khả thi để chọn khi gán cho thiết bị khác. */
+  assets: { id: string; assetTag: string; name: string }[]
 }
 
 /**
@@ -23,6 +25,7 @@ export default function CheckoutAssetButton({
   assetTag,
   users,
   locations,
+  assets,
 }: CheckoutAssetButtonProps) {
   const [open, setOpen] = useState(false)
 
@@ -43,6 +46,7 @@ export default function CheckoutAssetButton({
         assetTag={assetTag}
         users={users}
         locations={locations}
+        assets={assets}
       />
     </>
   )

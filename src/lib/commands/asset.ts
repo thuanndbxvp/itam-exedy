@@ -230,3 +230,89 @@ export async function checkoutAssetToLocation(
 
   return updated;
 }
+
+/**
+ * Checkout Asset cho Asset khác (B7).
+ * Dùng cho case "chuột gán cho laptop", "dock gán cho workstation", v.v.
+ *
+ * Logic tương tự checkoutAssetToUser nhưng set assignedAssetId thay vì assignedUserId.
+ */
+export async function checkoutAssetToAsset(
+  tx: Tx,
+  params: {
+    assetId: string;
+    targetAssetId: string;
+    actorId: string;
+    notes?: string;
+    expectedCheckin?: Date | null;
+  }
+) {
+  const { assetId, targetAssetId, actorId, notes, expectedCheckin } = params;
+
+  if (assetId === targetAssetId) {
+    throw new InvalidStateError(
+      `Asset không thể tự gán cho chính nó. Vui lòng chọn asset khác.`
+    );
+  }
+
+  const asset = await tx.asset.findUnique({
+    where: { id: assetId },
+    include: { status: true },
+  });
+  if (!asset) throw new NotFoundError('Asset', assetId);
+
+  // Asset nguồn phải rảnh
+  if (asset.assignedUserId || asset.assignedLocationId || asset.assignedAssetId) {
+    throw new InvalidStateError(
+      `Asset "${asset.assetTag}" đang được gán — phải thu hồi trước.`
+    );
+  }
+
+  // Status phải deployable
+  if (!asset.status.deployable || asset.status.archived || asset.status.pending) {
+    throw new InvalidStateError(
+      `Asset "${asset.assetTag}" không deployable (status=${asset.status.name}).`
+    );
+  }
+
+  // Asset đích phải tồn tại
+  const parent = await tx.asset.findUnique({
+    where: { id: targetAssetId },
+    include: { status: true },
+  });
+  if (!parent) throw new NotFoundError('Asset', targetAssetId);
+
+  // Phát hiện tham chiếu vòng: parent.assignedAssetId === assetId?
+  if (parent.assignedAssetId === assetId) {
+    throw new InvalidStateError(
+      `Phát hiện tham chiếu vòng: "${parent.assetTag}" đã có thiết bị con "${asset.assetTag}".`
+    );
+  }
+
+  const updated = await tx.asset.update({
+    where: { id: assetId },
+    data: {
+      assignedAssetId: targetAssetId,
+      assignedUserId: null,
+      assignedLocationId: null,
+      lastCheckout: new Date(),
+      expectedCheckin: expectedCheckin ?? null,
+      checkoutCounter: { increment: 1 },
+    },
+    include: { status: true, assignedAsset: true },
+  });
+
+  await tx.actionLog.create({
+    data: {
+      actionType: 'CHECKOUT',
+      itemType: 'ASSET',
+      itemId: assetId,
+      targetType: 'ASSET',
+      targetId: targetAssetId,
+      userId: actorId,
+      notes: notes || `Cấp phát asset "${asset.assetTag}" cho thiết bị "${parent.assetTag}"`,
+    },
+  });
+
+  return updated;
+}

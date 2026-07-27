@@ -51,7 +51,7 @@ async function getPageData(params: PageProps['searchParams']) {
   }
 
   // EMPLOYEE: không cần load full user list (chỉ xem của mình).
-  const [assetsRaw, total, statuses, categories, locations, users] = await Promise.all([
+  const [assetsRaw, total, statuses, categories, locations, users, transferableAssets] = await Promise.all([
     prisma.asset.findMany({
       where,
       include: {
@@ -75,6 +75,21 @@ async function getPageData(params: PageProps['searchParams']) {
           where: { activated: true, deletedAt: null },
           select: { id: true, firstName: true, lastName: true, email: true },
           orderBy: { firstName: 'asc' },
+        }),
+    // B7: list asset khả thi để truyền cho CheckoutAssetButton
+    isEmployee
+      ? Promise.resolve([])
+      : prisma.asset.findMany({
+          where: {
+            deletedAt: null,
+            assignedUserId: null,
+            assignedLocationId: null,
+            assignedAssetId: null,
+            status: { deployable: true, pending: false, archived: false },
+          },
+          orderBy: { assetTag: 'asc' },
+          take: 200,
+          select: { id: true, assetTag: true, name: true },
         }),
   ])
 
@@ -103,6 +118,7 @@ async function getPageData(params: PageProps['searchParams']) {
     categories,
     locations,
     users,
+    transferableAssets,
   }
 }
 
@@ -116,13 +132,16 @@ export default async function AssetsPage({ searchParams }: PageProps) {
           assets={data.assets}
           users={data.users}
           locations={data.locations}
+          transferableAssets={data.transferableAssets}
+          filterNode={
+            <FilterPanel
+              statuses={data.statuses}
+              categories={data.categories}
+              locations={data.locations}
+            />
+          }
         />
-        <div className="flex items-center justify-between bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3">
-          <FilterPanel
-            statuses={data.statuses}
-            categories={data.categories}
-            locations={data.locations}
-          />
+        <div className="flex items-center justify-end bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3 mt-4">
           <Pagination
             currentPage={data.page}
             totalPages={data.totalPages}

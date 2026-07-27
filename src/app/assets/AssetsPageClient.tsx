@@ -39,9 +39,17 @@ interface Props {
   }[]
   users: { id: string; firstName: string; lastName: string | null; email: string | null }[]
   locations: { id: string; name: string }[]
+  transferableAssets: { id: string; assetTag: string; name: string }[]
+  filterNode?: React.ReactNode
 }
 
-export default function AssetsPageClient({ assets, users, locations }: Props) {
+export default function AssetsPageClient({
+  assets,
+  users,
+  locations,
+  transferableAssets,
+  filterNode,
+}: Props) {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [showImportModal, setShowImportModal] = useState(false)
 
@@ -77,6 +85,7 @@ export default function AssetsPageClient({ assets, users, locations }: Props) {
                 className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm transition"
               />
             </div>
+            {filterNode && <div>{filterNode}</div>}
           </div>
 
           <div className="flex items-center gap-3">
@@ -218,6 +227,7 @@ export default function AssetsPageClient({ assets, users, locations }: Props) {
                                   assetTag={asset.assetTag}
                                   users={users}
                                   locations={locations}
+                                  assets={transferableAssets}
                                 />
                               )}
                             </RoleGate>

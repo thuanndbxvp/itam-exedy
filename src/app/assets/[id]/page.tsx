@@ -71,7 +71,7 @@ export default async function AssetDetailPage({ params }: PageProps) {
   // F5 fix phụ: chỉ load users/locations cho phần edit khi user có quyền.
   // EMPLOYEE chỉ xem, không edit.
   const isAdmin = session.user.role === 'ADMIN'
-  const [allUsers, allLocations, allStatuses] = isAdmin
+  const [allUsers, allLocations, allStatuses, transferableAssets] = isAdmin
     ? await Promise.all([
         prisma.user.findMany({
           where: { deletedAt: null, activated: true },
@@ -86,8 +86,22 @@ export default async function AssetDetailPage({ params }: PageProps) {
         prisma.statusLabel.findMany({
           orderBy: { name: 'asc' },
         }),
+        // B7: list asset khả thi để gán (loại trừ chính asset hiện tại)
+        prisma.asset.findMany({
+          where: {
+            deletedAt: null,
+            id: { not: id },
+            assignedUserId: null,
+            assignedLocationId: null,
+            assignedAssetId: null,
+            status: { deployable: true, pending: false, archived: false },
+          },
+          orderBy: { assetTag: 'asc' },
+          take: 200,
+          select: { id: true, assetTag: true, name: true },
+        }),
       ])
-    : [[], [], []]
+    : [[], [], [], []]
 
   // Serialize dates + licenseSeats
   const serializedSeats = (asset.licenseSeats ?? []).map((s) => ({

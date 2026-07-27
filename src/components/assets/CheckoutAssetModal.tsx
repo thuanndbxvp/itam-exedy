@@ -6,9 +6,10 @@ import Modal from '@/components/ui/Modal'
 import {
   checkoutAssetCmd,
   checkoutAssetToLocationCmd,
+  checkoutAssetToAssetCmd,
 } from '@/app/actions/asset'
 import { useToast } from '@/components/Toast'
-import { User, MapPin, Loader2 } from 'lucide-react'
+import { User, MapPin, Loader2, MonitorSmartphone } from 'lucide-react'
 
 interface CheckoutAssetModalProps {
   open: boolean
@@ -18,9 +19,11 @@ interface CheckoutAssetModalProps {
   /** Phase 1: Server Component (assets/page.tsx) load sẵn + truyền xuống để tránh fetch từ client. */
   users: { id: string; firstName: string; lastName: string | null; email: string | null }[]
   locations: { id: string; name: string }[]
+  /** B7: list thiết bị có thể gán vào (đã filter sẵn ở server). */
+  assets: { id: string; assetTag: string; name: string }[]
 }
 
-type TargetType = 'USER' | 'LOCATION'
+type TargetType = 'USER' | 'LOCATION' | 'ASSET'
 
 export default function CheckoutAssetModal({
   open,
@@ -29,12 +32,14 @@ export default function CheckoutAssetModal({
   assetTag,
   users,
   locations,
+  assets,
 }: CheckoutAssetModalProps) {
   const router = useRouter()
   const { showCommandResult } = useToast()
   const [targetType, setTargetType] = useState<TargetType>('USER')
   const [targetUserId, setTargetUserId] = useState<string>('')
   const [targetLocationId, setTargetLocationId] = useState<string>('')
+  const [targetAssetId, setTargetAssetId] = useState<string>('')
   const [notes, setNotes] = useState('')
   const [expectedCheckin, setExpectedCheckin] = useState<string>('')
   const [isPending, startTransition] = useTransition()
@@ -42,6 +47,7 @@ export default function CheckoutAssetModal({
   function reset() {
     setTargetUserId('')
     setTargetLocationId('')
+    setTargetAssetId('')
     setNotes('')
     setExpectedCheckin('')
     setTargetType('USER')
@@ -65,7 +71,7 @@ export default function CheckoutAssetModal({
           notes: notes.trim() || undefined,
           expectedCheckin: expectedCheckin || undefined,
         })
-      } else {
+      } else if (targetType === 'LOCATION') {
         if (!targetLocationId) {
           showCommandResult({
             ok: false,
@@ -78,6 +84,22 @@ export default function CheckoutAssetModal({
           assetId,
           targetLocationId,
           notes: notes.trim() || undefined,
+        })
+      } else {
+        // ASSET
+        if (!targetAssetId) {
+          showCommandResult({
+            ok: false,
+            code: 'VALIDATION',
+            message: 'Vui lòng chọn thiết bị.',
+          })
+          return
+        }
+        result = await checkoutAssetToAssetCmd({
+          assetId,
+          targetAssetId,
+          notes: notes.trim() || undefined,
+          expectedCheckin: expectedCheckin || undefined,
         })
       }
       showCommandResult(result, `Đã cấp phát asset "${assetTag}" thành công!`)
@@ -113,7 +135,7 @@ export default function CheckoutAssetModal({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Cấp phát cho
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <button
               type="button"
               onClick={() => setTargetType('USER')}
@@ -125,7 +147,7 @@ export default function CheckoutAssetModal({
               } disabled:opacity-50`}
             >
               <User size={18} />
-              <span className="font-medium">Nhân viên</span>
+              <span className="font-medium text-sm">Nhân viên</span>
             </button>
             <button
               type="button"
@@ -138,7 +160,21 @@ export default function CheckoutAssetModal({
               } disabled:opacity-50`}
             >
               <MapPin size={18} />
-              <span className="font-medium">Vị trí</span>
+              <span className="font-medium text-sm">Vị trí</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setTargetType('ASSET')}
+              disabled={isPending}
+              className={`flex items-center justify-center space-x-2 px-4 py-3 border-2 rounded-xl transition ${
+                targetType === 'ASSET'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-200 hover:border-gray-300 text-gray-600'
+              } disabled:opacity-50`}
+              title="Gán cho thiết bị khác (vd: chuột gán cho laptop)"
+            >
+              <MonitorSmartphone size={18} />
+              <span className="font-medium text-sm">Thiết bị</span>
             </button>
           </div>
         </div>
@@ -166,7 +202,7 @@ export default function CheckoutAssetModal({
               ))}
             </select>
           </div>
-        ) : (
+        ) : targetType === 'LOCATION' ? (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Vị trí <span className="text-red-500">*</span>
@@ -185,6 +221,35 @@ export default function CheckoutAssetModal({
                 </option>
               ))}
             </select>
+          </div>
+        ) : (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Thiết bị đích <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={targetAssetId}
+              onChange={(e) => setTargetAssetId(e.target.value)}
+              required
+              disabled={isPending}
+              className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition disabled:opacity-50"
+            >
+              <option value="">-- Chọn thiết bị --</option>
+              {assets.length === 0 ? (
+                <option value="" disabled>
+                  Không có thiết bị khả thi (tất cả đều đã được gán hoặc không deployable)
+                </option>
+              ) : (
+                assets.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.assetTag} — {a.name}
+                  </option>
+                ))
+              )}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Ví dụ: gán chuột / dock cho laptop.
+            </p>
           </div>
         )}
 
