@@ -194,7 +194,7 @@ export default function EmployeeDashboard({ firstName }: { firstName: string }) 
             <Ticket className="w-5 h-5 text-gray-400 mr-2" />
             <h3 className="text-lg font-semibold text-gray-800">Ticket gần đây của tôi</h3>
           </div>
-          <Link href="/tickets/my" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+          <Link href="/helpdesk" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
             Xem tất cả →
           </Link>
         </div>
@@ -204,7 +204,7 @@ export default function EmployeeDashboard({ firstName }: { firstName: string }) 
           ) : tickets.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               Bạn chưa tạo ticket nào.{' '}
-              <Link href="/tickets/new" className="text-blue-600 font-medium hover:underline">
+              <Link href="/helpdesk/new" className="text-blue-600 font-medium hover:underline">
                 Tạo ticket đầu tiên
               </Link>
               .
@@ -213,7 +213,7 @@ export default function EmployeeDashboard({ firstName }: { firstName: string }) 
             tickets.map((t) => (
               <Link
                 key={t.id}
-                href={`/tickets/${t.id}`}
+                href={`/helpdesk/${t.code}`}
                 className="block p-5 hover:bg-gray-50 transition"
               >
                 <div className="flex items-center justify-between gap-3">
