@@ -35,8 +35,11 @@ export async function GET() {
       }),
       prisma.licenseSeat.findMany({
         where: {
-          assignedUserId: user.id,
           deletedAt: null,
+          OR: [
+            { assignedUserId: user.id },
+            { assignedAsset: { assignedUserId: user.id } }
+          ]
         },
         orderBy: [{ license: { name: "asc" } }],
         select: {
