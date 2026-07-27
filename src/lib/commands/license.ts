@@ -85,6 +85,38 @@ export async function checkoutLicenseSeat(
     targetName = `asset "${asset.assetTag} - ${asset.name}"`;
   }
 
+  // HOTFIX: chan 1 user/asset nhan 2 seat cung 1 licenseId.
+  // Neu target da co 1 seat khac (con ton tai) cua licenseId nay → InvalidStateError.
+  // Bo qua seatId hien tai (de phong race check-then-update qua row-lock).
+  const duplicateWhere: Prisma.LicenseSeatWhereInput = {
+    licenseId: seat.licenseId,
+    deletedAt: null,
+    id: { not: seatId },
+  };
+  if (targetUserId) {
+    duplicateWhere.assignedUserId = targetUserId;
+  } else if (targetAssetId) {
+    duplicateWhere.assignedAssetId = targetAssetId;
+  }
+  const existingDup = await tx.licenseSeat.findFirst({
+    where: duplicateWhere,
+    select: {
+      id: true,
+      assignedUser: { select: { firstName: true, lastName: true } },
+      assignedAsset: { select: { assetTag: true } },
+    },
+  });
+  if (existingDup) {
+    const holder = existingDup.assignedUser
+      ? `user "${existingDup.assignedUser.firstName} ${existingDup.assignedUser.lastName ?? ''}"`
+      : existingDup.assignedAsset
+        ? `thiết bị "${existingDup.assignedAsset.assetTag}"`
+        : 'đối tượng khác';
+    throw new InvalidStateError(
+      `License "${seat.license.name}" đã được cấp phát cho ${holder} — Mỗi nhân sự / thiết bị chỉ nhận 1 seat cho cùng 1 bản quyền (trừ khi license có nhiều dòng sản phẩm). Thu hồi seat cũ trước khi cấp seat mới.`,
+    );
+  }
+
   const updated = await tx.licenseSeat.update({
     where: { id: seatId },
     data: {

@@ -8,6 +8,7 @@ import { ShoppingCart, Undo2, Loader2, XCircle } from 'lucide-react'
 import CheckoutSeatModal from './CheckoutSeatModal'
 
 interface CheckoutSeatButtonProps {
+  licenseId: string
   seatId: string
   seatLabel: string
   users: { id: string; firstName: string; lastName: string | null; email: string | null }[]
@@ -24,6 +25,7 @@ interface CheckoutSeatButtonProps {
  * Server actions enforce `requirePermission('licenses.assign')` — UI chỉ là cosmetic.
  */
 export default function CheckoutSeatButton({
+  licenseId,
   seatId,
   seatLabel,
   users,
@@ -105,6 +107,7 @@ export default function CheckoutSeatButton({
       <CheckoutSeatModal
         open={open}
         onClose={() => setOpen(false)}
+        licenseId={licenseId}
         seatId={seatId}
         seatLabel={seatLabel}
         users={users}

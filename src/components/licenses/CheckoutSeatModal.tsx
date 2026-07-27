@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Modal from '@/components/ui/Modal'
 import { checkoutLicenseSeatCmd } from '@/app/actions/license'
@@ -10,30 +10,72 @@ import { Loader2, Key, User, Monitor } from 'lucide-react'
 interface CheckoutSeatModalProps {
   open: boolean
   onClose: () => void
+  licenseId: string
   seatId: string
   seatLabel: string
-  users: { id: string; firstName: string; lastName: string | null; email: string | null }[]
-  assets: { id: string; assetTag: string; name: string }[]
+  // Optional override; neu khong truyen, modal se fetch qua /api/licenses/[id]/targets.
+  users?: { id: string; firstName: string; lastName: string | null; email: string | null; hasLicense?: boolean }[]
+  assets?: { id: string; assetTag: string; name: string; hasLicense?: boolean }[]
 }
 
 type CheckoutTarget = 'USER' | 'ASSET'
 
+interface TargetSource {
+  users: { id: string; firstName: string; lastName: string | null; email: string | null; hasLicense: boolean }[]
+  assets: { id: string; assetTag: string; name: string; hasLicense: boolean }[]
+}
+
 export default function CheckoutSeatModal({
   open,
   onClose,
+  licenseId,
   seatId,
   seatLabel,
-  users,
-  assets,
+  users: initialUsers,
+  assets: initialAssets,
 }: CheckoutSeatModalProps) {
   const router = useRouter()
   const { showCommandResult } = useToast()
-  
+
   const [targetType, setTargetType] = useState<CheckoutTarget>('USER')
   const [targetUserId, setTargetUserId] = useState<string>('')
   const [targetAssetId, setTargetAssetId] = useState<string>('')
   const [notes, setNotes] = useState('')
   const [isPending, startTransition] = useTransition()
+
+  const [fetched, setFetched] = useState<TargetSource | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    // Neu da pass prop users/assets → khong can fetch, chi normalize hasLicense.
+    if (initialUsers || initialAssets) {
+      setFetched({
+        users:
+          initialUsers?.map((u) => ({ ...u, hasLicense: !!u.hasLicense })) ?? [],
+        assets:
+          initialAssets?.map((a) => ({ ...a, hasLicense: !!a.hasLicense })) ?? [],
+      })
+      return
+    }
+    // Fetch qua /api/licenses/[id]/targets (co hasLicense)
+    setLoading(true)
+    fetch(`/api/licenses/${licenseId}/targets`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j?.ok) setFetched({ users: j.data.users, assets: j.data.assets })
+        else
+          showCommandResult({
+            ok: false,
+            code: 'LOAD',
+            message: j?.message ?? 'Không thể tải danh sách nhân sự / thiết bị.',
+          })
+      })
+      .finally(() => setLoading(false))
+  }, [open, licenseId, initialUsers, initialAssets, showCommandResult])
+
+  const users = fetched?.users ?? []
+  const assets = fetched?.assets ?? []
 
   function reset() {
     setTargetType('USER')
@@ -141,15 +183,21 @@ export default function CheckoutSeatModal({
               value={targetUserId}
               onChange={(e) => setTargetUserId(e.target.value)}
               required
-              disabled={isPending}
+              disabled={isPending || loading}
               className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition disabled:opacity-50"
             >
               <option value="">-- Chọn nhân viên --</option>
               {users.map((u) => (
-                <option key={u.id} value={u.id}>
+                <option
+                  key={u.id}
+                  value={u.id}
+                  disabled={u.hasLicense}
+                  title={u.hasLicense ? 'Nhân viên này đã có 1 seat khác của cùng bản quyền' : undefined}
+                >
                   {u.firstName}
                   {u.lastName ? ' ' + u.lastName : ''}{' '}
                   {u.email ? `(${u.email})` : ''}
+                  {u.hasLicense ? ' — (đã có bản quyền)' : ''}
                 </option>
               ))}
             </select>
@@ -165,13 +213,19 @@ export default function CheckoutSeatModal({
               value={targetAssetId}
               onChange={(e) => setTargetAssetId(e.target.value)}
               required
-              disabled={isPending}
+              disabled={isPending || loading}
               className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition disabled:opacity-50"
             >
               <option value="">-- Chọn thiết bị --</option>
               {assets.map((a) => (
-                <option key={a.id} value={a.id}>
+                <option
+                  key={a.id}
+                  value={a.id}
+                  disabled={a.hasLicense}
+                  title={a.hasLicense ? 'Thiết bị này đã có 1 seat khác của cùng bản quyền' : undefined}
+                >
                   {a.assetTag} - {a.name}
+                  {a.hasLicense ? ' (đã có bản quyền)' : ''}
                 </option>
               ))}
             </select>

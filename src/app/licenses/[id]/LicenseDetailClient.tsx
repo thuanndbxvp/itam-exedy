@@ -330,6 +330,7 @@ export default function LicenseDetailClient({
                               <div className="flex justify-end items-center gap-2">
                                 <RoleGate allowedRoles={['ADMIN']}>
                                   <CheckoutSeatButton
+                                    licenseId={license.id}
                                     seatId={seat.id}
                                     seatLabel={`#${seat.id.slice(-6)}`}
                                     users={users}
