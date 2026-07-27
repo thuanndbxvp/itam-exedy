@@ -13,7 +13,7 @@
 ## Commits
 | Feature | Commit | Note |
 |---------|--------|------|
-| Sprint D | TBD | feat(db): Sprint D - UserPreference schema + seed + verify |
+| Sprint D | `376d60d` | feat(db): UserPreference schema + seed + verify + docs |
 
 ## Acceptance Status
 

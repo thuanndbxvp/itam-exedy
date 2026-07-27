@@ -41,7 +41,7 @@
 | 2026-07-28 | A7 - Helpdesk Teams CRUD | `dfefe96`+`3a9af7a` | ~3h | API + UI page + perm `helpdesk.manage_teams` |
 | 2026-07-28 | A6 - Ticket filter | `62f18b0` | ~1.5h | FilterBar (priority/team/assignee) + API `assigneeId` |
 | 2026-07-28 | (lint cleanup) | `5620a37` | ~0.2h | Bóc 3 unused vars mới |
-| 2026-07-28 | Sprint D - UserPreference | TBD | ~1h | 1 model + 2 enums + SQL apply + seed 6 user + verify cascade |
+| 2026-07-28 | Sprint D - UserPreference | `376d60d` | ~1h | 1 model + 2 enums + SQL apply + seed 6 user + verify cascade |
 
 **Sprint A status (2026-07-28): ✅ 8/10 done.** Còn lại: A8 bulk seat ops (deferred từ bundle trước). Tổng effort thực tế ~17.5h (~2.2 ngày) thay vì ước tính 6.5-8 ngày ban đầu (cao tốc nhờ patterns A1 đã sẵn + tái sử dụng Modal/Toast).
 
