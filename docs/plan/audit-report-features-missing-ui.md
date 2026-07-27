@@ -2102,4 +2102,26 @@ Sprint B (15 ngày, trong đó B10 = 3 ngày)
 
 ---
 
+## SPRINT C.1: IT COSTS REPORT — ✅ DONE
+
+**Commit:** `d82f493`. **Status:** Done (2026-07-28). **Effort:** ~2h.
+
+### Phạm vi đã giao
+Báo cáo tổng hợp chi phí IT (Asset + License + Maintenance), permission `reports.view`, presets date-range, summary cards + PieChart + bảng chi tiết + CSV export.
+
+### Files
+- `src/app/api/reports/it-costs/route.ts` — GET endpoint với `requirePermissionApi('reports.view')`. Query 3 bảng song song (`Promise.all`): `Asset.purchaseCost` & `License.purchaseCost` filter theo `purchaseDate`; `AssetMaintenance.cost` filter theo `startDate` (fallback `completionDate`). Decimal → number conversion. Trả `{ summary, details, range }`.
+- `src/app/reports/costs/page.tsx` — Server Component gate `reports.view` → redirect `/` nếu fail.
+- `src/app/reports/costs/ItCostsClient.tsx` — Client component: 4 summary cards (format VND qua `Intl.NumberFormat`), presets (Tháng này / Tháng trước / Quý này / Năm nay / Custom date picker), `recharts` PieChart tỷ trọng 3 loại chi phí, bảng chi tiết sort desc với badge màu theo `type`, CSV export có BOM UTF-8.
+- `src/components/Sidebar.tsx` — "Báo cáo (Reports)" → submenu với 2 children (`Tổng quan` ở `/reports`, `Chi phí IT` ở `/reports/costs`); thêm icon `DollarSign` từ lucide.
+
+### Notes
+- Preset "Tháng trước" set `end.setDate(0)` để lấy last-day-of-previous-month.
+- Total = 4 cards; `highlight` style cho "Tổng chi phí IT" (border emerald + ring).
+- CSV export include BOM `\ufeff` cho Excel tiếng Việt đọc đúng.
+- Reuse existing `requirePermissionApi` & `requirePermission` (không tạo helper mới).
+- Recharts đã có trong `package.json` (3.10.1) — không cần install.
+
+---
+
 **HẾT Sprint D spec**
