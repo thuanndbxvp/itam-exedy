@@ -25,6 +25,18 @@ async function main() {
   })
   console.log('Admin user created:', admin.email)
 
+  // Sprint D: tạo UserPreference mặc định cho admin
+  await prisma.userPreference.upsert({
+    where: { userId: admin.id },
+    update: {},
+    create: {
+      userId: admin.id,
+      emailDigestFrequency: 'DAILY',
+      theme: 'SYSTEM',
+    },
+  })
+  console.log('Admin userPreference ensured')
+
   // Default status labels
   const statuses = [
     { name: 'Sẵn sàng', deployable: true, pending: false, archived: false, color: '#10b981', showInNav: false },

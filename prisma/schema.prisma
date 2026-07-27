@@ -114,6 +114,18 @@ enum TargetType {
   ASSET
 }
 
+enum EmailDigestFrequency {
+  DAILY
+  WEEKLY
+  NONE
+}
+
+enum UiTheme {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
 enum DepreciationType {
   LINEAR
   HALF_YEAR
@@ -378,6 +390,8 @@ model User {
   teamMemberships     TeamMember[]
   teamsLed            Team[]                 @relation("TeamLead")
   assetMaintenances   AssetMaintenance[]     @relation("AssetMaintenanceCreator")
+
+  preference UserPreference?
 
   @@index([companyId])
   @@index([managerId])
@@ -881,4 +895,34 @@ model UserPermission {
 
   @@unique([userId, permissionId])
   @@index([userId])
+}
+
+// ============================================================================
+// USER PREFERENCE (Sprint D)
+// ============================================================================
+//
+// Mỗi User có 0-1 bản ghi UserPreference (1:1 optional).
+// Lưu các cấu hình cá nhân phục vụ thông báo (B10), UI preferences, và sẽ
+// mở rộng cho các module khác sau này (locale, timezone…).
+//
+// Cascade delete: Xoá User → xoá Preference. Ngược lại KHÔNG có nghĩa (Preference
+// không thể tồn tại mà không có User).
+
+model UserPreference {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Notification preferences (dùng cho Email Digest / push notification sau này)
+  emailDigestFrequency EmailDigestFrequency @default(DAILY)
+  muteUntil            DateTime? // tạm thời tắt mọi thông báo đến mốc này
+
+  // UI preferences
+  theme  UiTheme @default(SYSTEM)
+  locale String? // user-specific locale override (khác default "vi-VN" của User)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, muteUntil])
 }
