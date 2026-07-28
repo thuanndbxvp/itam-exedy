@@ -10,7 +10,11 @@
  *   ADMIN      → tất cả
  *   IT_MANAGER → hầu hết trừ users.manage / settings.update
  *   IT_STAFF   → assets.checkout/checkin, helpdesk.claim, licenses.read…
- *   EMPLOYEE   → assets.read (chỉ của mình), helpdesk.create_ticket, licenses.read
+ *   EMPLOYEE   → helpdesk (view, create_ticket, comment) — Sprint C.7 fix
+ *
+ * Sprint C.7: Security Fix - Thu hồi quyền cấp cao từ EMPLOYEE
+ *   - Xóa: 'assets.read', 'licenses.read', 'users.read'
+ *   - EMPLOYEE chỉ còn quyền Helpdesk cơ bản
  */
 
 export type PermissionKey = string
@@ -93,12 +97,10 @@ export const SYSTEM_ROLE_PERMISSIONS: Record<string, string[]> = {
     'reports.view',
   ],
 
+  // C.7 Security Fix: EMPLOYEE chỉ có quyền Helpdesk cơ bản
   EMPLOYEE: [
-    'assets.read',
-    'licenses.read',
     'helpdesk.view',
     'helpdesk.create_ticket',
     'helpdesk.comment',
-    'users.read',
   ],
 }
