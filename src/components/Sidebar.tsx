@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Monitor, Key, Settings, Menu, X, LifeBuoy,
   Activity, ChevronDown, ChevronRight,
   Wrench, BarChart3, DollarSign, LogOut, Shield, Building2, MapPin,
-  TrendingDown, Tag, Users, Building, UserCog
+  TrendingDown, Tag, Users, Building, UserCog, LayoutGrid
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
