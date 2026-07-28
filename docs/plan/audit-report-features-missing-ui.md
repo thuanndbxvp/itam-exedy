@@ -50,6 +50,13 @@
 | 2026-07-28 | Sprint B10-B13 (Account panel: notifications/appearance/2FA/login history) | `d6bb4f9` + `09c6fb6` | ~3h | UserPreference forms, theme cookie + anti-FOUC, LOGIN audit trail |
 | 2026-07-28 | Sprint B14-B15 (CSV helper + Users/Audit export) | bundle | ~2h | `lib/csv.ts` shared util (BOM+CRLF+RFC4180), `/api/users/export` (HR roll), `/api/audit-log/export` (compliance report) |
 | 2026-07-28 | Sprint B16-B17 (Forgot password + 2FA TOTP) | bundle | ~5h | otplib+qrcode, PasswordResetToken migration, /api/auth/{forgot,reset}-password, 2FA setup/verify/disable, 2-step login challenge với HMAC pending cookie |
+| 2026-07-28 | Sprint C.4 (UX & Security) | `fc1c7ef` | ~3h | Asset delete password re-auth, replace alert/confirm with toast/modal, depreciation tooltip, EntityTable 2-col form |
+
+**Sprint C.4 status (2026-07-28): ✅ DONE.** Security + UX enhancements across 18 files:
+- Security: `api/assets/[id]` DELETE with bcrypt password re-auth, 2 delete modal UIs updated with password input
+- Toast: replaced `alert()` in FilterPanel, helpdesk/page, admin/helpdesk, AssetMaintenanceList (4 files)
+- Modal: replaced `confirm()` in 10 files (CheckinAssetButton, CheckoutSeatButton, MarkAuditedButton, FilterPanel, helpdesk/[id], HelpdeskTeamsClient, TicketAttachments, admin/helpdesk, DepreciationTable, IntegrationsClient)
+- UI: depreciation type tooltip, EntityTable 2-column form grid, assets column renamed
 
 **Sprint B14-B15 status (2026-07-28): ✅ DONE.** Shared CSV layer chuẩn hoá + 2 endpoint admin mới:
 - B14: `src/lib/csv.ts` 4 helper (`escapeCsvCell`, `buildCsv`, `csvResponse`, `parseCsv`) + 2 formatter (`formatCsvDate`, `formatCsvNumber`). Refactor `/api/assets/export` (thêm notes/EOL/requestable/BYOD/warrantyMonths/purchaseOrder/createdAt) và `/api/licenses/export` dùng helper — backward compatible filename.
@@ -1401,6 +1408,35 @@ Print flow: client side generates QR inline → `@media print` ẩn UI → in gr
 - UI trong `/settings/integrations` tab "Notification Channels" — create + test + delete Slack webhooks.
 
 **Defer:** SMS (Twilio), retry queue, encrypted webhook URLs.
+
+---
+
+### C.4. UX & Security (Password Re-auth, Toast, Custom Modals) — ✅ DONE (Sprint C.4)
+
+**Commit:** `fc1c7ef`. **Scope:** Security re-auth for asset deletion, replace all `alert()` with toast, replace all `confirm()` with custom modals, UI enhancements.
+
+**Files:**
+- `src/app/api/assets/[id]/route.ts` — NEW: DELETE with bcrypt password re-authentication (security fix)
+- `src/app/assets/AssetsPageClient.tsx` — password input in delete modal, toast on result, column rename
+- `src/app/assets/[id]/AssetDetailClient.tsx` — password input in delete modal, toast on result
+- `src/components/assets/FilterPanel.tsx` — toast for save errors, custom modal for delete saved filter
+- `src/app/helpdesk/page.tsx` — toast for claim errors
+- `src/app/admin/helpdesk/page.tsx` — toast for save/delete rule errors, custom modal for rule delete
+- `src/components/assets/AssetMaintenanceList.tsx` — toast for delete errors
+- `src/components/assets/CheckinAssetButton.tsx` — custom modal for checkin confirmation
+- `src/components/assets/MarkAuditedButton.tsx` — custom modal for audit confirmation
+- `src/components/licenses/CheckoutSeatButton.tsx` — custom modal for seat checkin confirmation
+- `src/components/helpdesk/HelpdeskTeamsClient.tsx` — custom modal for team delete confirmation
+- `src/components/helpdesk/TicketAttachments.tsx` — custom modal for attachment delete confirmation
+- `src/app/helpdesk/[id]/page.tsx` — custom modal for ticket action + reassign confirmations
+- `src/components/settings/DepreciationTable.tsx` — custom modal for depreciation delete + tooltip for type explanation
+- `src/app/settings/integrations/IntegrationsClient.tsx` — custom modals for token revoke + channel delete
+- `src/components/settings/EntityTable.tsx` — 2-column form grid layout
+
+**Notes:**
+- `ToastProvider` (home-grown, no `react-hot-toast` dependency) was already integrated across the codebase
+- `react-hot-toast` was NOT installed per the spec — the existing home-grown toast system was used
+- Pre-existing linter errors (`set-state-in-effect`, unescaped entities) were NOT introduced by this sprint's changes
 
 ---
 
