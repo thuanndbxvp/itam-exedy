@@ -113,6 +113,7 @@ export default function AssetDetailClient({
   const router = useRouter()
   const { showCommandResult } = useToast()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'maintenance' | 'licenses'>('overview')
   const [showAssignModal, setShowAssignModal] = useState(false)
@@ -127,17 +128,26 @@ export default function AssetDetailClient({
   const canEdit = users.length > 0 // ADMIN has full users list (page-level signal)
 
   const handleDelete = async () => {
+    if (!deletePassword.trim()) return
     setDeleting(true)
     try {
-      const res = await fetch(`/api/assets/${asset.id}`, { method: 'DELETE' })
-      if (res.ok) {
+      const res = await fetch(`/api/assets/${asset.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: deletePassword }),
+      })
+      const data = await res.json()
+      if (data.ok) {
         router.push('/assets')
         router.refresh()
+      } else {
+        showCommandResult(data)
       }
     } catch (e) {
-      console.error(e)
+      showCommandResult({ ok: false, code: 'INTERNAL', message: String(e) })
+    } finally {
+      setDeleting(false)
     }
-    setDeleting(false)
   }
 
   async function handleCheckinSeat(seatId: string) {
@@ -672,7 +682,7 @@ export default function AssetDetailClient({
       {/* Delete Modal */}
       <Modal
         open={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
+        onClose={() => { if (!deleting) { setShowDeleteModal(false); setDeletePassword('') } }}
         title="Xác nhận xóa tài sản"
       >
         <div className="space-y-4">
@@ -680,16 +690,31 @@ export default function AssetDetailClient({
             Bạn có chắc muốn xóa tài sản <strong>{asset.name}</strong> ({asset.assetTag})?
           </p>
           <p className="text-sm text-red-600">Hành động này không thể hoàn tác.</p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Mật khẩu xác nhận <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleDelete()}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
+              placeholder="Nhập mật khẩu đăng nhập của bạn"
+              autoFocus
+            />
+          </div>
           <div className="flex justify-end gap-3 pt-4">
             <button
-              onClick={() => setShowDeleteModal(false)}
+              onClick={() => { setShowDeleteModal(false); setDeletePassword('') }}
+              disabled={deleting}
               className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
             >
               Hủy
             </button>
             <button
               onClick={handleDelete}
-              disabled={deleting}
+              disabled={deleting || !deletePassword.trim()}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
             >
               {deleting ? 'Đang xóa...' : 'Xóa'}

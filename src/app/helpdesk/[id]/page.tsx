@@ -17,6 +17,8 @@ import {
   Clock,
 } from 'lucide-react'
 import TicketAttachments from '@/components/helpdesk/TicketAttachments'
+import { useToast } from '@/components/Toast'
+import Modal from '@/components/ui/Modal'
 
 interface Comment {
   id: string
@@ -105,6 +107,8 @@ export default function TicketDetailPage() {
   const [showReassign, setShowReassign] = useState(false)
   const [itUsers, setItUsers] = useState<any[]>([])
   const [selectedAssignee, setSelectedAssignee] = useState('')
+  const { show } = useToast()
+  const [confirmAction, setConfirmAction] = useState<{ type: 'claim' | 'close' | 'reopen' | 'reassign'; label: string } | null>(null)
 
   const isIt =
     session?.user?.role === 'IT_STAFF' ||
@@ -167,13 +171,19 @@ export default function TicketDetailPage() {
 
   async function doAction(action: 'claim' | 'close' | 'reopen') {
     if (!ticket) return
-    if (!confirm(`Xác nhận: ${actionLabel(action)}?`)) return
+    setConfirmAction({ type: action, label: actionLabel(action) })
+  }
+
+  async function handleConfirmAction() {
+    const type = confirmAction?.type
+    if (!ticket || !type) return
+    setConfirmAction(null)
     setActionLoading(true)
     try {
       const r = await fetch(`/api/tickets/${ticket.id}`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action: type }),
       })
       const json = await r.json()
       if (json.ok) {
@@ -188,7 +198,13 @@ export default function TicketDetailPage() {
 
   async function doReassign() {
     if (!ticket || !selectedAssignee) return
-    if (!confirm('Xác nhận chuyển ticket này cho nhân sự khác?')) return
+    setConfirmAction({ type: 'reassign', label: 'chuyển ticket' })
+  }
+
+  async function handleConfirmReassign() {
+    const type = confirmAction?.type
+    if (!ticket || type !== 'reassign') return
+    setConfirmAction(null)
     setActionLoading(true)
     try {
       const r = await fetch(`/api/tickets/${ticket.id}`, {
@@ -480,6 +496,37 @@ export default function TicketDetailPage() {
 
       {/* Attachments */}
       <TicketAttachments ticketId={ticket.id} />
+
+      {/* Confirm action modal */}
+      <Modal
+        open={!!confirmAction}
+        onClose={() => setConfirmAction(null)}
+        title="Xác nhận thao tác"
+      >
+        <p className="text-gray-600 mb-4">
+          {confirmAction?.type === 'reassign'
+            ? 'Xác nhận chuyển ticket này cho nhân sự khác?'
+            : `Xác nhận: ${confirmAction?.label}?`}
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setConfirmAction(null)}
+            disabled={actionLoading}
+            className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm disabled:opacity-50"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={confirmAction?.type === 'reassign' ? handleConfirmReassign : handleConfirmAction}
+            disabled={actionLoading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm disabled:opacity-50"
+          >
+            {actionLoading ? 'Đang xử lý...' : 'Xác nhận'}
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }

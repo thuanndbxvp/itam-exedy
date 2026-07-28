@@ -28,6 +28,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { useToast } from '@/components/Toast'
+import Modal from '@/components/ui/Modal'
 
 type Tab = 'tokens' | 'templates' | 'channels'
 
@@ -163,6 +164,8 @@ function TokensTab() {
   const [creating, setCreating] = useState(false)
   const [newRawToken, setNewRawToken] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null)
+  const [confirmRevokeName, setConfirmRevokeName] = useState<string>('')
 
   const SCOPE_OPTIONS = ['assets.read', 'licenses.read', 'users.read', 'tickets.read']
 
@@ -205,8 +208,15 @@ function TokensTab() {
     }
   }
 
-  async function handleRevoke(id: string, name: string) {
-    if (!confirm(`Thu hồi token "${name}"? Token sẽ không dùng được nữa.`)) return
+  function handleRequestRevoke(id: string, name: string) {
+    setConfirmRevokeId(id)
+    setConfirmRevokeName(name)
+  }
+
+  async function handleConfirmRevoke() {
+    const id = confirmRevokeId
+    if (!id) return
+    setConfirmRevokeId(null)
     try {
       const res = await fetch(`/api/api-tokens/${id}`, { method: 'DELETE' })
       const json = await res.json()
@@ -384,7 +394,7 @@ function TokensTab() {
                     {!t.revokedAt && (
                       <button
                         type="button"
-                        onClick={() => handleRevoke(t.id, t.name)}
+                        onClick={() => handleRequestRevoke(t.id, t.name)}
                         className="p-1.5 text-red-600 hover:bg-red-50 rounded"
                         title="Thu hồi"
                       >
@@ -398,6 +408,33 @@ function TokensTab() {
           </table>
         </div>
       )}
+
+      {/* Revoke token confirm */}
+      <Modal
+        open={!!confirmRevokeId}
+        onClose={() => setConfirmRevokeId(null)}
+        title="Thu hồi token"
+      >
+        <p className="text-gray-600 mb-4">
+          Thu hồi token <strong>"{confirmRevokeName}"</strong>? Token sẽ không dùng được nữa.
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setConfirmRevokeId(null)}
+            className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmRevoke}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+          >
+            Thu hồi
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }
@@ -591,6 +628,8 @@ function ChannelsTab() {
   const [formUrl, setFormUrl] = useState('')
   const [formEnabled, setFormEnabled] = useState(true)
   const [testingId, setTestingId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [confirmDeleteName, setConfirmDeleteName] = useState<string>('')
 
   async function load() {
     setLoading(true)
@@ -652,8 +691,15 @@ function ChannelsTab() {
     }
   }
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`Xóa channel "${name}"?`)) return
+  function handleRequestDelete(id: string, name: string) {
+    setConfirmDeleteId(id)
+    setConfirmDeleteName(name)
+  }
+
+  async function handleConfirmDelete() {
+    const id = confirmDeleteId
+    if (!id) return
+    setConfirmDeleteId(null)
     try {
       const res = await fetch('/api/notification-channels', {
         method: 'DELETE',
@@ -792,7 +838,7 @@ function ChannelsTab() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleDelete(c.id, c.name)}
+                  onClick={() => handleRequestDelete(c.id, c.name)}
                   className="p-2 text-red-600 hover:bg-red-50 rounded"
                   title="Xóa"
                 >
@@ -803,6 +849,33 @@ function ChannelsTab() {
           ))}
         </div>
       )}
+
+      {/* Delete channel confirm */}
+      <Modal
+        open={!!confirmDeleteId}
+        onClose={() => setConfirmDeleteId(null)}
+        title="Xóa notification channel"
+      >
+        <p className="text-gray-600 mb-4">
+          Xóa channel <strong>"{confirmDeleteName}"</strong>?
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setConfirmDeleteId(null)}
+            className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmDelete}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+          >
+            Xóa
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }

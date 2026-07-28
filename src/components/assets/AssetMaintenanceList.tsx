@@ -11,6 +11,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Wrench, Plus, Calendar, Building2, DollarSign, FileText, Trash2, User } from 'lucide-react'
+import { useToast } from '@/components/Toast'
 import AddMaintenanceModal from './AddMaintenanceModal'
 
 interface Maintenance {
@@ -42,6 +43,7 @@ function fmtCost(c: number | null): string {
 
 export default function AssetMaintenanceList({ assetId, canEdit }: Props) {
   const router = useRouter()
+  const { show } = useToast()
   const [items, setItems] = useState<Maintenance[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -71,7 +73,7 @@ export default function AssetMaintenanceList({ assetId, canEdit }: Props) {
     const r = await fetch(`/api/maintenances/${id}`, { method: 'DELETE', credentials: 'include' })
     const j = await r.json()
     if (j?.ok) reload()
-    else alert(j?.message ?? 'Xóa thất bại.')
+    else show({ type: 'error', message: j?.message ?? 'Xóa thất bại.' })
   }
 
   const totalCost = items.reduce((sum, m) => sum + (m.cost ?? 0), 0)

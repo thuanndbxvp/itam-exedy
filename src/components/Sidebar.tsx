@@ -86,33 +86,33 @@ const SETTINGS_GROUPS = [
     title: 'Tổ chức & Nhân sự',
     icon: Briefcase,
     children: [
-      { label: 'Công ty',    href: '/settings/companies',   icon: Briefcase, permissionKey: 'settings.update' },
-      { label: 'Phòng ban',  href: '/settings/departments', icon: Briefcase, permissionKey: 'settings.update' },
-      { label: 'Người dùng', href: '/settings/users',       icon: Briefcase, permissionKey: 'users.read' },
+      { label: 'Công ty', href: '/settings/companies', icon: Briefcase, permissionKey: 'settings.update' },
+      { label: 'Phòng ban', href: '/settings/departments', icon: Briefcase, permissionKey: 'settings.update' },
+      { label: 'Người dùng', href: '/settings/users', icon: Briefcase, permissionKey: 'users.read' },
     ],
   },
   {
     title: 'Danh mục Tài sản',
     icon: LayoutGrid,
     children: [
-      { label: 'Trạng thái',     href: '/settings/statuses',     icon: LayoutGrid, permissionKey: 'settings.update' },
-      { label: 'Danh mục',       href: '/settings/categories',   icon: LayoutGrid, permissionKey: 'settings.update' },
+      { label: 'Trạng thái', href: '/settings/statuses', icon: LayoutGrid, permissionKey: 'settings.update' },
+      { label: 'Danh mục', href: '/settings/categories', icon: LayoutGrid, permissionKey: 'settings.update' },
       { label: 'Model thiết bị', href: '/settings/asset-models', icon: LayoutGrid, permissionKey: 'settings.update' },
-      { label: 'Nhà sản xuất',   href: '/settings/manufacturers', icon: LayoutGrid, permissionKey: 'settings.update' },
-      { label: 'Nhà cung cấp',   href: '/settings/suppliers',     icon: LayoutGrid, permissionKey: 'settings.update' },
-      { label: 'Vị trí',         href: '/settings/locations',     icon: LayoutGrid, permissionKey: 'settings.update' },
-      { label: 'Khấu hao',       href: '/settings/depreciation',  icon: LayoutGrid, permissionKey: 'settings.update' },
+      { label: 'Nhà sản xuất', href: '/settings/manufacturers', icon: LayoutGrid, permissionKey: 'settings.update' },
+      { label: 'Nhà cung cấp', href: '/settings/suppliers', icon: LayoutGrid, permissionKey: 'settings.update' },
+      { label: 'Vị trí', href: '/settings/locations', icon: LayoutGrid, permissionKey: 'settings.update' },
+      { label: 'Khấu hao', href: '/settings/depreciation', icon: LayoutGrid, permissionKey: 'settings.update' },
     ],
   },
   {
     title: 'Hệ thống',
     icon: Server,
     children: [
-      { label: 'Tổng quan',   href: '/settings/general',  icon: Server, permissionKey: 'settings.read' },
+      { label: 'Tổng quan', href: '/settings/general', icon: Server, permissionKey: 'settings.read' },
       { label: 'Thương hiệu', href: '/settings/branding', icon: Server, permissionKey: 'settings.update' },
-      { label: 'Bảo mật',     href: '/settings/security', icon: Server, permissionKey: 'settings.update' },
-      { label: 'Email',       href: '/settings/email',    icon: Server, permissionKey: 'settings.update' },
-      { label: 'Phân quyền',  href: '/settings/permissions', icon: KeyRound, permissionKey: 'users.manage_roles' },
+      { label: 'Bảo mật', href: '/settings/security', icon: Server, permissionKey: 'settings.update' },
+      { label: 'Email', href: '/settings/email', icon: Server, permissionKey: 'settings.update' },
+      { label: 'Phân quyền', href: '/settings/permissions', icon: KeyRound, permissionKey: 'users.manage_roles' },
       { label: 'Quản trị Helpdesk', href: '/admin/helpdesk', icon: Settings, permissionKey: 'helpdesk.manage_rules' },
     ],
   },
@@ -126,10 +126,10 @@ const SETTINGS_GROUPS = [
 ] as const
 
 const navigation: NavItem[] = [
-  { name: 'Dashboard',          href: '/',                icon: LayoutDashboard, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'] },
-  { name: 'Tài sản (Assets)',   href: '/assets',          icon: Monitor,          allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'assets.read' },
-  { name: 'Bản quyền (Licenses)', href: '/licenses',      icon: Key,              allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'licenses.read' },
-  { 
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'] },
+  { name: 'Tài sản (Assets)', href: '/assets', icon: Monitor, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'assets.read' },
+  { name: 'Bản quyền (Licenses)', href: '/licenses', icon: Key, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'licenses.read' },
+  {
     name: 'Bảo trì (Maintenances)',
     href: '/maintenances',
     icon: Wrench,
@@ -233,8 +233,8 @@ export default function Sidebar() {
   return (
     <>
       <div className="lg:hidden fixed top-4 left-4 z-50">
-        <button 
-          onClick={() => setIsOpen(!isOpen)} 
+        <button
+          onClick={() => setIsOpen(!isOpen)}
           className="p-2 bg-white rounded-md shadow-sm border border-gray-200 text-gray-600"
         >
           {isOpen ? <X size={20} /> : <Menu size={20} />}
@@ -242,7 +242,7 @@ export default function Sidebar() {
       </div>
 
       {isOpen && (
-        <div 
+        <div
           className="lg:hidden fixed inset-0 bg-black/20 z-40"
           onClick={() => setIsOpen(false)}
         />
@@ -314,7 +314,7 @@ export default function Sidebar() {
                         />
                         <span className="font-medium text-[15px]">{item.name}</span>
                       </div>
-                      <button 
+                      <button
                         onClick={(e) => toggleMenu(item.name, e)}
                         className="p-1 rounded-md hover:bg-black/20 transition-colors"
                         aria-label="Mở rộng menu"
@@ -332,7 +332,7 @@ export default function Sidebar() {
                             return (
                               <div key={group.title}>
                                 <div className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                                <group.icon size={13} />
+                                  <group.icon size={13} />
                                   <span>{group.title}</span>
                                 </div>
                                 <div className="mt-1 space-y-0.5">

@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { checkinLicenseSeatCmd } from '@/app/actions/license'
 import { useToast } from '@/components/Toast'
 import { ShoppingCart, Undo2, Loader2, XCircle } from 'lucide-react'
 import CheckoutSeatModal from './CheckoutSeatModal'
+import Modal from '@/components/ui/Modal'
 
 interface CheckoutSeatButtonProps {
   licenseId: string
@@ -32,52 +32,75 @@ export default function CheckoutSeatButton({
   assets,
   state,
 }: CheckoutSeatButtonProps) {
-  const router = useRouter()
   const { showCommandResult } = useToast()
   const [open, setOpen] = useState(false)
-  const [isPending, startTransition] = useTransition()
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [isPending, setIsPending] = useState(false)
 
   function handleCheckin() {
     if (isPending) return
-    const confirmed = window.confirm(
-      `Thu hồi LicenseSeat "${seatLabel}"? Hành động này sẽ giải phóng seat về pool trống.`
-    )
-    if (!confirmed) return
+    setConfirmOpen(true)
+  }
 
-    startTransition(async () => {
+  async function handleConfirmCheckin() {
+    setConfirmOpen(false)
+    setIsPending(true)
+    try {
       const result = await checkinLicenseSeatCmd({ seatId })
       showCommandResult(result, `Đã thu hồi seat "${seatLabel}".`)
-      if (
-        result &&
-        typeof result === 'object' &&
-        'ok' in result &&
-        (result as { ok: boolean }).ok
-      ) {
-        router.refresh()
-      }
-    })
+    } finally {
+      setIsPending(false)
+    }
   }
 
   if (state === 'ASSIGNED') {
     return (
-      <button
-        type="button"
-        onClick={handleCheckin}
-        disabled={isPending}
-        className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 rounded-lg hover:bg-amber-100 transition border border-amber-200 disabled:opacity-50"
+      <>
+        <button
+          type="button"
+          onClick={handleCheckin}
+          disabled={isPending}
+          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 rounded-lg hover:bg-amber-100 transition border border-amber-200 disabled:opacity-50"
+        >
+          {isPending ? (
+            <>
+              <Loader2 size={14} className="mr-1 animate-spin" />
+              Đang thu hồi...
+            </>
+          ) : (
+            <>
+              <Undo2 size={14} className="mr-1" />
+              Thu hồi
+            </>
+          )}
+        </button>
+
+        <Modal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="Xác nhận thu hồi"
       >
-        {isPending ? (
-          <>
-            <Loader2 size={14} className="mr-1 animate-spin" />
-            Đang thu hồi...
-          </>
-        ) : (
-          <>
-            <Undo2 size={14} className="mr-1" />
+        <p className="text-gray-600 mb-4">
+          Thu hồi LicenseSeat <strong>"{seatLabel}"</strong>? Hành động này sẽ giải phóng seat về pool trống.
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(false)}
+            className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmCheckin}
+            className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm"
+          >
             Thu hồi
-          </>
-        )}
-      </button>
+          </button>
+        </div>
+      </Modal>
+    </>
     )
   }
 

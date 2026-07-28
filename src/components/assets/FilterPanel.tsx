@@ -13,6 +13,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Filter, X, Bookmark, Save, ChevronDown, Trash2 } from 'lucide-react'
+import { useToast } from '@/components/Toast'
+import Modal from '@/components/ui/Modal'
 
 interface FilterOption {
   id: string
@@ -67,6 +69,7 @@ export default function FilterPanel({
 }: FilterPanelProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { show } = useToast()
 
   const initialFilters = FILTER_KEYS.reduce(
     (acc, key) => {
@@ -80,6 +83,7 @@ export default function FilterPanel({
   const [savedFilters, setSavedFilters] = useState<SavedFilterItem[]>([])
   const [savedOpen, setSavedOpen] = useState(false)
   const [saveModalOpen, setSaveModalOpen] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [saveName, setSaveName] = useState('')
   const [saveAsPublic, setSaveAsPublic] = useState(false)
 
@@ -168,23 +172,27 @@ export default function FilterPanel({
         setSaveAsPublic(false)
         await loadSavedFilters()
       } else {
-        alert(json.message ?? 'Lỗi khi lưu.')
+        show({ type: 'error', message: json.message ?? 'Lỗi khi lưu.' })
       }
     } catch {
-      alert('Lỗi kết nối.')
+      show({ type: 'error', message: 'Lỗi kết nối.' })
     }
   }
 
-  async function deleteSaved(id: string) {
-    if (!confirm('Xóa bộ lọc đã lưu này?')) return
+  async function handleConfirmDeleteSaved() {
+    const id = confirmDeleteId
+    if (!id) return
+    setConfirmDeleteId(null)
     try {
       const res = await fetch(`/api/saved-filters/${id}`, { method: 'DELETE' })
       const json = await res.json()
       if (json.ok) {
         setSavedFilters((prev) => prev.filter((f) => f.id !== id))
+      } else {
+        show({ type: 'error', message: json.message ?? 'Xóa thất bại.' })
       }
     } catch {
-      // ignore
+      show({ type: 'error', message: 'Lỗi kết nối.' })
     }
   }
 
@@ -238,7 +246,7 @@ export default function FilterPanel({
                     {f.isOwner && (
                       <button
                         type="button"
-                        onClick={() => deleteSaved(f.id)}
+                        onClick={() => setConfirmDeleteId(f.id)}
                         className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-50 rounded"
                         title="Xóa"
                       >
@@ -589,6 +597,31 @@ export default function FilterPanel({
           </div>
         </div>
       )}
+
+      {/* Delete saved filter confirmation */}
+      <Modal
+        open={!!confirmDeleteId}
+        onClose={() => setConfirmDeleteId(null)}
+        title="Xóa bộ lưu"
+      >
+        <p className="text-gray-600 mb-4">Xóa bộ lọc đã lưu này?</p>
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setConfirmDeleteId(null)}
+            className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmDeleteSaved}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+          >
+            Xóa
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }

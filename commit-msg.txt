@@ -1,0 +1,30 @@
+feat(ui): Sprint C.4 -- UX & Security enhancements
+
+Security:
+- NEW api/assets/[id]/route.ts: DELETE with bcrypt password re-auth
+- AssetDetailClient + AssetsPageClient delete modals: password input field
+
+Toast (replaced alert()):
+- FilterPanel: save filter errors
+- helpdesk/page: claim ticket errors
+- admin/helpdesk: save/delete rule errors
+- AssetMaintenanceList: delete maintenance errors
+
+Modal (replaced confirm()):
+- CheckinAssetButton: checkin confirmation
+- CheckoutSeatButton: seat checkin confirmation
+- MarkAuditedButton: audit confirmation
+- FilterPanel: delete saved filter
+- helpdesk/[id]: ticket action + reassign confirmations
+- HelpdeskTeamsClient: team delete confirmation
+- TicketAttachments: attachment delete confirmation
+- admin/helpdesk: rule delete confirmation
+- DepreciationTable: depreciation rule delete confirmation
+- IntegrationsClient: token revoke + channel delete confirmations
+
+UI/UX:
+- DepreciationTable: tooltip for depreciation type explanation
+- EntityTable: 2-column form grid layout
+- AssetsPageClient: renamed column to "Nguoi/Vi tri/Thiet bi giu"
+
+Note: ToastProvider (home-grown, no react-hot-toast dep) was already integrated.

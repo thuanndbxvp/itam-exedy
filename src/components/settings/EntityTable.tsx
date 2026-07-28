@@ -285,14 +285,16 @@ export default function EntityTable<T extends { id: string }>({
           size="md"
         >
           <div className="space-y-4">
-            {form.fields.map((field) => (
-              <FieldInput
-                key={field.name}
-                field={field}
-                value={formValues[field.name] ?? ''}
-                onChange={(v) => setFormValues((s) => ({ ...s, [field.name]: v }))}
-              />
-            ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {form.fields.map((field) => (
+                <FieldInput
+                  key={field.name}
+                  field={field}
+                  value={formValues[field.name] ?? ''}
+                  onChange={(v) => setFormValues((s) => ({ ...s, [field.name]: v }))}
+                />
+              ))}
+            </div>
             <div className="flex justify-end gap-3 pt-2">
               <button
                 type="button"

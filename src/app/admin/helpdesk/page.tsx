@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Loader2, Settings, Save, X } from 'lucide-react'
+import { useToast } from '@/components/Toast'
+import Modal from '@/components/ui/Modal'
 
 interface Rule {
   id: string
@@ -50,6 +52,8 @@ export default function AdminHelpdeskPage() {
   const [editing, setEditing] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const { show } = useToast()
 
   const emptyForm = {
     name: '',
@@ -126,15 +130,21 @@ export default function AdminHelpdeskPage() {
         await load()
         cancel()
       } else {
-        alert(json.message ?? 'Lưu thất bại.')
+        show({ type: 'error', message: json.message ?? 'Lưu thất bại.' })
       }
     } finally {
       setSaving(false)
     }
   }
 
-  async function deleteRule(id: string) {
-    if (!confirm('Xóa rule này?')) return
+  async function handleRequestDeleteRule(id: string) {
+    setConfirmDeleteId(id)
+  }
+
+  async function handleConfirmDeleteRule() {
+    const id = confirmDeleteId
+    if (!id) return
+    setConfirmDeleteId(null)
     const r = await fetch('/api/admin/ticket-rules', {
       method: 'DELETE',
       headers: { 'content-type': 'application/json' },
@@ -142,7 +152,7 @@ export default function AdminHelpdeskPage() {
     })
     const json = await r.json()
     if (json.ok) await load()
-    else alert(json.message ?? 'Xóa thất bại.')
+    else show({ type: 'error', message: json.message ?? 'Xóa thất bại.' })
   }
 
   return (
@@ -369,7 +379,7 @@ export default function AdminHelpdeskPage() {
                       Sửa
                     </button>
                     <button
-                      onClick={() => deleteRule(r.id)}
+                      onClick={() => handleRequestDeleteRule(r.id)}
                       className="text-red-600 hover:underline text-xs"
                     >
                       <Trash2 size={12} className="inline" />
@@ -381,6 +391,31 @@ export default function AdminHelpdeskPage() {
           </table>
         )}
       </div>
+
+      {/* Confirm delete rule */}
+      <Modal
+        open={!!confirmDeleteId}
+        onClose={() => setConfirmDeleteId(null)}
+        title="Xóa rule"
+      >
+        <p className="text-gray-600 mb-4">Xóa rule này?</p>
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setConfirmDeleteId(null)}
+            className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmDeleteRule}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+          >
+            Xóa
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }

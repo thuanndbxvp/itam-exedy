@@ -15,6 +15,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Paperclip, Upload, X, Loader2, FileText, ImageIcon, Download } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import { useSession } from 'next-auth/react'
+import Modal from '@/components/ui/Modal'
 
 interface Attachment {
   id: string
@@ -36,6 +37,7 @@ export default function TicketAttachments({ ticketId }: Props) {
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
@@ -93,13 +95,19 @@ export default function TicketAttachments({ ticketId }: Props) {
     }
   }
 
-  async function handleDelete(att: Attachment) {
-    if (!confirm(`Xóa file "${att.filename}"?`)) return
+  async function handleRequestDelete(att: Attachment) {
+    setConfirmDeleteId(att.id)
+  }
+
+  async function handleConfirmDelete() {
+    const id = confirmDeleteId
+    if (!id) return
+    setConfirmDeleteId(null)
     try {
       const res = await fetch(`/api/tickets/${ticketId}/attachments`, {
         method: 'DELETE',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ attachmentId: att.id }),
+        body: JSON.stringify({ attachmentId: id }),
       })
       const json = await res.json()
       if (json.ok) {
@@ -108,7 +116,7 @@ export default function TicketAttachments({ ticketId }: Props) {
       } else {
         showCommandResult(json)
       }
-    } catch (e) {
+    } catch {
       showCommandResult({ ok: false, code: 'NETWORK', message: 'Lỗi kết nối.' })
     }
   }
@@ -208,7 +216,7 @@ export default function TicketAttachments({ ticketId }: Props) {
               {canDelete(att) && (
                 <button
                   type="button"
-                  onClick={() => handleDelete(att)}
+                  onClick={() => handleRequestDelete(att)}
                   className="p-1.5 text-red-600 hover:bg-red-50 rounded"
                   title="Xóa file"
                 >
@@ -219,6 +227,34 @@ export default function TicketAttachments({ ticketId }: Props) {
           ))}
         </ul>
       )}
+
+      {/* Confirm delete attachment */}
+      <Modal
+        open={!!confirmDeleteId}
+        onClose={() => setConfirmDeleteId(null)}
+        title="Xóa file đính kèm"
+      >
+        <p className="text-gray-600 mb-4">
+          Xóa file{" "}
+          <strong>"{attachments.find((a) => a.id === confirmDeleteId)?.filename}"</strong>?
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setConfirmDeleteId(null)}
+            className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmDelete}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+          >
+            Xóa
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }

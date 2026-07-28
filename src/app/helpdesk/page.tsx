@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Plus, Filter, Loader2, LifeBuoy, UserCheck } from 'lucide-react'
 import TicketFilterBar from '@/components/helpdesk/TicketFilterBar'
+import { useToast } from '@/components/Toast'
 
 interface Ticket {
   id: string
@@ -67,6 +68,7 @@ function HelpdeskContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session } = useSession()
+  const { show } = useToast()
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
   const [claiming, setClaiming] = useState<string | null>(null)
@@ -158,7 +160,7 @@ function HelpdeskContent() {
       if (json.ok) {
         router.push(`/helpdesk/${t.code}`)
       } else {
-        alert(json.message ?? 'Không thể nhận ticket.')
+        show({ type: 'error', message: json.message ?? 'Không thể nhận ticket.' })
       }
     } finally {
       setClaiming(null)

@@ -70,6 +70,7 @@ export default function HelpdeskTeamsClient({ initialTeams, users, canEdit }: Pr
   })
   const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -144,14 +145,21 @@ export default function HelpdeskTeamsClient({ initialTeams, users, canEdit }: Pr
   }
 
   async function handleDelete(t: Team) {
-    if (!confirm(`Xóa (soft-delete) team "${t.name}"?`)) return
-    setDeletingId(t.id)
+    setConfirmDeleteId(t.id)
+  }
+
+  async function handleConfirmDelete() {
+    const id = confirmDeleteId
+    if (!id) return
+    const team = teams.find((t) => t.id === id)
+    setConfirmDeleteId(null)
+    setDeletingId(id)
     try {
-      const res = await fetch(`/api/helpdesk-teams/${t.id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/helpdesk-teams/${id}`, { method: 'DELETE' })
       const data = await res.json()
       showCommandResult(data)
       if (data.ok) {
-        setTeams((prev) => prev.map((x) => (x.id === t.id ? { ...x, isActive: false } : x)))
+        setTeams((prev) => prev.map((x) => (x.id === id ? { ...x, isActive: false } : x)))
         router.refresh()
       }
     } finally {
@@ -402,6 +410,36 @@ export default function HelpdeskTeamsClient({ initialTeams, users, canEdit }: Pr
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Confirm delete team */}
+      <Modal
+        open={!!confirmDeleteId}
+        onClose={() => setConfirmDeleteId(null)}
+        title="Xóa team"
+      >
+        <p className="text-gray-600 mb-4">
+          Xóa (soft-delete) team{" "}
+          <strong>"{teams.find((t) => t.id === confirmDeleteId)?.name}"</strong>?
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setConfirmDeleteId(null)}
+            disabled={!!deletingId}
+            className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm disabled:opacity-50"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmDelete}
+            disabled={!!deletingId}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50"
+          >
+            {deletingId ? 'Đang xóa...' : 'Xóa'}
+          </button>
+        </div>
       </Modal>
     </div>
   )

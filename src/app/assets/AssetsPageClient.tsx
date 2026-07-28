@@ -10,6 +10,7 @@ import BulkActionBar from '@/components/assets/BulkActionBar'
 import CSVImportModal from '@/components/assets/CSVImportModal'
 import Modal from '@/components/ui/Modal'
 import { useRouter } from 'next/navigation'
+import { useToast } from '@/components/Toast'
 
 const getStatusColor = (s: { deployable: boolean; pending: boolean; archived: boolean } | null) => {
   if (!s) return 'bg-gray-100 text-gray-700 border-gray-200'
@@ -55,21 +56,31 @@ export default function AssetsPageClient({
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [showImportModal, setShowImportModal] = useState(false)
   const [deleteAssetId, setDeleteAssetId] = useState<string | null>(null)
+  const [deletePassword, setDeletePassword] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
+  const { showCommandResult } = useToast()
   const router = useRouter()
 
   async function handleSingleDelete() {
     if (!deleteAssetId) return
+    if (!deletePassword.trim()) return
     setIsDeleting(true)
     try {
-      const res = await fetch(`/api/assets/${deleteAssetId}`, { method: 'DELETE' })
-      if (res.ok) {
+      const res = await fetch(`/api/assets/${deleteAssetId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: deletePassword }),
+      })
+      const data = await res.json()
+      if (data.ok) {
         setDeleteAssetId(null)
+        setDeletePassword('')
         setSelectedIds((prev) => prev.filter((id) => id !== deleteAssetId))
         router.refresh()
       }
+      showCommandResult(data)
     } catch (e) {
-      console.error(e)
+      showCommandResult({ ok: false, code: 'INTERNAL', message: String(e) })
     } finally {
       setIsDeleting(false)
     }
@@ -153,7 +164,7 @@ export default function AssetsPageClient({
                   </th>
                   <th className="px-6 py-4 font-medium whitespace-nowrap">Tài sản (Asset)</th>
                   <th className="px-6 py-4 font-medium whitespace-nowrap">Trạng thái</th>
-                  <th className="px-6 py-4 font-medium whitespace-nowrap">Người/Vị trí giữ</th>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap">Người/Vị trí/Thiết bị giữ</th>
                   <th className="px-6 py-4 font-medium whitespace-nowrap">Ngày tạo</th>
                   <th className="px-6 py-4 text-right font-medium">Thao tác</th>
                 </tr>
@@ -305,7 +316,7 @@ export default function AssetsPageClient({
       <Modal
         open={!!deleteAssetId}
         onClose={() => {
-          if (!isDeleting) setDeleteAssetId(null)
+          if (!isDeleting) { setDeleteAssetId(null); setDeletePassword('') }
         }}
         title="Xác nhận xóa tài sản"
       >
@@ -313,9 +324,23 @@ export default function AssetsPageClient({
           <p className="text-gray-600">
             Bạn có chắc chắn muốn xóa tài sản này? Mọi thông tin liên quan sẽ bị chuyển vào thùng rác.
           </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Mật khẩu xác nhận <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSingleDelete()}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
+              placeholder="Nhập mật khẩu đăng nhập của bạn"
+              autoFocus
+            />
+          </div>
           <div className="flex justify-end gap-3 pt-4">
             <button
-              onClick={() => setDeleteAssetId(null)}
+              onClick={() => { setDeleteAssetId(null); setDeletePassword('') }}
               disabled={isDeleting}
               className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm font-medium"
             >
@@ -323,7 +348,7 @@ export default function AssetsPageClient({
             </button>
             <button
               onClick={handleSingleDelete}
-              disabled={isDeleting}
+              disabled={isDeleting || !deletePassword.trim()}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium disabled:opacity-50"
             >
               {isDeleting ? 'Đang xóa...' : 'Xóa'}
