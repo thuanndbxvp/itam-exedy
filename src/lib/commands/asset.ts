@@ -275,12 +275,17 @@ export async function checkoutAssetToAsset(
     );
   }
 
-  // Asset đích phải tồn tại
+  // Asset đích phải tồn tại và không bị thanh lý
   const parent = await tx.asset.findUnique({
     where: { id: targetAssetId },
-    include: { status: true },
+    select: { id: true, assetTag: true, assignedAssetId: true, status: { select: { archived: true } } },
   });
   if (!parent) throw new NotFoundError('Asset', targetAssetId);
+  if (parent.status.archived) {
+    throw new InvalidStateError(
+      `Không thể gán vào thiết bị đã thanh lý/hủy (${parent.assetTag}).`
+    );
+  }
 
   // Phát hiện tham chiếu vòng: parent.assignedAssetId === assetId?
   if (parent.assignedAssetId === assetId) {

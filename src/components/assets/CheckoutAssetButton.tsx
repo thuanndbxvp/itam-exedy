@@ -21,6 +21,8 @@ interface CheckoutAssetButtonProps {
     eulaText: string
     alreadyAccepted: boolean
   } | null
+  disabled?: boolean
+  disabledReason?: string
 }
 
 /**
@@ -34,6 +36,8 @@ export default function CheckoutAssetButton({
   locations,
   assets,
   eulaGate,
+  disabled,
+  disabledReason,
 }: CheckoutAssetButtonProps) {
   const [open, setOpen] = useState(false)
   const [eulaOpen, setEulaOpen] = useState(false)
@@ -51,7 +55,13 @@ export default function CheckoutAssetButton({
       <button
         type="button"
         onClick={handleClick}
-        className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition border border-blue-200"
+        disabled={disabled}
+        title={disabled ? disabledReason : undefined}
+        className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition border ${
+          disabled 
+            ? 'text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed' 
+            : 'text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100'
+        }`}
       >
         <ShoppingCart size={14} className="mr-1" />
         Cấp phát

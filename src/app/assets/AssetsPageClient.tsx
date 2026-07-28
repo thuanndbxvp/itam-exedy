@@ -261,6 +261,8 @@ export default function AssetsPageClient({
                                   users={users}
                                   locations={locations}
                                   assets={transferableAssets}
+                                  disabled={!asset.status.deployable || asset.status.archived || asset.status.pending}
+                                  disabledReason="Thiết bị không ở trạng thái sẵn sàng để cấp phát"
                                 />
                               )}
                               <Link href={`/assets/${asset.id}/edit`} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition inline-flex items-center justify-center" title="Sửa">

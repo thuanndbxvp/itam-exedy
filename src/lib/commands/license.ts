@@ -79,9 +79,12 @@ export async function checkoutLicenseSeat(
   } else if (targetAssetId) {
     const asset = await tx.asset.findUnique({
       where: { id: targetAssetId },
-      select: { id: true, assetTag: true, name: true },
+      select: { id: true, assetTag: true, name: true, status: { select: { archived: true } } },
     });
     if (!asset) throw new NotFoundError('Asset', targetAssetId);
+    if (asset.status.archived) {
+      throw new InvalidStateError(`Không thể gán vào thiết bị đã thanh lý/hủy (${asset.assetTag}).`);
+    }
     targetName = `asset "${asset.assetTag} - ${asset.name}"`;
   }
 

@@ -252,12 +252,15 @@ export default function LicenseDetailClient({
                       </tr>
                     ) : (
                       license.seats.map((seat) => {
+                        const isLicenseExpiredAndNotReassignable = license.expirationDate && new Date(license.expirationDate) < new Date() && !license.reassignable
                         const state: 'AVAILABLE' | 'ASSIGNED' | 'EXPIRED' =
                           seat.unreassignableSeat
                             ? 'EXPIRED'
                             : seat.assignedUserId || seat.assignedAssetId
                               ? 'ASSIGNED'
-                              : 'AVAILABLE'
+                              : isLicenseExpiredAndNotReassignable
+                                ? 'EXPIRED'
+                                : 'AVAILABLE'
 
                         const stateColor =
                           state === 'AVAILABLE'

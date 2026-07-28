@@ -381,6 +381,8 @@ export default function AssetDetailClient({
                   users={users}
                   locations={locations}
                   assets={transferableAssets}
+                  disabled={!asset.status.deployable || asset.status.archived || asset.status.pending}
+                  disabledReason="Thiết bị không ở trạng thái sẵn sàng để cấp phát"
                 />
               )}
             </div>
