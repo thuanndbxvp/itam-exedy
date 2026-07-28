@@ -212,7 +212,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       'UPDATE',
       'USER',
       id,
-      `Cập nhật người dùng "${name}"${password ? ' (đổi mật khẩu)' : ''}`,
+      `Cập nhật người dùng "${name}"`,
       {
         oldValues: {
           firstName: existing.firstName, lastName: existing.lastName, email: existing.email,
