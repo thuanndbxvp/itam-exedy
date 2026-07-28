@@ -254,10 +254,6 @@ export default function NewTicketPage() {
               <div className="flex items-center text-sm text-gray-500">
                 <Loader2 size={14} className="animate-spin mr-1" /> Đang tải danh sách tài sản…
               </div>
-            ) : !myData || myData.assets.length === 0 ? (
-              <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
-                Bạn hiện không có tài sản nào được giao. Hãy chọn "Vấn đề khác" hoặc liên hệ IT.
-              </div>
             ) : isIT ? (
               // C.6: IT Staff - Search autocomplete
               <div ref={searchRef} className="relative">
@@ -322,6 +318,10 @@ export default function NewTicketPage() {
                     Không tìm thấy tài sản nào.
                   </div>
                 )}
+              </div>
+            ) : !myData || myData.assets.length === 0 ? (
+              <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                Bạn hiện không có tài sản nào được giao. Hãy chọn "Vấn đề khác" hoặc liên hệ IT.
               </div>
             ) : (
               // Employee - Simple dropdown
