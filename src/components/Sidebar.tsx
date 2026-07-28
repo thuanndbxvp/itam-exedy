@@ -84,8 +84,8 @@ const NAVIGATION_GROUPS: NavGroup[] = [
     icon: Monitor,
     allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'],
     items: [
-      { name: 'Thiết bị', href: '/assets', icon: Monitor, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'assets.read' },
-      { name: 'Bản quyền', href: '/licenses', icon: Key, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'licenses.read' },
+      { name: 'Thiết bị', href: '/assets', icon: Monitor, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'] },
+      { name: 'Bản quyền', href: '/licenses', icon: Key, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'] },
       { name: 'Bảo trì', href: '/maintenances', icon: Wrench, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER'], permissionKey: 'assets.read' },
       { name: 'Loại tài sản', href: '/settings/categories', icon: FolderOpen, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
       { name: 'Model thiết bị', href: '/settings/asset-models', icon: Box, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
@@ -136,22 +136,6 @@ export default function Sidebar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({})
-  
-  // Collapse sidebar categories by default, except the active one and "Quản lý tài sản"
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
-    if (typeof window === 'undefined') return {}
-    const init: Record<string, boolean> = { 'Quản lý tài sản': true }
-    NAVIGATION_GROUPS.forEach(g => {
-      if (g.items.some(
-        (item) =>
-          (item.exact ? pathname === item.href : (pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href + '/')))) ||
-          (item.children?.some((c) => pathname === c.href || pathname.startsWith(c.href + '/')))
-      )) {
-        init[g.label] = true
-      }
-    })
-    return init
-  })
   const [perms, setPerms] = useState<Set<string>>(new Set())
   const [loaded, setLoaded] = useState(false)
   const { data: session } = useSession()
@@ -222,10 +206,6 @@ export default function Sidebar() {
     setOpenMenus((prev) => ({ ...prev, [name]: !prev[name] }))
   }
 
-  function toggleGroup(label: string) {
-    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }))
-  }
-
   return (
     <>
       {/* Mobile toggle */}
@@ -263,21 +243,15 @@ export default function Sidebar() {
             return (
               <div key={group.label}>
                 {/* Group header */}
-                <button
-                  onClick={() => toggleGroup(group.label)}
-                  className={`w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider mb-1 hover:text-white transition cursor-pointer ${
-                    groupActive ? 'text-blue-400' : 'text-slate-400'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <group.icon size={13} />
-                    <span>{group.label}</span>
-                  </div>
-                  <ChevronDown size={14} className={`transform transition-transform ${openGroups[group.label] ? 'rotate-180' : ''}`} />
-                </button>
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider mb-1 ${
+                  groupActive ? 'text-blue-400' : 'text-slate-400'
+                }`}>
+                  <group.icon size={13} />
+                  <span>{group.label}</span>
+                </div>
 
                 {/* Items */}
-                <div className={`space-y-0.5 overflow-hidden transition-all duration-300 ${openGroups[group.label] ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div className="space-y-0.5">
                   {visibleItems.map((item) => {
                     const Icon = item.icon
                     const itemActive = isItemActive(item)
