@@ -296,7 +296,7 @@ model Location {
   managerId String?
   manager   User?      @relation("LocationManager", fields: [managerId], references: [id], onDelete: SetNull)
   companyId String?
-  company   Company?   @relation(fields: [companyId], references: [companyId], onDelete: SetNull)
+  company   Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
   notes     String?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -817,10 +817,6 @@ model Ticket {
   @@index([category, status])
   @@index([status, createdAt])
   @@index([slaDueAt])
-  // R.2: Indexes for soft-delete + common queries
-  @@index([reporterId, deletedAt])
-  @@index([assigneeId, deletedAt])
-  @@index([status, deletedAt])
 }
 
 model TicketComment {
