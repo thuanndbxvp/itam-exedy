@@ -2187,22 +2187,23 @@ Convert hard `prisma.user.delete()` (sẽ fail P2003 vì 6 FK `onDelete: Restric
 
 ---
 
-## SPRINT C.3: SIDEBAR USER PROFILE + LOGOUT — ✅ DONE
+## SPRINT C.3: SIDEBAR NAV RESTRUCTURE + ACCOUNT TABS — ✅ DONE
 
-**Commit:** `bb68eaa`. **Status:** Done (2026-07-28). **Effort:** ~1h.
+**Status:** Done (2026-07-28). **Commits:** `bb68eaa` (profile strip + logout) + `69f6965` (nav flatten + horizontal tabs). **Effort:** ~2h total.
 
-### Phạm vi đã giao
-Thêm user info section và logout button vào Sidebar header.
+### Phạm vi đã giao (2 phần)
+1. **Sidebar nav flatten:** Đập bỏ `SETTINGS_GROUPS` dropdown, trải phẳng thành 5 nhóm: Tổng quan, Quản lý Tài sản, Vận hành & Hỗ trợ, Nhân sự & Tổ chức, Hệ thống. Mỗi nhóm có header icon + label. Items được filter bởi `allowedRoles` + `permissionKey` inline (không còn `RoleGate` wrapper).
+
+2. **Account layout tabs ngang:** Chuyển `UserPanelNav` từ sidebar dọc (`aside w-64`) sang horizontal tab bar (`border-b-2`, active = `border-blue-600 text-blue-700`). Layout từ `flex-row` sang `flex-col`. Avatar/initials bị ẩn.
 
 ### Files
-- `src/components/Sidebar.tsx` — Added user info strip (avatar initials + name + role badge) between branding header and nav, with logout button (`LogOut` icon + `signOut({ callbackUrl: '/login' })`). `ROLE_LABELS` + `ROLE_BADGE_COLORS` maps for badge. `getInitials()` helper. `LogOut` imported from lucide-react.
+- `src/components/Sidebar.tsx` — Full nav restructure: `NAVIGATION_GROUPS[]` (5 groups, 26 items), `isGroupActive()`, `isItemActive()`, `isChildActive()`, `handleNavClick()` (mobile close). User info strip + logout giữ nguyên từ `bb68eaa`.
+- `src/app/account/layout.tsx` — `flex-col`, `max-w-5xl` removed, `<UserPanelNav />` không truyền prop.
+- `src/components/account/UserPanelNav.tsx` — Horizontal tab bar, border-bottom active style, initials/user panel removed.
 
 ### Notes
-- Avatar dùng initials (session không expose `avatar` field trong NextAuth JWT).
-- Role badge colored: Admin=red, IT_MANAGER=purple, IT_STAFF=blue, EMPLOYEE=slate.
-- Logout button bên phải user info strip, dùng `signOut` từ `next-auth/react`.
-- Errors: pre-existing `set-state-in-effect` warnings on lines 183/219 (từ cache logic gốc, không phải do thay đổi này).
-- **Bonus:** Bulk delete feature từ prior session được commit cùng (AssetsPageClient + AssetDetailClient).
+- `queueMicrotask()` trong permission cache `useEffect` để tránh `set-state-in-effect` lint error.
+- Pre-existing linter warnings (`set-state-in-effect`, unescaped entities) không do thay đổi này.
 
 ---
 
