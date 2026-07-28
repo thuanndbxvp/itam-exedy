@@ -2124,4 +2124,31 @@ Báo cáo tổng hợp chi phí IT (Asset + License + Maintenance), permission `
 
 ---
 
+## SPRINT C.2: USER SOFT-DELETE + FK DETACH — ✅ DONE
+
+**Commit:** `abe49e1`. **Status:** Done (2026-07-28). **Effort:** ~1.5h.
+
+### Phạm vi đã giao
+Convert hard `prisma.user.delete()` (sẽ fail P2003 vì 6 FK `onDelete: Restrict`) → soft-delete `prisma.user.update({ deletedAt })` + FK detach sequence.
+
+### Files
+- `src/app/api/settings/users/[id]/route.ts` — DELETE handler refactored:
+  - Self-delete protection (`actor.id === id` → 400).
+  - System user protection (`id === 'system'` → 400).
+  - Double-delete guard (`deletedAt !== null` → 409).
+  - Phase 1 parallel detach: `Asset.assignedUserId`, `LicenseSeat.assignedUserId`, `Ticket.assigneeId`, `AssetMaintenance.createdById` → null.
+  - Phase 2 parallel reassign to `system_user`: `Ticket.reporterId/closedById`, `TicketComment.authorId`, `TicketAttachment.uploaderId`, `ApiToken.createdById`, `NotificationChannel.createdById`.
+  - Phase 3 soft-delete: `prisma.user.update({ deletedAt: new Date() })`.
+  - Phase 4 audit log.
+- `src/app/settings/users/[id]/EditUserForm.tsx` — thêm Delete button (red, bottom-left) + `ConfirmModal` (danger variant) gọi `DELETE /api/settings/users/[id]`.
+
+### Notes
+- `ActionLog.userId` giữ nguyên (FK Restrict → audit trail không bị xóa theo user).
+- All detach dùng `Promise.all` parallel để không blocking.
+- `systemUser` được resolve từ `prisma.user.findUnique({ where: { username: 'system' } })` — cùng pattern dùng trong `audit.ts`.
+- Thứ tự: detach trước → reassign system → update deletedAt → audit log. Nếu system user không tồn tại, Phase 2 bị skip (warning không fail).
+- UI: button "Xóa người dùng" đặt ở góc trái phần Actions, thay vì góc phải, để tránh nhầm với "Lưu".
+
+---
+
 **HẾT Sprint D spec**
