@@ -4,13 +4,14 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
-import { ArrowLeft, Save, Loader2 } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, HelpCircle } from 'lucide-react'
 import type { StatusLabel } from '@prisma/client'
 
 export default function EditStatusForm({ status }: { status: StatusLabel }) {
   const router = useRouter()
   const { showCommandResult } = useToast()
   const [isPending, setIsPending] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
   const [form, setForm] = useState({
     name: status.name,
     deployable: status.deployable,
@@ -66,7 +67,29 @@ export default function EditStatusForm({ status }: { status: StatusLabel }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Loại trạng thái</label>
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-sm font-medium text-gray-700">Loại trạng thái</label>
+              <button
+                type="button"
+                onClick={() => setShowHelp(!showHelp)}
+                className="inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 px-2 py-1 rounded-md transition"
+              >
+                <HelpCircle size={14} className="mr-1" />
+                Hướng dẫn
+              </button>
+            </div>
+            
+            {showHelp && (
+              <div className="mb-4 p-4 bg-blue-50/50 border border-blue-100 rounded-xl text-sm text-blue-900 space-y-2">
+                <p><strong>Ảnh hưởng của trạng thái đến luồng Cấp phát:</strong></p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li><strong>Sẵn sàng cấp phát:</strong> LÀ LỰA CHỌN DUY NHẤT cho phép nút "Cấp phát" hoạt động.</li>
+                  <li><strong>Chờ duyệt & Không khả dụng:</strong> Nút "Cấp phát" sẽ bị vô hiệu hóa. Bạn không thể giao thiết bị này cho User, nhưng <strong>VẪN CÓ THỂ</strong> nâng cấp/gán tài sản con (ví dụ: cắm thêm RAM) vào nó.</li>
+                  <li><strong>Lưu trữ:</strong> Trạng thái khai tử. Không thể cấp phát, và <strong>CẤM</strong> gán thêm tài sản con/bản quyền vào thiết bị này.</li>
+                </ul>
+              </div>
+            )}
+
             <div className="space-y-3">
               {[
                 { key: 'deployable', label: 'Sẵn sàng cấp phát', color: 'bg-green-500', hint: 'Có thể cấp phát cho nhân sự' },
