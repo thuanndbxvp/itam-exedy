@@ -9,7 +9,7 @@ import {
   Activity, ChevronDown, ChevronRight,
   Wrench, BarChart3, DollarSign, LogOut, Shield, Building2, MapPin,
   TrendingDown, Tag, Users, Building, UserCog, LayoutGrid, Server,
-  Factory, Box, Truck
+  Factory, Box, Truck, Sliders, Palette, Mail
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
@@ -131,10 +131,10 @@ const NAVIGATION_GROUPS: NavGroup[] = [
     icon: Server,
     allowedRoles: ['ADMIN'],
     items: [
-      { name: 'Tổng quan', href: '/settings/general', icon: Server, allowedRoles: ['ADMIN'], permissionKey: 'settings.read' },
-      { name: 'Thương hiệu', href: '/settings/branding', icon: Server, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Tổng quan', href: '/settings/general', icon: Sliders, allowedRoles: ['ADMIN'], permissionKey: 'settings.read' },
+      { name: 'Thương hiệu', href: '/settings/branding', icon: Palette, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
       { name: 'Bảo mật', href: '/settings/security', icon: Shield, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
-      { name: 'Email', href: '/settings/email', icon: Server, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Email', href: '/settings/email', icon: Mail, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
       { name: 'Nhật ký Audit', href: '/settings/audit-log', icon: Activity, allowedRoles: ['ADMIN'], permissionKey: 'settings.read' },
     ],
   },
