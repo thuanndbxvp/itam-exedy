@@ -60,6 +60,7 @@ type NavItem = {
   allowedRoles: ('ADMIN' | 'IT_STAFF' | 'IT_MANAGER' | 'EMPLOYEE')[]
   permissionKey?: string
   children?: { label: string; href: string; icon: IconKey; permissionKey?: string }[]
+  exact?: boolean
 }
 
 type NavGroup = {
@@ -102,8 +103,8 @@ const NAVIGATION_GROUPS: NavGroup[] = [
     items: [
       { name: 'Helpdesk', href: '/helpdesk', icon: LifeBuoy, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'helpdesk.view' },
       { name: 'Quản trị Helpdesk', href: '/admin/helpdesk', icon: Settings, allowedRoles: ['ADMIN'], permissionKey: 'helpdesk.manage_rules' },
-      { name: 'Báo cáo', href: '/reports', icon: BarChart3, allowedRoles: ['ADMIN', 'IT_MANAGER'], permissionKey: 'reports.view' },
-      { name: 'Chi phí IT', href: '/reports/costs', icon: DollarSign, allowedRoles: ['ADMIN', 'IT_MANAGER'], permissionKey: 'reports.view' },
+      { name: 'Báo cáo', href: '/reports', icon: BarChart3, allowedRoles: ['ADMIN', 'IT_MANAGER'], permissionKey: 'reports.view', exact: true },
+      { name: 'Chi phí IT', href: '/reports/costs', icon: DollarSign, allowedRoles: ['ADMIN', 'IT_MANAGER'], permissionKey: 'reports.view', exact: true },
     ],
   },
   {
@@ -136,15 +137,14 @@ export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({})
   
-  // Collapse sidebar categories by default, except the active one
+  // Collapse sidebar categories by default, except the active one and "Quản lý tài sản"
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     if (typeof window === 'undefined') return {}
-    const init: Record<string, boolean> = {}
+    const init: Record<string, boolean> = { 'Quản lý tài sản': true }
     NAVIGATION_GROUPS.forEach(g => {
       if (g.items.some(
         (item) =>
-          pathname === item.href ||
-          (item.href !== '/' && pathname.startsWith(item.href)) ||
+          (item.exact ? pathname === item.href : (pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href + '/')))) ||
           (item.children?.some((c) => pathname === c.href || pathname.startsWith(c.href + '/')))
       )) {
         init[g.label] = true
@@ -200,16 +200,14 @@ export default function Sidebar() {
   function isGroupActive(group: NavGroup) {
     return group.items.some(
       (item) =>
-        pathname === item.href ||
-        (item.href !== '/' && pathname.startsWith(item.href)) ||
+        (item.exact ? pathname === item.href : (pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href + '/')))) ||
         (item.children?.some((c) => pathname === c.href || pathname.startsWith(c.href + '/')))
     )
   }
 
   function isItemActive(item: NavItem) {
     return (
-      pathname === item.href ||
-      (item.href !== '/' && pathname.startsWith(item.href)) ||
+      (item.exact ? pathname === item.href : (pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href + '/')))) ||
       (item.children?.some((c) => pathname === c.href || pathname.startsWith(c.href + '/')))
     )
   }
