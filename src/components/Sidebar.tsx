@@ -9,7 +9,7 @@ import {
   Activity, ChevronDown, ChevronRight,
   Wrench, BarChart3, DollarSign, LogOut, Shield, Building2, MapPin,
   TrendingDown, Tag, Users, Building, UserCog, LayoutGrid, Server,
-  Factory, Box, Truck, Sliders, Palette, Mail
+  Factory, Box, Truck, Sliders, Palette, Mail, FolderOpen, Package
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
@@ -86,10 +86,10 @@ const NAVIGATION_GROUPS: NavGroup[] = [
       { name: 'Thiết bị', href: '/assets', icon: Monitor, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'assets.read' },
       { name: 'Bản quyền', href: '/licenses', icon: Key, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'licenses.read' },
       { name: 'Bảo trì', href: '/maintenances', icon: Wrench, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER'], permissionKey: 'assets.read' },
-      { name: 'Loại tài sản', href: '/settings/categories', icon: LayoutGrid, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Loại tài sản', href: '/settings/categories', icon: FolderOpen, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
       { name: 'Model thiết bị', href: '/settings/asset-models', icon: Box, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
       { name: 'Nhà sản xuất', href: '/settings/manufacturers', icon: Factory, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
-      { name: 'Nhà cung cấp', href: '/settings/suppliers', icon: Truck, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Nhà cung cấp', href: '/settings/suppliers', icon: Package, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
       { name: 'Vị trí', href: '/settings/locations', icon: MapPin, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
       { name: 'Khấu hao', href: '/settings/depreciation', icon: TrendingDown, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
       { name: 'Trạng thái', href: '/settings/statuses', icon: Tag, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
@@ -102,24 +102,8 @@ const NAVIGATION_GROUPS: NavGroup[] = [
     items: [
       { name: 'Helpdesk', href: '/helpdesk', icon: LifeBuoy, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'helpdesk.view' },
       { name: 'Quản trị Helpdesk', href: '/admin/helpdesk', icon: Settings, allowedRoles: ['ADMIN'], permissionKey: 'helpdesk.manage_rules' },
-    ],
-  },
-  {
-    label: 'Báo cáo',
-    icon: BarChart3,
-    allowedRoles: ['ADMIN', 'IT_MANAGER'],
-    items: [
-      {
-        name: 'Báo cáo hệ thống',
-        href: '/reports',
-        icon: BarChart3,
-        allowedRoles: ['ADMIN', 'IT_MANAGER'],
-        permissionKey: 'reports.view',
-        children: [
-          { label: 'Tổng quan', href: '/reports', icon: BarChart3, permissionKey: 'reports.view' },
-          { label: 'Chi phí IT', href: '/reports/costs', icon: DollarSign, permissionKey: 'reports.view' },
-        ],
-      },
+      { name: 'Báo cáo', href: '/reports', icon: BarChart3, allowedRoles: ['ADMIN', 'IT_MANAGER'], permissionKey: 'reports.view' },
+      { name: 'Chi phí IT', href: '/reports/costs', icon: DollarSign, allowedRoles: ['ADMIN', 'IT_MANAGER'], permissionKey: 'reports.view' },
     ],
   },
   {
