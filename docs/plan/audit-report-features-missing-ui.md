@@ -2151,4 +2151,23 @@ Convert hard `prisma.user.delete()` (sẽ fail P2003 vì 6 FK `onDelete: Restric
 
 ---
 
+## SPRINT C.3: SIDEBAR USER PROFILE + LOGOUT — ✅ DONE
+
+**Commit:** `bb68eaa`. **Status:** Done (2026-07-28). **Effort:** ~1h.
+
+### Phạm vi đã giao
+Thêm user info section và logout button vào Sidebar header.
+
+### Files
+- `src/components/Sidebar.tsx` — Added user info strip (avatar initials + name + role badge) between branding header and nav, with logout button (`LogOut` icon + `signOut({ callbackUrl: '/login' })`). `ROLE_LABELS` + `ROLE_BADGE_COLORS` maps for badge. `getInitials()` helper. `LogOut` imported from lucide-react.
+
+### Notes
+- Avatar dùng initials (session không expose `avatar` field trong NextAuth JWT).
+- Role badge colored: Admin=red, IT_MANAGER=purple, IT_STAFF=blue, EMPLOYEE=slate.
+- Logout button bên phải user info strip, dùng `signOut` từ `next-auth/react`.
+- Errors: pre-existing `set-state-in-effect` warnings on lines 183/219 (từ cache logic gốc, không phải do thay đổi này).
+- **Bonus:** Bulk delete feature từ prior session được commit cùng (AssetsPageClient + AssetDetailClient).
+
+---
+
 **HẾT Sprint D spec**
