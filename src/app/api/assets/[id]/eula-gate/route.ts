@@ -27,7 +27,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     }
 
     // R.1: Verify user has assets.read permission
-    const perms = await resolvePermissions(session.user.id)
+    const perms = await resolvePermissions(session.user as any)
     if (!perms.includes('assets.read')) {
       throw new ForbiddenError('Bạn không có quyền xem tài sản.')
     }
