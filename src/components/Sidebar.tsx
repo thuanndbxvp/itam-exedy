@@ -5,24 +5,20 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import {
-  LayoutDashboard, Monitor, Key, Settings, Menu, X, LifeBuoy, Inbox,
-  Briefcase, LayoutGrid, Server, Activity, ChevronDown, ChevronRight, KeyRound, Wrench, BarChart3, DollarSign, LogOut
+  LayoutDashboard, Monitor, Key, Settings, Menu, X, LifeBuoy,
+  Activity, ChevronDown, ChevronRight,
+  Wrench, BarChart3, DollarSign, LogOut, Shield, Building2, MapPin,
+  TrendingDown, Tag, Users, Building, UserCog
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
-import RoleGate from './RoleGate'
 
+/* ─── Role badge helpers ─── */
 const ROLE_LABELS: Record<string, string> = {
-  ADMIN: 'Admin',
-  IT_MANAGER: 'IT Manager',
-  IT_STAFF: 'IT Staff',
-  EMPLOYEE: 'Employee',
+  ADMIN: 'Admin', IT_MANAGER: 'IT Manager', IT_STAFF: 'IT Staff', EMPLOYEE: 'Employee',
 }
-
 const ROLE_BADGE_COLORS: Record<string, string> = {
-  ADMIN: 'bg-red-500/20 text-red-300',
-  IT_MANAGER: 'bg-purple-500/20 text-purple-300',
-  IT_STAFF: 'bg-blue-500/20 text-blue-300',
-  EMPLOYEE: 'bg-slate-500/20 text-slate-300',
+  ADMIN: 'bg-red-500/20 text-red-300', IT_MANAGER: 'bg-purple-500/20 text-purple-300',
+  IT_STAFF: 'bg-blue-500/20 text-blue-300', EMPLOYEE: 'bg-slate-500/20 text-slate-300',
 }
 
 function getInitials(user?: { firstName?: string | null; lastName?: string | null }): string {
@@ -31,19 +27,10 @@ function getInitials(user?: { firstName?: string | null; lastName?: string | nul
   return name.split(/\s+/).slice(0, 2).map((w) => (w[0] ?? '').toUpperCase()).join('')
 }
 
-/**
- * Cache key cho permission set lưu trong sessionStorage.
- * Kèm timestamp (TTL 5 phút) để tránh stale cache khi user vừa được grant quyền mới.
- */
+/* ─── Permission cache ─── */
 const PERM_CACHE_KEY = 'sidebar.perms.v1'
-const PERM_CACHE_TTL_MS = 5 * 60 * 1000 // 5 phút
-
-interface PermCache {
-  userId: string
-  permissions: string[]
-  /** Epoch ms khi cache được tạo. */
-  fetchedAt: number
-}
+const PERM_CACHE_TTL_MS = 5 * 60 * 1000
+interface PermCache { userId: string; permissions: string[]; fetchedAt: number }
 
 function readPermCache(userId: string | undefined): string[] | null {
   if (typeof window === 'undefined' || !userId) return null
@@ -54,21 +41,15 @@ function readPermCache(userId: string | undefined): string[] | null {
     if (parsed.userId !== userId) return null
     if (Date.now() - parsed.fetchedAt > PERM_CACHE_TTL_MS) return null
     return parsed.permissions
-  } catch {
-    return null
-  }
+  } catch { return null }
 }
-
 function writePermCache(userId: string, permissions: string[]) {
   if (typeof window === 'undefined') return
-  try {
-    const payload: PermCache = { userId, permissions, fetchedAt: Date.now() }
-    window.sessionStorage.setItem(PERM_CACHE_KEY, JSON.stringify(payload))
-  } catch {
-    // ignore quota / privacy mode
-  }
+  try { window.sessionStorage.setItem(PERM_CACHE_KEY, JSON.stringify({ userId, permissions, fetchedAt: Date.now() })) }
+  catch { /* ignore */ }
 }
 
+/* ─── Navigation structure ─── */
 type IconKey = React.ElementType
 
 type NavItem = {
@@ -76,91 +57,85 @@ type NavItem = {
   href: string
   icon: IconKey
   allowedRoles: ('ADMIN' | 'IT_STAFF' | 'IT_MANAGER' | 'EMPLOYEE')[]
-  /** Nếu set, nav item chỉ hiển thị khi user CÓ ÍT NHẤT 1 permission trong list */
   permissionKey?: string
   children?: { label: string; href: string; icon: IconKey; permissionKey?: string }[]
 }
 
-const SETTINGS_GROUPS = [
-  {
-    title: 'Tổ chức & Nhân sự',
-    icon: Briefcase,
-    children: [
-      { label: 'Công ty', href: '/settings/companies', icon: Briefcase, permissionKey: 'settings.update' },
-      { label: 'Phòng ban', href: '/settings/departments', icon: Briefcase, permissionKey: 'settings.update' },
-      { label: 'Người dùng', href: '/settings/users', icon: Briefcase, permissionKey: 'users.read' },
-    ],
-  },
-  {
-    title: 'Danh mục Tài sản',
-    icon: LayoutGrid,
-    children: [
-      { label: 'Trạng thái', href: '/settings/statuses', icon: LayoutGrid, permissionKey: 'settings.update' },
-      { label: 'Danh mục', href: '/settings/categories', icon: LayoutGrid, permissionKey: 'settings.update' },
-      { label: 'Model thiết bị', href: '/settings/asset-models', icon: LayoutGrid, permissionKey: 'settings.update' },
-      { label: 'Nhà sản xuất', href: '/settings/manufacturers', icon: LayoutGrid, permissionKey: 'settings.update' },
-      { label: 'Nhà cung cấp', href: '/settings/suppliers', icon: LayoutGrid, permissionKey: 'settings.update' },
-      { label: 'Vị trí', href: '/settings/locations', icon: LayoutGrid, permissionKey: 'settings.update' },
-      { label: 'Khấu hao', href: '/settings/depreciation', icon: LayoutGrid, permissionKey: 'settings.update' },
-    ],
-  },
-  {
-    title: 'Hệ thống',
-    icon: Server,
-    children: [
-      { label: 'Tổng quan', href: '/settings/general', icon: Server, permissionKey: 'settings.read' },
-      { label: 'Thương hiệu', href: '/settings/branding', icon: Server, permissionKey: 'settings.update' },
-      { label: 'Bảo mật', href: '/settings/security', icon: Server, permissionKey: 'settings.update' },
-      { label: 'Email', href: '/settings/email', icon: Server, permissionKey: 'settings.update' },
-      { label: 'Phân quyền', href: '/settings/permissions', icon: KeyRound, permissionKey: 'users.manage_roles' },
-      { label: 'Quản trị Helpdesk', href: '/admin/helpdesk', icon: Settings, permissionKey: 'helpdesk.manage_rules' },
-    ],
-  },
-  {
-    title: 'Hoạt động',
-    icon: Activity,
-    children: [
-      { label: 'Nhật ký', href: '/settings/audit-log', icon: Activity, permissionKey: 'settings.read' },
-    ],
-  },
-] as const
+type NavGroup = {
+  label: string          // header text
+  icon: IconKey          // header icon
+  allowedRoles: ('ADMIN' | 'IT_STAFF' | 'IT_MANAGER' | 'EMPLOYEE')[]
+  items: NavItem[]
+}
 
-const navigation: NavItem[] = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'] },
-  { name: 'Tài sản (Assets)', href: '/assets', icon: Monitor, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'assets.read' },
-  { name: 'Bản quyền (Licenses)', href: '/licenses', icon: Key, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'licenses.read' },
+const NAVIGATION_GROUPS: NavGroup[] = [
   {
-    name: 'Bảo trì (Maintenances)',
-    href: '/maintenances',
-    icon: Wrench,
-    allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER'],
-    permissionKey: 'assets.read',
+    label: 'Tổng quan',
+    icon: LayoutDashboard,
+    allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'],
+    items: [
+      { name: 'Dashboard', href: '/', icon: LayoutDashboard, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'] },
+    ],
   },
   {
-    name: 'Helpdesk',
-    href: '/helpdesk',
+    label: 'Quản lý Tài sản',
+    icon: Monitor,
+    allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'],
+    items: [
+      { name: 'Thiết bị', href: '/assets', icon: Monitor, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'assets.read' },
+      { name: 'Bản quyền', href: '/licenses', icon: Key, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'licenses.read' },
+      { name: 'Bảo trì', href: '/maintenances', icon: Wrench, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER'], permissionKey: 'assets.read' },
+      { name: 'Loại tài sản', href: '/settings/categories', icon: LayoutGrid, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Model thiết bị', href: '/settings/asset-models', icon: LayoutGrid, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Nhà sản xuất', href: '/settings/manufacturers', icon: LayoutGrid, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Nhà cung cấp', href: '/settings/suppliers', icon: LayoutGrid, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Vị trí', href: '/settings/locations', icon: MapPin, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Khấu hao', href: '/settings/depreciation', icon: TrendingDown, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Trạng thái', href: '/settings/statuses', icon: Tag, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+    ],
+  },
+  {
+    label: 'Vận hành & Hỗ trợ',
     icon: LifeBuoy,
     allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'],
-    permissionKey: 'helpdesk.view',
-  },
-  {
-    name: 'Báo cáo (Reports)',
-    href: '/reports',
-    icon: BarChart3,
-    allowedRoles: ['ADMIN', 'IT_MANAGER'],
-    permissionKey: 'reports.view',
-    children: [
-      { label: 'Tổng quan', href: '/reports', icon: BarChart3, permissionKey: 'reports.view' },
-      { label: 'Chi phí IT', href: '/reports/costs', icon: DollarSign, permissionKey: 'reports.view' },
+    items: [
+      { name: 'Helpdesk', href: '/helpdesk', icon: LifeBuoy, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'helpdesk.view' },
+      { name: 'Quản trị Helpdesk', href: '/admin/helpdesk', icon: Settings, allowedRoles: ['ADMIN'], permissionKey: 'helpdesk.manage_rules' },
+      {
+        name: 'Báo cáo',
+        href: '/reports',
+        icon: BarChart3,
+        allowedRoles: ['ADMIN', 'IT_MANAGER'],
+        permissionKey: 'reports.view',
+        children: [
+          { label: 'Tổng quan', href: '/reports', icon: BarChart3, permissionKey: 'reports.view' },
+          { label: 'Chi phí IT', href: '/reports/costs', icon: DollarSign, permissionKey: 'reports.view' },
+        ],
+      },
     ],
   },
   {
-    name: 'Cài đặt (Settings)',
-    href: '/settings',
-    icon: Settings,
+    label: 'Nhân sự & Tổ chức',
+    icon: Users,
     allowedRoles: ['ADMIN'],
-    permissionKey: 'settings.read',
-    children: SETTINGS_GROUPS.flatMap((g) => g.children.map((c) => ({ ...c, icon: g.icon }))),
+    items: [
+      { name: 'Người dùng', href: '/settings/users', icon: Users, allowedRoles: ['ADMIN'], permissionKey: 'users.read' },
+      { name: 'Phòng ban', href: '/settings/departments', icon: Building2, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Công ty', href: '/settings/companies', icon: Building, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Phân quyền', href: '/settings/permissions', icon: UserCog, allowedRoles: ['ADMIN'], permissionKey: 'users.manage_roles' },
+    ],
+  },
+  {
+    label: 'Hệ thống',
+    icon: Server,
+    allowedRoles: ['ADMIN'],
+    items: [
+      { name: 'Tổng quan', href: '/settings/general', icon: Server, allowedRoles: ['ADMIN'], permissionKey: 'settings.read' },
+      { name: 'Thương hiệu', href: '/settings/branding', icon: Server, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Bảo mật', href: '/settings/security', icon: Shield, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Email', href: '/settings/email', icon: Server, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Nhật ký Audit', href: '/settings/audit-log', icon: Activity, allowedRoles: ['ADMIN'], permissionKey: 'settings.read' },
+    ],
   },
 ]
 
@@ -170,27 +145,21 @@ export default function Sidebar() {
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({})
   const [perms, setPerms] = useState<Set<string>>(new Set())
   const [loaded, setLoaded] = useState(false)
-
   const { data: session } = useSession()
-  const isIt = session?.user?.role === 'IT_STAFF' || session?.user?.role === 'IT_MANAGER' || session?.user?.role === 'ADMIN'
 
   useEffect(() => {
     const userId = session?.user?.id
-
-    // Đọc cache trước — tránh flash + giảm API call khi re-mount.
     const cached = readPermCache(userId)
     if (cached) {
-      setPerms(new Set(cached))
-      setLoaded(true)
+      queueMicrotask(() => {
+        setPerms(new Set(cached))
+        setLoaded(true)
+      })
       return
     }
-
     fetch('/api/me/permissions')
       .then(async (r) => {
-        if (r.status === 401) {
-          window.location.href = '/login'
-          return
-        }
+        if (r.status === 401) { window.location.href = '/login'; return }
         if (!r.ok) return
         const text = await r.text()
         if (!text) return
@@ -198,60 +167,71 @@ export default function Sidebar() {
           const d = JSON.parse(text)
           if (d.ok && d.data) {
             const list: string[] = d.data.permissions
-            setPerms(new Set(list))
+            queueMicrotask(() => {
+              setPerms(new Set(list))
+              setLoaded(true)
+            })
             if (userId) writePermCache(userId, list)
           }
-        } catch (e) {
-          console.error('Sidebar permissions parse error:', e)
-        }
+        } catch (e) { console.error('Sidebar permissions parse error:', e) }
       })
       .catch(console.error)
-      .finally(() => setLoaded(true))
   }, [session?.user?.id])
 
-  useEffect(() => {
-    const initialOpenMenus: Record<string, boolean> = {}
-    navigation.forEach((item) => {
-      if (item.children && pathname.startsWith(item.href)) {
-        initialOpenMenus[item.name] = true
-      }
-    })
-    setOpenMenus(initialOpenMenus)
-  }, [pathname])
+  // Auto-close mobile sidebar on navigation
+  function handleNavClick() { setIsOpen(false) }
 
   function has(key?: string) {
     if (!key) return true
-    if (!loaded) return true // optimistic: hiển thị trước, API sẽ lọc sau khi load
+    if (!loaded) return true
     return perms.has(key)
   }
 
-  const toggleMenu = (name: string, e: React.MouseEvent) => {
+  function isGroupActive(group: NavGroup) {
+    return group.items.some(
+      (item) =>
+        pathname === item.href ||
+        (item.href !== '/' && pathname.startsWith(item.href)) ||
+        (item.children?.some((c) => pathname === c.href || pathname.startsWith(c.href + '/')))
+    )
+  }
+
+  function isItemActive(item: NavItem) {
+    return (
+      pathname === item.href ||
+      (item.href !== '/' && pathname.startsWith(item.href)) ||
+      (item.children?.some((c) => pathname === c.href || pathname.startsWith(c.href + '/')))
+    )
+  }
+
+  function isChildActive(child: { href: string }) {
+    return pathname === child.href || pathname.startsWith(child.href + '/')
+  }
+
+  function toggleMenu(name: string, e: React.MouseEvent) {
     e.preventDefault()
+    e.stopPropagation()
     setOpenMenus((prev) => ({ ...prev, [name]: !prev[name] }))
   }
 
   return (
     <>
+      {/* Mobile toggle */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="p-2 bg-white rounded-md shadow-sm border border-gray-200 text-gray-600"
-        >
+        <button onClick={() => setIsOpen(!isOpen)} className="p-2 bg-white rounded-md shadow-sm border border-gray-200 text-gray-600">
           {isOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
-
       {isOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/20 z-40"
-          onClick={() => setIsOpen(false)}
-        />
+        <div className="lg:hidden fixed inset-0 bg-black/20 z-40" onClick={() => setIsOpen(false)} />
       )}
 
+      {/* Sidebar panel */}
       <div className={`
         fixed lg:static inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out flex flex-col
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
+
         {/* Branding */}
         <div className="h-16 flex items-center px-6 font-bold text-xl tracking-tight border-b border-slate-800 shrink-0">
           <div className="w-8 h-8 bg-blue-500 rounded-lg mr-3 flex items-center justify-center">
@@ -260,11 +240,10 @@ export default function Sidebar() {
           IT Manager
         </div>
 
-        {/* User info + logout */}
+        {/* User info */}
         {session?.user && (
           <div className="px-4 py-3 border-b border-slate-800 shrink-0">
             <div className="flex items-center gap-3">
-              {/* Avatar */}
               <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold shrink-0">
                 <span>{getInitials(session.user)}</span>
               </div>
@@ -287,126 +266,82 @@ export default function Sidebar() {
           </div>
         )}
 
-        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar">
-          {navigation.filter((item) => has(item.permissionKey)).map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/' && pathname === item.href)
-            const hasChildren = !!item.children
-            const isMenuOpen = openMenus[item.name]
-            const isOnSettingsBranch = hasChildren && pathname.startsWith(item.href) && item.href !== '/'
+        {/* Nav */}
+        <nav className="flex-1 px-4 py-4 overflow-y-auto custom-scrollbar space-y-4">
+          {NAVIGATION_GROUPS.map((group) => {
+            const visibleItems = group.items.filter((item) => has(item.permissionKey))
+            if (visibleItems.length === 0) return null
+            const groupActive = isGroupActive(group)
 
-            if (hasChildren) {
-              return (
-                <RoleGate key={item.name} allowedRoles={item.allowedRoles}>
-                  <div>
-                    <Link
-                      href={item.href}
-                      className={`
-                        flex items-center px-3 py-2.5 rounded-lg transition-colors group justify-between
-                        ${isOnSettingsBranch
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                        }
-                      `}
-                    >
-                      <div className="flex items-center">
-                        <item.icon
-                          className={`mr-3 h-5 w-5 ${isOnSettingsBranch ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`}
-                        />
-                        <span className="font-medium text-[15px]">{item.name}</span>
-                      </div>
-                      <button
-                        onClick={(e) => toggleMenu(item.name, e)}
-                        className="p-1 rounded-md hover:bg-black/20 transition-colors"
-                        aria-label="Mở rộng menu"
-                      >
-                        {isMenuOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                      </button>
-                    </Link>
+            return (
+              <div key={group.label}>
+                {/* Group header */}
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider mb-1 ${
+                  groupActive ? 'text-blue-400' : 'text-slate-400'
+                }`}>
+                  <group.icon size={13} />
+                  <span>{group.label}</span>
+                </div>
 
-                    {isMenuOpen && (
-                      <div className="mt-2 space-y-3 pl-3 pr-1">
-                        {item.name === 'Cài đặt (Settings)' ? (
-                          SETTINGS_GROUPS.map((group) => {
-                            const visibleChildren = group.children.filter((c) => has(c.permissionKey))
-                            if (visibleChildren.length === 0) return null
-                            return (
-                              <div key={group.title}>
-                                <div className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                                  <group.icon size={13} />
-                                  <span>{group.title}</span>
-                                </div>
-                                <div className="mt-1 space-y-0.5">
-                                  {visibleChildren.map((child) => {
-                                    const isChildActive = pathname === child.href || pathname.startsWith(child.href + '/')
-                                    return (
-                                      <Link
-                                        key={child.href}
-                                        href={child.href}
-                                        className={`
-                                          flex items-center px-3 py-2 rounded-md transition-colors text-sm
-                                          ${isChildActive
-                                            ? 'bg-slate-800 text-white font-medium'
-                                            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                                          }
-                                        `}
-                                      >
-                                        <span className="w-1 h-1 rounded-full bg-current mr-2 opacity-60" />
-                                        {child.label}
-                                      </Link>
-                                    )
-                                  })}
-                                </div>
-                              </div>
-                            )
-                          })
-                        ) : (
-                          <div className="mt-1 space-y-0.5">
-                            {(item.children || []).filter((c) => has(c.permissionKey)).map((child) => {
-                              const isChildActive = pathname === child.href || (child.href !== '/' && pathname.startsWith(child.href))
-                              return (
-                                <Link
-                                  key={child.href}
-                                  href={child.href}
-                                  className={`
-                                    flex items-center px-3 py-2 rounded-md transition-colors text-sm
-                                    ${isChildActive
-                                      ? 'bg-slate-800 text-white font-medium'
-                                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                                    }
-                                  `}
-                                >
-                                  <child.icon size={14} className="mr-2" />
-                                  {child.label === 'Ticket của tôi' && isIt ? 'Tất cả Ticket' : child.label}
-                                </Link>
-                              )
-                            })}
+                {/* Items */}
+                <div className="space-y-0.5">
+                  {visibleItems.map((item) => {
+                    const Icon = item.icon
+                    const itemActive = isItemActive(item)
+                    const hasChildren = !!item.children
+                    const menuOpen = openMenus[item.name]
+
+                    return (
+                      <div key={item.href}>
+                        <div className="flex items-center">
+                          <Link
+                            href={item.href}
+                            onClick={handleNavClick}
+                            className={`flex-1 flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${
+                              itemActive
+                                ? 'bg-blue-600 text-white shadow-sm'
+                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                            }`}
+                          >
+                            <Icon className={`mr-2.5 h-4 w-4 shrink-0 ${itemActive ? 'text-white' : 'text-slate-400'}`} />
+                            <span className="font-medium text-[14px]">{item.name}</span>
+                          </Link>
+                          {hasChildren && (
+                            <button
+                              onClick={(e) => toggleMenu(item.name, e)}
+                              className="p-1 mr-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition"
+                              aria-label="Mở rộng menu"
+                            >
+                              {menuOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Children submenu */}
+                        {hasChildren && menuOpen && (
+                          <div className="mt-1 ml-4 space-y-0.5">
+                            {item.children!.map((child) => (
+                              <Link
+                                key={child.href}
+                                href={child.href}
+                                onClick={handleNavClick}
+                                className={`flex items-center px-3 py-1.5 rounded-md text-sm transition-colors ${
+                                  isChildActive(child)
+                                    ? 'bg-slate-800 text-white font-medium'
+                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                }`}
+                              >
+                                <span className="w-1 h-1 rounded-full bg-current mr-2 opacity-60" />
+                                {child.label}
+                              </Link>
+                            ))}
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                </RoleGate>
-              )
-            }
-
-            return (
-              <RoleGate key={item.name} allowedRoles={item.allowedRoles}>
-                <Link
-                  href={item.href}
-                  className={`
-                    flex items-center px-3 py-2.5 rounded-lg transition-colors group
-                    ${isActive
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                    }
-                  `}
-                >
-                  <item.icon
-                    className={`mr-3 h-5 w-5 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`}
-                  />
-                  <span className="font-medium text-[15px]">{item.name}</span>
-                </Link>
-              </RoleGate>
+                    )
+                  })}
+                </div>
+              </div>
             )
           })}
         </nav>

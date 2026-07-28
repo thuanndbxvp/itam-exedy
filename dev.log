@@ -14,3 +14,4 @@
  GET /login?callbackUrl=%2F 200 in 525ms (next.js: 474ms, application-code: 51ms)
  GET /reports/costs 307 in 76ms (next.js: 5ms, application-code: 71ms)
  GET /login?callbackUrl=%2F 200 in 50ms (next.js: 5ms, application-code: 45ms)
+✓ Compiled in 188ms
