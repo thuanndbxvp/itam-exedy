@@ -1,9 +1,11 @@
-# WORKFLOW-STATUS: Sprint C.3 - Sidebar & Profile Redesign
+# WORKFLOW-STATUS: Sprint-C.3-sidebar-profile-ui
 
-**Người lập:** Tier 1 (Planner)
+**Tier 2**
 
-## Trạng thái hiện tại
-`[ ] Not Started`
+## Trạng thái: `[x] DONE` — 2026-07-28
 
-## Lịch sử cập nhật
-- **[2026-07-28]**: Phân tích lại thiết kế UI/UX Sidebar và Profile. Lập xong tài liệu yêu cầu (MSEW) quy hoạch lại 5 Menu Headers và Navbar Tabs cho User Panel. Chờ Tier 2 thực thi.
+## Effort
+- Sidebar header user info: ~30min
+- Logout button: ~15min
+- tsc + lint: ~15min
+- Total: ~1h

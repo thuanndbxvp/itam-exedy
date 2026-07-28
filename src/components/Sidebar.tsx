@@ -6,9 +6,30 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import {
   LayoutDashboard, Monitor, Key, Settings, Menu, X, LifeBuoy, Inbox,
-  Briefcase, LayoutGrid, Server, Activity, ChevronDown, ChevronRight, KeyRound, Wrench, BarChart3, DollarSign
+  Briefcase, LayoutGrid, Server, Activity, ChevronDown, ChevronRight, KeyRound, Wrench, BarChart3, DollarSign, LogOut
 } from 'lucide-react'
+import { signOut } from 'next-auth/react'
 import RoleGate from './RoleGate'
+
+const ROLE_LABELS: Record<string, string> = {
+  ADMIN: 'Admin',
+  IT_MANAGER: 'IT Manager',
+  IT_STAFF: 'IT Staff',
+  EMPLOYEE: 'Employee',
+}
+
+const ROLE_BADGE_COLORS: Record<string, string> = {
+  ADMIN: 'bg-red-500/20 text-red-300',
+  IT_MANAGER: 'bg-purple-500/20 text-purple-300',
+  IT_STAFF: 'bg-blue-500/20 text-blue-300',
+  EMPLOYEE: 'bg-slate-500/20 text-slate-300',
+}
+
+function getInitials(user?: { firstName?: string | null; lastName?: string | null }): string {
+  const name = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim()
+  if (!name) return 'U'
+  return name.split(/\s+/).slice(0, 2).map((w) => (w[0] ?? '').toUpperCase()).join('')
+}
 
 /**
  * Cache key cho permission set lưu trong sessionStorage.
@@ -231,14 +252,42 @@ export default function Sidebar() {
         fixed lg:static inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out flex flex-col
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div className="h-16 flex items-center px-6 font-bold text-xl tracking-tight border-b border-slate-800">
+        {/* Branding */}
+        <div className="h-16 flex items-center px-6 font-bold text-xl tracking-tight border-b border-slate-800 shrink-0">
           <div className="w-8 h-8 bg-blue-500 rounded-lg mr-3 flex items-center justify-center">
             <Monitor size={18} className="text-white" />
           </div>
           IT Manager
         </div>
-        
-        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
+
+        {/* User info + logout */}
+        {session?.user && (
+          <div className="px-4 py-3 border-b border-slate-800 shrink-0">
+            <div className="flex items-center gap-3">
+              {/* Avatar */}
+              <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold shrink-0">
+                <span>{getInitials(session.user)}</span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-white truncate">
+                  {[session.user.firstName, session.user.lastName].filter(Boolean).join(' ') || session.user.email || 'User'}
+                </p>
+                <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${ROLE_BADGE_COLORS[session.user.role] ?? 'bg-slate-500/20 text-slate-300'}`}>
+                  {ROLE_LABELS[session.user.role] ?? session.user.role}
+                </span>
+              </div>
+              <button
+                onClick={() => signOut({ callbackUrl: '/login' })}
+                title="Đăng xuất"
+                className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition shrink-0"
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar">
           {navigation.filter((item) => has(item.permissionKey)).map((item) => {
             const isActive = pathname === item.href || (item.href !== '/' && pathname === item.href)
             const hasChildren = !!item.children

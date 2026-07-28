@@ -8,6 +8,8 @@ import CheckoutAssetButton from '@/components/assets/CheckoutAssetButton'
 import CheckinAssetButton from '@/components/assets/CheckinAssetButton'
 import BulkActionBar from '@/components/assets/BulkActionBar'
 import CSVImportModal from '@/components/assets/CSVImportModal'
+import Modal from '@/components/ui/Modal'
+import { useRouter } from 'next/navigation'
 
 const getStatusColor = (s: { deployable: boolean; pending: boolean; archived: boolean } | null) => {
   if (!s) return 'bg-gray-100 text-gray-700 border-gray-200'
@@ -52,6 +54,26 @@ export default function AssetsPageClient({
 }: Props) {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [showImportModal, setShowImportModal] = useState(false)
+  const [deleteAssetId, setDeleteAssetId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const router = useRouter()
+
+  async function handleSingleDelete() {
+    if (!deleteAssetId) return
+    setIsDeleting(true)
+    try {
+      const res = await fetch(`/api/assets/${deleteAssetId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setDeleteAssetId(null)
+        setSelectedIds((prev) => prev.filter((id) => id !== deleteAssetId))
+        router.refresh()
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   function toggleSelection(id: string) {
     setSelectedIds((prev) =>
@@ -193,9 +215,9 @@ export default function AssetsPageClient({
                           </Link>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(asset.status)}`}>
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${isAssigned ? 'bg-blue-100 text-blue-700 border-blue-200' : getStatusColor(asset.status)}`}>
                             <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
-                            {asset.status?.name || 'Không rõ'}
+                            {isAssigned ? 'Đang sử dụng' : (asset.status?.name || 'Không rõ')}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-gray-600">
@@ -230,16 +252,13 @@ export default function AssetsPageClient({
                                   assets={transferableAssets}
                                 />
                               )}
+                              <Link href={`/assets/${asset.id}/edit`} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition inline-flex items-center justify-center" title="Sửa">
+                                <Edit2 className="w-4 h-4" />
+                              </Link>
+                              <button onClick={() => setDeleteAssetId(asset.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Xóa">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             </RoleGate>
-                            <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Sửa">
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Xóa">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                            <button className="p-1.5 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition">
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -281,6 +300,37 @@ export default function AssetsPageClient({
       {showImportModal && (
         <CSVImportModal onClose={() => setShowImportModal(false)} />
       )}
+
+      {/* Delete Confirm Modal */}
+      <Modal
+        open={!!deleteAssetId}
+        onClose={() => {
+          if (!isDeleting) setDeleteAssetId(null)
+        }}
+        title="Xác nhận xóa tài sản"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Bạn có chắc chắn muốn xóa tài sản này? Mọi thông tin liên quan sẽ bị chuyển vào thùng rác.
+          </p>
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              onClick={() => setDeleteAssetId(null)}
+              disabled={isDeleting}
+              className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm font-medium"
+            >
+              Hủy
+            </button>
+            <button
+              onClick={handleSingleDelete}
+              disabled={isDeleting}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium disabled:opacity-50"
+            >
+              {isDeleting ? 'Đang xóa...' : 'Xóa'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </>
   )
 }

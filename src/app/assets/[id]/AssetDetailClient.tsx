@@ -43,6 +43,7 @@ interface Asset {
   assignedUser: { id: string; firstName: string; lastName: string | null; email: string | null } | null
   assignedUserId: string | null
   assignedLocation: { id: string; name: string; address: string | null } | null
+  assignedLocationId: string | null
   assignedAsset: { id: string; assetTag: string; name: string } | null
   assignedAssetId: string | null
   rtdLocation: { id: string; name: string } | null
@@ -92,7 +93,8 @@ const formatCurrency = (amount: number | null) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
 }
 
-const getStatusBadge = (status: Asset['status']) => {
+const getStatusBadge = (status: Asset['status'], isAssigned: boolean = false) => {
+  if (isAssigned) return <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">Đang sử dụng</span>
   if (status.archived) return <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">Archived</span>
   if (status.pending) return <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Pending</span>
   if (!status.deployable) return <span className="px-2 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-700">Unavailable</span>
@@ -182,7 +184,7 @@ export default function AssetDetailClient({
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-gray-900">{asset.name}</h1>
-              {getStatusBadge(asset.status)}
+              {getStatusBadge(asset.status, !!(asset.assignedUserId || asset.assignedLocationId || asset.assignedAssetId))}
             </div>
             <p className="text-sm text-gray-500 mt-1">{asset.assetTag}</p>
           </div>
