@@ -2,11 +2,12 @@
  * GET /api/helpdesk/my-assets
  *
  * Trả về danh sách tài sản user hiện tại đang được giao
- * (Asset.assignedUserId === userId). Dùng cho dropdown "Tài sản của tôi"
- * trên form tạo ticket.
+ * (Asset.assignedUserId === userId) hoặc các thiết bị con đi kèm
+ * (assignedAsset.assignedUserId === userId).
  *
- * Cũng trả về LicenseSeat mà user đang sở hữu — để user báo lỗi license
- * (vd: "không vào được Photoshop với license công ty cấp").
+ * Sprint C.8: Hiển thị thiết bị đính kèm (Child Assets)
+ * - Thêm điều kiện lấy cả thiết bị con (chuột, phím...) đi kèm laptop
+ * - Giúp Employee thấy đủ tài sản trong Dashboard và Helpdesk
  *
  * Auth: bất kỳ role nào cũng xem được (chỉ asset của chính mình).
  */
@@ -18,11 +19,18 @@ export async function GET() {
   try {
     const user = await requireUser();
 
+    // Sprint C.8: Lấy cả asset trực tiếp và asset con (child assets)
     const [assets, licenseSeats] = await Promise.all([
       prisma.asset.findMany({
         where: {
-          assignedUserId: user.id,
           deletedAt: null,
+          OR: [
+            // Asset trực tiếp được gán cho user
+            { assignedUserId: user.id },
+            // C.8: Asset con (child) của asset được gán cho user
+            // Ví dụ: User được gán Laptop → thì thấy cả chuột/phím đi kèm
+            { assignedAsset: { assignedUserId: user.id } }
+          ]
         },
         orderBy: [{ assetTag: "asc" }],
         select: {

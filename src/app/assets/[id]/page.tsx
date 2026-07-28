@@ -58,6 +58,17 @@ export default async function AssetDetailPage({ params }: PageProps) {
           },
         },
       },
+      // C.8: Lấy danh sách thiết bị con (child assets)
+      assignedToAssets: {
+        where: { deletedAt: null },
+        select: {
+          id: true,
+          assetTag: true,
+          name: true,
+          category: { select: { name: true } },
+          status: { select: { name: true, color: true } },
+        }
+      },
     },
   })
 
@@ -137,9 +148,20 @@ export default async function AssetDetailPage({ params }: PageProps) {
     createdAt: s.createdAt.toISOString(),
   }))
 
+  // C.8: Serialize child assets
+  const serializedChildAssets = (asset.assignedToAssets ?? []).map((a) => ({
+    id: a.id,
+    assetTag: a.assetTag,
+    name: a.name,
+    categoryName: a.category?.name ?? null,
+    statusName: a.status?.name ?? null,
+    statusColor: a.status?.color ?? null,
+  }))
+
   const serialized = {
     ...asset,
     licenseSeats: serializedSeats,
+    assignedToAssets: serializedChildAssets,
     assignedUserId: asset.assignedUserId,
     assignedLocationId: asset.assignedLocationId,
     assignedAssetId: asset.assignedAssetId,
