@@ -42,7 +42,14 @@ async function getPageData(params: PageProps['searchParams']) {
 
   const where: Record<string, unknown> = { deletedAt: null }
   if (isEmployee && userId) {
-    where.assignedUserId = userId
+    where.AND = [
+      {
+        OR: [
+          { assignedUserId: userId },
+          { assignedAsset: { assignedUserId: userId } }
+        ]
+      }
+    ]
   }
 
   if (p.statusId) where.statusId = p.statusId
