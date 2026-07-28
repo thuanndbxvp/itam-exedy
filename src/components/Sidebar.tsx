@@ -102,8 +102,15 @@ const NAVIGATION_GROUPS: NavGroup[] = [
     items: [
       { name: 'Helpdesk', href: '/helpdesk', icon: LifeBuoy, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'helpdesk.view' },
       { name: 'Quản trị Helpdesk', href: '/admin/helpdesk', icon: Settings, allowedRoles: ['ADMIN'], permissionKey: 'helpdesk.manage_rules' },
+    ],
+  },
+  {
+    label: 'Báo cáo',
+    icon: BarChart3,
+    allowedRoles: ['ADMIN', 'IT_MANAGER'],
+    items: [
       {
-        name: 'Báo cáo',
+        name: 'Báo cáo hệ thống',
         href: '/reports',
         icon: BarChart3,
         allowedRoles: ['ADMIN', 'IT_MANAGER'],
