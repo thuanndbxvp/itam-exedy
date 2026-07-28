@@ -6,9 +6,10 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
 import {
   ArrowLeft, Save, Loader2, Network, Shield, User as UserIcon,
-  Briefcase, MapPin, Building2, Contact, ToggleLeft, ToggleRight,
+  Briefcase, MapPin, Building2, Contact, ToggleLeft, ToggleRight, Trash2,
 } from 'lucide-react'
 import type { User } from '@prisma/client'
+import ConfirmModal from '@/components/ui/ConfirmModal'
 
 interface DepartmentOpt {
   id: string
@@ -59,6 +60,8 @@ export default function EditUserForm({
   const router = useRouter()
   const { showCommandResult } = useToast()
   const [isPending, setIsPending] = useState(false)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [deletePending, setDeletePending] = useState(false)
   const [form, setForm] = useState({
     // Identity
     firstName: user.firstName ?? '',
@@ -111,6 +114,21 @@ export default function EditUserForm({
       if (data.ok) router.push('/settings/users')
     } finally {
       setIsPending(false)
+    }
+  }
+
+  async function handleDelete() {
+    setDeletePending(true)
+    try {
+      const res = await fetch(`/api/settings/users/${user.id}`, { method: 'DELETE' })
+      const data = await res.json()
+      setDeleteModalOpen(false)
+      showCommandResult(data)
+      if (data.ok) {
+        router.push('/settings/users')
+      }
+    } finally {
+      setDeletePending(false)
     }
   }
 
@@ -393,23 +411,44 @@ export default function EditUserForm({
         </fieldset>
 
         {/* ============== ACTIONS ============== */}
-        <div className="flex justify-end gap-4">
-          <Link href="/settings/users" className="px-6 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition shadow-sm">
-            Hủy
-          </Link>
+        <div className="flex justify-between items-center gap-4">
           <button
-            type="submit"
-            disabled={isPending}
-            className="flex items-center px-6 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition shadow-sm disabled:opacity-70"
+            type="button"
+            onClick={() => setDeleteModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-50 transition shadow-sm"
           >
-            {isPending ? (
-              <><Loader2 size={16} className="mr-2 animate-spin" /> Đang lưu...</>
-            ) : (
-              <><Save size={16} className="mr-2" /> Lưu thay đổi</>
-            )}
+            <Trash2 size={16} />
+            Xóa người dùng
           </button>
+          <div className="flex gap-4">
+            <Link href="/settings/users" className="px-6 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition shadow-sm">
+              Hủy
+            </Link>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="flex items-center px-6 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition shadow-sm disabled:opacity-70"
+            >
+              {isPending ? (
+                <><Loader2 size={16} className="mr-2 animate-spin" /> Đang lưu...</>
+              ) : (
+                <><Save size={16} className="mr-2" /> Lưu thay đổi</>
+              )}
+            </button>
+          </div>
         </div>
       </form>
+
+      <ConfirmModal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="Xóa người dùng"
+        message={`Bạn có chắc muốn xóa người dùng "${[form.firstName, form.lastName].filter(Boolean).join(' ') || user.email}"? Hành động này sẽ xóa mềm tài khoản (đặt deletedAt) và tách các liên kết tài sản/bản quyền/ticket.`}
+        confirmLabel="Xóa người dùng"
+        loading={deletePending}
+        variant="danger"
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

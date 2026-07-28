@@ -190,19 +190,115 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   try {
     const actor = await requirePermissionApi('users.delete')
     const { id } = await params
+
+    // Self-delete protection
+    if (actor.id === id) {
+      return NextResponse.json(
+        { ok: false, code: 'INVALID_STATE', message: 'Bạn không thể tự xóa tài khoản của mình.' },
+        { status: 400 },
+      )
+    }
+
+    // System user protection
     if (id === 'system') {
       return NextResponse.json(
         { ok: false, code: 'INVALID_STATE', message: 'Không thể xóa tài khoản hệ thống.' },
         { status: 400 },
       )
     }
+
     const existing = await prisma.user.findUnique({ where: { id } })
-    await prisma.user.delete({ where: { id } })
-    if (existing) {
-      const name = [existing.firstName, existing.lastName].filter(Boolean).join(' ')
-      await recordAudit(actor.id, 'DELETE', 'USER', id, `Xóa người dùng "${name}"`)
+    if (!existing) {
+      return NextResponse.json(
+        { ok: false, code: 'NOT_FOUND', message: 'Không tìm thấy người dùng.' },
+        { status: 404 },
+      )
     }
-    return okResponse(undefined)
+
+    // Prevent double-delete
+    if (existing.deletedAt) {
+      return NextResponse.json(
+        { ok: false, code: 'CONFLICT', message: 'Người dùng đã bị xóa trước đó.' },
+        { status: 409 },
+      )
+    }
+
+    // Get system user ID for reassignment
+    const systemUser = await prisma.user.findUnique({ where: { username: 'system' } })
+    const systemUserId = systemUser?.id
+
+    const name = [existing.firstName, existing.lastName].filter(Boolean).join(' ') || (existing.email ?? id)
+
+    // Phase 1: detach / reassign all nullable FKs (parallel)
+    await Promise.all([
+      // Assets assigned to this user → unassigned
+      prisma.asset.updateMany({
+        where: { assignedUserId: id },
+        data: { assignedUserId: null },
+      }),
+      // License seats assigned to this user → unassigned
+      prisma.licenseSeat.updateMany({
+        where: { assignedUserId: id },
+        data: { assignedUserId: null },
+      }),
+      // Tickets where this user is assignee → unassigned
+      prisma.ticket.updateMany({
+        where: { assigneeId: id },
+        data: { assigneeId: null },
+      }),
+      // Asset maintenance records created by this user → null creator
+      prisma.assetMaintenance.updateMany({
+        where: { createdById: id },
+        data: { createdById: null },
+      }),
+    ])
+
+    // Phase 2: reassign system-owned FKs to system user (must exist)
+    if (systemUserId) {
+      await Promise.all([
+        // Tickets reported by this user → reassign to system
+        prisma.ticket.updateMany({
+          where: { reporterId: id },
+          data: { reporterId: systemUserId },
+        }),
+        // Tickets closed by this user → reassign to system
+        prisma.ticket.updateMany({
+          where: { closedById: id },
+          data: { closedById: systemUserId },
+        }),
+        // Ticket comments by this user → reassign to system (preserve audit)
+        prisma.ticketComment.updateMany({
+          where: { authorId: id },
+          data: { authorId: systemUserId },
+        }),
+        // Ticket attachments uploaded by this user → reassign to system
+        prisma.ticketAttachment.updateMany({
+          where: { uploaderId: id },
+          data: { uploaderId: systemUserId },
+        }),
+        // API tokens created by this user → reassign to system
+        prisma.apiToken.updateMany({
+          where: { createdById: id },
+          data: { createdById: systemUserId },
+        }),
+        // Notification channels created by this user → reassign to system
+        prisma.notificationChannel.updateMany({
+          where: { createdById: id },
+          data: { createdById: systemUserId },
+        }),
+      ])
+    }
+
+    // Phase 3: soft-delete user (set deletedAt)
+    await prisma.user.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    })
+
+    // Phase 4: audit log
+    await recordAudit(actor.id, 'DELETE', 'USER', id, `Xóa người dùng "${name}"`)
+
+    return okResponse({ message: `Đã xóa người dùng "${name}".` })
   } catch (e) {
     return errorResponse(e)
   }

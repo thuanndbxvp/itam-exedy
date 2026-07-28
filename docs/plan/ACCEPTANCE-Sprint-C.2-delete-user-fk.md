@@ -1,18 +1,27 @@
-# ACCEPTANCE: Sprint C.2 - Delete User FK Fix
+# ACCEPTANCE: Sprint-C.2-delete-user-fk
 
-**Người lập:** Tier 1 (Planner)
+**Tier 2 — User soft-delete + FK detach (NOT hard delete)**
 
-## Functional Acceptance
+---
 
-```
-[ ] C2_1. Bấm xóa 1 User trên giao diện mặc định sẽ gọi API soft-delete. User biến mất khỏi danh sách người dùng nhưng trong DB vẫn còn record với `deletedAt != null`.
-[ ] C2_2. Tài khoản sau khi bị soft-delete không thể đăng nhập vào hệ thống.
-[ ] C2_3. API có tham số `force=true`. Gọi API qua curl/postman với force=true xóa sạch user khỏi DB. Các ticket, comment do user đó tạo không bị lỗi mất mà field userID chuyển thành null.
-[ ] C2_4. Giao diện trang chi tiết Ticket (chứa comment của user đã xóa cứng) vẫn load lên bình thường, Tên người dùng hiển thị là `[Đã bị xóa]` hoặc tương đương.
-```
-
-## Non-Functional
-```
-[ ] NF1. Chạy `npx tsc --noEmit` không báo lỗi ở bất kỳ file nào do ảnh hưởng của việc nullable schema.
-[ ] NF2. Thông tin nhạy cảm của user (PII) phải được anonymize (làm mờ/đổi giá trị) khi soft-delete.
-```
+- [ ] AC1. `DELETE /api/settings/users/[id]` chuyển từ `prisma.user.delete()` → `prisma.user.update({ where: { id }, data: { deletedAt: new Date() } })`.
+- [ ] AC2. Permission: `users.delete` (ADMIN).
+- [ ] AC3. Self-protection: không xóa chính mình (`actor.id === id` → 400 INVALID_STATE).
+- [ ] AC4. Không xóa user có `role: ADMIN` (nếu muốn bảo vệ cuối cùng) — tùy chọn, có ghi chú.
+- [ ] AC5. Trước soft-delete, thực hiện detach sequence:
+  - `Asset.assignedUserId → null` (asset về trạng thái "chưa ai nhận")
+  - `LicenseSeat.assignedUserId → null`
+  - `Ticket.reporterId → system_user_id` (giữ audit, tránh FK violation)
+  - `Ticket.assigneeId → null` (ticket bay về "chưa ai nhận")
+  - `Ticket.closedById → system_user_id` (nếu có)
+  - `TicketComment.authorId → system_user_id`
+  - `TicketAttachment.uploaderId → system_user_id`
+  - `ApiToken.createdById → system_user_id`
+  - `NotificationChannel.createdById → system_user_id`
+  - `AssetMaintenance.createdById → null`
+  - `ActionLog.userId → KHÔNG SỬA` (Restrict, keep audit trail)
+- [ ] AC6. Detach sequence dùng `Promise.all` để parallel — không blocking nhau.
+- [ ] AC7. Audit log ghi `DELETE` event với message "Xóa người dùng '{name}'" sau khi detach thành công.
+- [ ] AC8. API trả về `200 OK` với `{ ok: true, message: '...' }` sau khi soft-delete thành công.
+- [ ] AC9. API trả 409 CONFLICT nếu user đã bị `deletedAt !== null` (prevent double-delete).
+- [ ] AC10. UI `/settings/users` — thêm/hay cập nhật nút "Xóa" trên row để gọi API này (nếu chưa có).
