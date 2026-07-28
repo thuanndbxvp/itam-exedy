@@ -135,6 +135,23 @@ export default function Sidebar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({})
+  
+  // Collapse sidebar categories by default, except the active one
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    if (typeof window === 'undefined') return {}
+    const init: Record<string, boolean> = {}
+    NAVIGATION_GROUPS.forEach(g => {
+      if (g.items.some(
+        (item) =>
+          pathname === item.href ||
+          (item.href !== '/' && pathname.startsWith(item.href)) ||
+          (item.children?.some((c) => pathname === c.href || pathname.startsWith(c.href + '/')))
+      )) {
+        init[g.label] = true
+      }
+    })
+    return init
+  })
   const [perms, setPerms] = useState<Set<string>>(new Set())
   const [loaded, setLoaded] = useState(false)
   const { data: session } = useSession()
@@ -207,6 +224,10 @@ export default function Sidebar() {
     setOpenMenus((prev) => ({ ...prev, [name]: !prev[name] }))
   }
 
+  function toggleGroup(label: string) {
+    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }))
+  }
+
   return (
     <>
       {/* Mobile toggle */}
@@ -244,15 +265,21 @@ export default function Sidebar() {
             return (
               <div key={group.label}>
                 {/* Group header */}
-                <div className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider mb-1 ${
-                  groupActive ? 'text-blue-400' : 'text-slate-400'
-                }`}>
-                  <group.icon size={13} />
-                  <span>{group.label}</span>
-                </div>
+                <button
+                  onClick={() => toggleGroup(group.label)}
+                  className={`w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider mb-1 hover:text-white transition cursor-pointer ${
+                    groupActive ? 'text-blue-400' : 'text-slate-400'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <group.icon size={13} />
+                    <span>{group.label}</span>
+                  </div>
+                  <ChevronDown size={14} className={`transform transition-transform ${openGroups[group.label] ? 'rotate-180' : ''}`} />
+                </button>
 
                 {/* Items */}
-                <div className="space-y-0.5">
+                <div className={`space-y-0.5 overflow-hidden transition-all duration-300 ${openGroups[group.label] ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                   {visibleItems.map((item) => {
                     const Icon = item.icon
                     const itemActive = isItemActive(item)
