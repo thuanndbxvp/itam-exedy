@@ -8,22 +8,19 @@
  * Yêu cầu:
  *  - Cookie `2fa_pending` hợp lệ (HMAC, chưa expire)
  *  - OTP verify thành công
+ *  - Rate limit: 10 attempts / 5 minutes per IP
  *
  * Sau khi verify OK → KHÔNG tự tạo session NextAuth. Client nhận `verified: true`
  * + cờ `challengeCompleted: true`, sau đó client gọi NextAuth `signIn('credentials', ...)`
  * với 1 secret header `X-2FA-Completed: true` để authorize() skip 2FA check.
  *
- * Trong authorize() — kiểm tra header đó hoặc cookie pending = cleared + user enrolled
- * → pass-through luôn.
- *
- * Implementation thực tế: authorize() check db.twoFactorEnrolled. Sau verify hợp lệ,
- * ta clear `2fa_pending` cookie + set `2fa_passed=true` cookie tạm (TTL 60s).
- * authorize() check `2fa_passed=true` → nếu true → bỏ qua 2FA gate.
+ * Security: Sprint R.1 - Rate limiting added for OTP brute-force protection.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { cookies } from 'next/headers'
 import prisma from '@/lib/prisma'
+import { checkRateLimit } from '@/lib/rate-limit'
 import { decodePendingCookie, PENDING_COOKIE_NAME } from '@/lib/auth-2fa-cookie'
 import { verify2FACode } from '@/lib/auth-2fa'
 
@@ -33,7 +30,42 @@ const Body = z.object({
 
 const PASSED_COOKIE = '2fa_passed'
 
+/** R.1: Rate limit config - 10 OTP attempts per 5 minutes per IP */
+const OTP_RATE_LIMIT = {
+  max: 10,
+  windowMs: 5 * 60 * 1000, // 5 minutes
+}
+
 export async function POST(req: NextRequest) {
+  // R.1: Rate limit check first
+  const ip =
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    req.headers.get('x-real-ip') ??
+    'unknown'
+  const rateLimitKey = `2fa-otp:${ip}`
+  const { allowed, resetAt } = checkRateLimit({
+    key: rateLimitKey,
+    max: OTP_RATE_LIMIT.max,
+    windowMs: OTP_RATE_LIMIT.windowMs,
+  })
+
+  if (!allowed) {
+    const retryAfter = Math.ceil((resetAt - Date.now()) / 1000)
+    return NextResponse.json(
+      {
+        ok: false,
+        code: 'RATE_LIMITED',
+        message: `Quá nhiều lần thử OTP. Vui lòng thử lại sau ${retryAfter} giây.`,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(retryAfter),
+        },
+      }
+    )
+  }
+
   const json = await req.json().catch(() => null)
   const parsed = Body.safeParse(json)
   if (!parsed.success) {

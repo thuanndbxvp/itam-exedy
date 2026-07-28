@@ -7,24 +7,28 @@
  *
  * Luồng:
  *  1. Validate credentials (bcrypt)
- *  2. Nếu user tồn tại & pass đúng & `twoFactorEnrolled=true`:
+ *  2. Rate limit check (5 attempts / 15 minutes per IP)
+ *  3. Nếu user tồn tại & pass đúng & `twoFactorEnrolled=true`:
  *     - Set HTTP-only cookie `2fa_pending` = HMAC(userId + expiry)
  *     - Trả { ok: true, require2FA: true, userId }
  *     - KHÔNG tạo NextAuth session
- *  3. Nếu không có 2FA → credentials hợp lệ nhưng KHÔNG tự login NextAuth ở đây
+ *  4. Nếu không có 2FA → credentials hợp lệ nhưng KHÔNG tự login NextAuth ở đây
  *     (client phải gọi NextAuth signIn() riêng để tránh duplicate session)
- *  4. Trả { ok: true, require2FA: false } nếu OK, hoặc 401 nếu sai.
+ *  5. Trả { ok: true, require2FA: false } nếu OK, hoặc 401 nếu sai.
  *
  * Client flow:
  *  - Nếu !require2FA → gọi `signIn('credentials', { email, password, redirect: false })`.
  *  - Nếu require2FA → show OTP step, submit OTP → /api/auth/login/2fa verify +
  *    `signIn('credentials', { email, password, redirect: false })` để tạo session.
+ *
+ * Security: Sprint R.1 - Rate limiting added.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import { cookies } from 'next/headers'
 import prisma from '@/lib/prisma'
+import { checkRateLimit } from '@/lib/rate-limit'
 import {
   encodePendingCookie,
   PENDING_COOKIE_NAME,
@@ -36,7 +40,44 @@ const Body = z.object({
   password: z.string().min(1).max(200),
 })
 
+/** R.1: Rate limit config - 5 attempts per 15 minutes per IP */
+const LOGIN_RATE_LIMIT = {
+  max: 5,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+}
+
 export async function POST(req: NextRequest) {
+  // R.1: Rate limit check first
+  const ip =
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    req.headers.get('x-real-ip') ??
+    'unknown'
+  const rateLimitKey = `login:${ip}`
+  const { allowed, remaining, resetAt } = checkRateLimit({
+    key: rateLimitKey,
+    max: LOGIN_RATE_LIMIT.max,
+    windowMs: LOGIN_RATE_LIMIT.windowMs,
+  })
+
+  if (!allowed) {
+    const retryAfter = Math.ceil((resetAt - Date.now()) / 1000)
+    return NextResponse.json(
+      {
+        ok: false,
+        code: 'RATE_LIMITED',
+        message: `Quá nhiều lần thử đăng nhập. Vui lòng thử lại sau ${retryAfter} giây.`,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(retryAfter),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': String(Math.ceil(resetAt / 1000)),
+        },
+      }
+    )
+  }
+
   const json = await req.json().catch(() => null)
   const parsed = Body.safeParse(json)
   if (!parsed.success) {
