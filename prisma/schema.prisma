@@ -190,6 +190,9 @@ model Category {
   assetModels    AssetModel[]    @relation("CategoryAssetModel")
   licenses       License[]       @relation("CategoryLicense")
   eulaAcceptances EulaAcceptance[]
+
+  // R.2: Index for soft-delete queries
+  @@index([deletedAt])
 }
 
 model Manufacturer {
@@ -207,6 +210,9 @@ model Manufacturer {
   assets      Asset[]      @relation("AssetManufacturer")
   assetModels AssetModel[] @relation("ManufacturerAssetModel")
   licenses    License[]    @relation("ManufacturerLicense")
+
+  // R.2: Index for soft-delete queries
+  @@index([deletedAt])
 }
 
 model Supplier {
@@ -225,6 +231,9 @@ model Supplier {
   assets       Asset[]
   licenses     License[]
   maintenances AssetMaintenance[]
+
+  // R.2: Index for soft-delete queries
+  @@index([deletedAt])
 }
 
 model Depreciation {
@@ -240,6 +249,9 @@ model Depreciation {
 
   assetModels AssetModel[]
   assets      Asset[]
+
+  // R.2: Index for soft-delete queries
+  @@index([deletedAt])
 }
 
 model AssetModel {
@@ -264,6 +276,10 @@ model AssetModel {
 
   @@unique([name, manufacturerId])
   @@index([categoryId])
+  // R.2: Indexes for soft-delete + FK joins
+  @@index([deletedAt])
+  @@index([manufacturerId])
+  @@index([depreciationId])
 }
 
 model Location {
@@ -280,7 +296,7 @@ model Location {
   managerId String?
   manager   User?      @relation("LocationManager", fields: [managerId], references: [id], onDelete: SetNull)
   companyId String?
-  company   Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  company   Company?   @relation(fields: [companyId], references: [companyId], onDelete: SetNull)
   notes     String?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -292,6 +308,9 @@ model Location {
 
   @@index([parentId])
   @@index([companyId])
+  // R.2: Indexes for soft-delete + FK joins
+  @@index([deletedAt])
+  @@index([managerId])
 }
 
 model Department {
@@ -310,6 +329,9 @@ model Department {
   users User[]
 
   @@index([companyId])
+  // R.2: Indexes for soft-delete + FK joins
+  @@index([deletedAt])
+  @@index([managerId])
 }
 
 model StatusLabel {
@@ -327,6 +349,9 @@ model StatusLabel {
   deletedAt    DateTime?
 
   assets Asset[]
+
+  // R.2: Index for soft-delete queries
+  @@index([deletedAt])
 }
 
 // ============================================================================
@@ -413,6 +438,12 @@ model User {
 
   @@index([companyId])
   @@index([managerId])
+  // R.2: Indexes for soft-delete + common filter queries
+  @@index([deletedAt])
+  @@index([role])
+  @@index([activated])
+  @@index([departmentId])
+  @@index([locationId])
 }
 
 // ============================================================================
@@ -489,6 +520,17 @@ model Asset {
   @@index([assignedUserId])
   @@index([assignedLocationId])
   @@index([companyId])
+  // R.2: Indexes for soft-delete + composite queries
+  @@index([deletedAt])
+  @@index([categoryId])
+  @@index([manufacturerId])
+  @@index([supplierId])
+  @@index([depreciationId])
+  @@index([rtdLocationId])
+  @@index([assignedUserId, deletedAt])
+  @@index([statusId, deletedAt])
+  @@index([companyId, deletedAt])
+  @@index([categoryId, deletedAt])
 }
 
 // ============================================================================
@@ -521,6 +563,9 @@ model AssetMaintenance {
   @@index([assetId])
   @@index([supplierId])
   @@index([startDate])
+  // R.2: Indexes for soft-delete + common queries
+  @@index([deletedAt])
+  @@index([createdById])
 }
 
 // ============================================================================
@@ -565,6 +610,11 @@ model License {
   @@index([categoryId])
   @@index([manufacturerId])
   @@index([companyId])
+  // R.2: Indexes for soft-delete + common queries
+  @@index([deletedAt])
+  @@index([expirationDate])
+  @@index([expirationDate, deletedAt])
+  @@index([supplierId])
 }
 
 model LicenseSeat {
@@ -588,6 +638,10 @@ model LicenseSeat {
   @@index([licenseId])
   @@index([assignedUserId])
   @@index([assignedAssetId])
+  // R.2: Indexes for soft-delete + common queries
+  @@index([deletedAt])
+  @@index([assignedUserId, deletedAt])
+  @@index([assignedAssetId, deletedAt])
 }
 
 // ============================================================================
@@ -661,6 +715,10 @@ model ActionLog {
   @@index([targetType, targetId])
   @@index([userId])
   @@index([createdAt])
+  // R.2: Composite indexes for common audit queries
+  @@index([userId, createdAt])
+  @@index([actionType, createdAt])
+  @@index([itemType, itemId, createdAt])
 }
 
 // ============================================================================
@@ -690,6 +748,8 @@ model Team {
   rules   HelpdeskAssignmentRule[]
 
   @@index([category])
+  // R.2: Indexes for common queries
+  @@index([isActive])
 }
 
 model TeamMember {
@@ -757,6 +817,10 @@ model Ticket {
   @@index([category, status])
   @@index([status, createdAt])
   @@index([slaDueAt])
+  // R.2: Indexes for soft-delete + common queries
+  @@index([reporterId, deletedAt])
+  @@index([assigneeId, deletedAt])
+  @@index([status, deletedAt])
 }
 
 model TicketComment {
@@ -1113,4 +1177,6 @@ model NotificationChannel {
 
   @@index([kind])
   @@index([enabled])
+  // R.2: Index for soft-delete queries
+  @@index([deletedAt])
 }

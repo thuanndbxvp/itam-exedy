@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import AssetStats from './AssetStats'
-import StatusPieChart from './StatusPieChart'
-import CategoryBarChart from './CategoryBarChart'
-import LicenseExpiryAlert from './alerts/LicenseExpiryAlert'
-import AssetEolAlert from './alerts/AssetEolAlert'
+/**
+ * DashboardClient — Sprint R.4 Performance Optimization
+ *
+ * Lazy loads heavy components (charts, alerts) to improve initial page load.
+ * Uses React Suspense for graceful loading states.
+ */
+import { useState, useEffect, lazy, Suspense } from 'react'
 
 interface SummaryData {
   totalAssets: number
@@ -28,6 +29,37 @@ interface CategoryData {
   categoryName: string
   color: string
   count: number
+}
+
+// R.4: Lazy load heavy components
+const AssetStats = lazy(() => import('./AssetStats'))
+const StatusPieChart = lazy(() => import('./StatusPieChart'))
+const CategoryBarChart = lazy(() => import('./CategoryBarChart'))
+const LicenseExpiryAlert = lazy(() => import('./alerts/LicenseExpiryAlert'))
+const AssetEolAlert = lazy(() => import('./alerts/AssetEolAlert'))
+
+// Loading skeleton for lazy components
+function ChartSkeleton() {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 h-72 animate-pulse">
+      <div className="p-4">
+        <div className="h-6 w-32 bg-gray-200 rounded mb-4" />
+        <div className="h-48 bg-gray-100 rounded" />
+      </div>
+    </div>
+  )
+}
+
+function AlertSkeleton() {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
+      <div className="h-6 w-40 bg-gray-200 rounded mb-3" />
+      <div className="space-y-2">
+        <div className="h-4 bg-gray-100 rounded w-full" />
+        <div className="h-4 bg-gray-100 rounded w-3/4" />
+      </div>
+    </div>
+  )
 }
 
 export default function DashboardClient() {
@@ -62,12 +94,12 @@ export default function DashboardClient() {
           ))}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl border border-gray-200 h-72 animate-pulse" />
-          <div className="bg-white rounded-xl border border-gray-200 h-72 animate-pulse" />
+          <ChartSkeleton />
+          <ChartSkeleton />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl border border-gray-200 h-72 animate-pulse" />
-          <div className="bg-white rounded-xl border border-gray-200 h-72 animate-pulse" />
+          <AlertSkeleton />
+          <AlertSkeleton />
         </div>
       </div>
     )
@@ -75,6 +107,7 @@ export default function DashboardClient() {
 
   return (
     <div className="space-y-6">
+      {/* AssetStats is small, load immediately */}
       <AssetStats
         totalAssets={summary.totalAssets}
         totalUsers={summary.totalUsers}
@@ -84,15 +117,24 @@ export default function DashboardClient() {
         pendingAssets={summary.pendingAssets}
       />
 
+      {/* Lazy load charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <StatusPieChart data={statusData} />
-        <CategoryBarChart data={categoryData} />
+        <Suspense fallback={<ChartSkeleton />}>
+          <StatusPieChart data={statusData} />
+        </Suspense>
+        <Suspense fallback={<ChartSkeleton />}>
+          <CategoryBarChart data={categoryData} />
+        </Suspense>
       </div>
 
-      {/* Phase 3 — Proactive alert widgets */}
+      {/* Lazy load alerts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <LicenseExpiryAlert />
-        <AssetEolAlert />
+        <Suspense fallback={<AlertSkeleton />}>
+          <LicenseExpiryAlert />
+        </Suspense>
+        <Suspense fallback={<AlertSkeleton />}>
+          <AssetEolAlert />
+        </Suspense>
       </div>
     </div>
   )

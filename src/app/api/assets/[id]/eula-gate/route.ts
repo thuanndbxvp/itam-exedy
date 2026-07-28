@@ -3,6 +3,9 @@
  *
  * Trả về { requireAcceptance, alreadyAccepted, categoryId, categoryName, eulaText }
  * cho asset này. Nếu !requireAcceptance → alreadyAccepted=true (no gate).
+ *
+ * Auth: Session required + assets.read permission.
+ * Security: Sprint R.1 - Added permission check.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -10,7 +13,8 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { eulaVersion } from '@/lib/eula'
 import { errorResponse, okResponse } from '@/lib/api'
-import { NotFoundError } from '@/lib/errors'
+import { NotFoundError, ForbiddenError } from '@/lib/errors'
+import { resolvePermissions } from '@/lib/permissions'
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -20,6 +24,12 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
         { ok: false, code: 'UNAUTHORIZED', message: 'Chưa đăng nhập.' },
         { status: 401 }
       )
+    }
+
+    // R.1: Verify user has assets.read permission
+    const perms = await resolvePermissions(session.user.id)
+    if (!perms.includes('assets.read')) {
+      throw new ForbiddenError('Bạn không có quyền xem tài sản.')
     }
 
     const { id } = await ctx.params

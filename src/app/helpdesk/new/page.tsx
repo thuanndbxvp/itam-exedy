@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Loader2, AlertCircle, Search } from 'lucide-react'
+import { useDebounce } from '@/hooks/useDebounce'
 
 interface MyAssets {
   assets: Array<{
@@ -21,6 +22,9 @@ interface MyAssets {
     productKey: string | null
   }>
 }
+
+// C.6: IT roles có quyền tạo ticket cho bất kỳ asset nào
+const IT_ROLES = ['ADMIN', 'IT_MANAGER', 'IT_STAFF']
 
 const CATEGORY_OPTIONS = [
   { value: 'HARDWARE', label: 'Phần cứng (máy tính, màn hình…)' },
@@ -58,6 +62,66 @@ export default function NewTicketPage() {
   const [description, setDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // C.6: IT Search Autocomplete state
+  const [isIT, setIsIT] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<MyAssets['assets']>([])
+  const [searching, setSearching] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [selectedLabel, setSelectedLabel] = useState('')
+  const debouncedSearch = useDebounce(searchQuery, 300)
+  const searchRef = useRef<HTMLDivElement>(null)
+
+  // C.6: Detect IT role from session
+  useEffect(() => {
+    if (session?.user?.role && IT_ROLES.includes(session.user.role)) {
+      setIsIT(true)
+    }
+  }, [session])
+
+  // C.6: Search assets when IT staff types
+  useEffect(() => {
+    if (!isIT || mode !== 'asset' || !debouncedSearch) {
+      setSearchResults([])
+      return
+    }
+
+    async function search() {
+      setSearching(true)
+      try {
+        const r = await fetch(`/api/helpdesk/search-assets?q=${encodeURIComponent(debouncedSearch)}`)
+        const json = await r.json()
+        if (json.ok) {
+          setSearchResults(json.data.assets)
+          setShowDropdown(true)
+        }
+      } finally {
+        setSearching(false)
+      }
+    }
+    search()
+  }, [isIT, mode, debouncedSearch])
+
+  // C.6: Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // C.6: Select asset from dropdown
+  function selectAsset(asset: MyAssets['assets'][0]) {
+    setReportedAssetId(asset.id)
+    setSelectedLabel(`${asset.assetTag} — ${asset.name}`)
+    setSearchQuery('')
+    setSearchResults([])
+    setShowDropdown(false)
+  }
 
   useEffect(() => {
     async function load() {
@@ -194,7 +258,73 @@ export default function NewTicketPage() {
               <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
                 Bạn hiện không có tài sản nào được giao. Hãy chọn "Vấn đề khác" hoặc liên hệ IT.
               </div>
+            ) : isIT ? (
+              // C.6: IT Staff - Search autocomplete
+              <div ref={searchRef} className="relative">
+                {selectedLabel ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+                      <span className="font-medium text-blue-700">{selectedLabel}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReportedAssetId('')
+                          setSelectedLabel('')
+                        }}
+                        className="ml-2 text-xs text-blue-600 hover:underline"
+                      >
+                        Đổi
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value)
+                        setReportedAssetId('')
+                      }}
+                      onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
+                      placeholder="Tìm kiếm tài sản (VD: Dell, Server, Laptop...)"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                    {searching && (
+                      <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-gray-400" />
+                    )}
+                  </div>
+                )}
+
+                {/* Search dropdown */}
+                {showDropdown && searchResults.length > 0 && (
+                  <ul className="absolute z-10 w-full mt-1 bg-white shadow-lg border border-gray-200 rounded-lg max-h-60 overflow-y-auto">
+                    {searchResults.map((asset) => (
+                      <li key={asset.id}>
+                        <button
+                          type="button"
+                          onClick={() => selectAsset(asset)}
+                          className="w-full text-left px-3 py-2 hover:bg-blue-50 transition text-sm"
+                        >
+                          <div className="font-medium text-gray-900">{asset.assetTag} — {asset.name}</div>
+                          {asset.modelName && (
+                            <div className="text-xs text-gray-500">{asset.modelName}</div>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {showDropdown && searchQuery && searchResults.length === 0 && !searching && (
+                  <div className="absolute z-10 w-full mt-1 bg-white shadow-lg border border-gray-200 rounded-lg p-3 text-sm text-gray-500">
+                    Không tìm thấy tài sản nào.
+                  </div>
+                )}
+              </div>
             ) : (
+              // Employee - Simple dropdown
               <select
                 value={reportedAssetId}
                 onChange={(e) => setReportedAssetId(e.target.value)}

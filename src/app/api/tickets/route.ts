@@ -153,12 +153,14 @@ export async function POST(req: NextRequest) {
     const reportedAssetId = body.reportedAssetId || null;
     const reportedLicenseSeatId = body.reportedLicenseSeatId || null;
 
-    // ----- Permission: báo lỗi asset/license phải là của mình -----
-    if (reportedAssetId) {
+    // ----- C.6: Permission check — IT staff có quyền báo lỗi cho BẤT KỲ asset nào -----
+    const isIT = ['ADMIN', 'IT_MANAGER', 'IT_STAFF'].includes(user.role);
+
+    if (reportedAssetId && !isIT) {
       const ok = await canReportForAsset(user.id, reportedAssetId);
       if (!ok) throw new ForbiddenError("Bạn không có quyền báo lỗi cho tài sản này.");
     }
-    if (reportedLicenseSeatId) {
+    if (reportedLicenseSeatId && !isIT) {
       const seat = await prisma.licenseSeat.findUnique({
         where: { id: reportedLicenseSeatId },
         select: { assignedUserId: true, license: { select: { name: true } } },

@@ -56,7 +56,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       notes,
       avatar,
       activated,
-      password,
+      // R.1: Remove password from here - use dedicated change-password endpoint
+      // password,
       role,
       departmentId,
       customRoleId,
@@ -74,10 +75,55 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ ok: false, code: 'NOT_FOUND', message: 'Không tìm thấy.' }, { status: 404 })
     }
 
+    // R.1: Actor check - prevent privilege escalation
+    // Self-edit: actor.id === id
+    // Admin-edit: actor must have higher or equal role
+    const isSelf = actor.id === id
+    const isPrivileged = actor.role === 'ADMIN' || actor.role === 'IT_MANAGER'
+
+    if (!isSelf && !isPrivileged) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: 'FORBIDDEN',
+          message: 'Bạn không có quyền sửa profile người dùng khác. Chỉ IT Manager hoặc Admin mới có thể thực hiện.',
+        },
+        { status: 403 }
+      )
+    }
+
+    // R.1: IT_STAFF can only edit EMPLOYEE users (not other IT_STAFF or IT_MANAGER)
+    if (actor.role === 'IT_STAFF' && !isSelf) {
+      const targetRole = existing.role
+      if (targetRole !== 'EMPLOYEE') {
+        return NextResponse.json(
+          {
+            ok: false,
+            code: 'FORBIDDEN',
+            message: 'Bạn chỉ có thể sửa thông tin nhân viên (EMPLOYEE).',
+          },
+          { status: 403 }
+        )
+      }
+    }
+
     // F1 fix (security audit): role + customRoleId thay đổi đòi hỏi quyền users.manage_roles.
     // users.update chỉ cho phép sửa thông tin cá nhân (tên, job title, dept).
     if (role !== undefined || customRoleId !== undefined) {
       await requirePermissionApi('users.manage_roles')
+    }
+
+    // R.1: Remove password update from here - it should use dedicated change-password endpoint
+    // Security: preventing privilege escalation via password change
+    if (body.password !== undefined) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: 'INVALID_REQUEST',
+          message: 'Không thể đổi mật khẩu qua endpoint này. Vui lòng sử dụng chức năng đổi mật khẩu riêng.',
+        },
+        { status: 400 }
+      )
     }
 
     /**
@@ -139,7 +185,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
       updateData.employeeNum = employeeNum
     }
-    if (password) updateData.password = await bcrypt.hash(password, 10)
+    // R.1: Password update removed - use dedicated change-password endpoint
+    // if (password) updateData.password = await bcrypt.hash(password, 10)
 
     const updated = await prisma.user.update({
       where: { id },

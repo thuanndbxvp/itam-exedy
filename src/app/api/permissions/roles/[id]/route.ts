@@ -62,7 +62,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     })
 
     // Invalidate cache cho tất cả user đang dùng role này
-    const users = await prisma.user.findMany({ where: { customRoleId: id }, select: { id: true } })
+    // R.2: Fix - add deletedAt null filter
+    const users = await prisma.user.findMany({ 
+      where: { customRoleId: id, deletedAt: null }, 
+      select: { id: true } 
+    })
     for (const u of users) invalidatePermissionCache(u.id)
 
     return okResponse(updated)

@@ -9,11 +9,14 @@
  *
  * URLSearchParams-first persistence: tất cả filter state nằm trên URL.
  * Saved filter loads = apply JSON → set URL params.
+ *
+ * Sprint R.4: Added debounce for search input to reduce API calls.
  */
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Filter, X, Bookmark, Save, ChevronDown, Trash2 } from 'lucide-react'
 import { useToast } from '@/components/Toast'
+import { useDebounce } from '@/hooks/useDebounce'
 import Modal from '@/components/ui/Modal'
 
 interface FilterOption {
@@ -79,6 +82,16 @@ export default function FilterPanel({
     {} as Record<string, string>
   )
   const [localFilters, setLocalFilters] = useState(initialFilters)
+  // R.4: Debounce search input to reduce URL updates
+  const [searchInput, setSearchInput] = useState(initialFilters.search ?? '')
+  const debouncedSearch = useDebounce(searchInput, 300)
+
+  // Sync debounced search to filters
+  useEffect(() => {
+    if (debouncedSearch !== localFilters.search) {
+      setLocalFilters((prev) => ({ ...prev, search: debouncedSearch }))
+    }
+  }, [debouncedSearch, localFilters.search])
   const [isOpen, setIsOpen] = useState(false)
   const [savedFilters, setSavedFilters] = useState<SavedFilterItem[]>([])
   const [savedOpen, setSavedOpen] = useState(false)
@@ -298,15 +311,15 @@ export default function FilterPanel({
               </div>
 
               <div className="space-y-4">
-                {/* Search */}
+                {/* Search - R.4: Uses debounced input */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Tìm kiếm
                   </label>
                   <input
                     type="text"
-                    value={localFilters.search}
-                    onChange={(e) => setField('search', e.target.value)}
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
                     placeholder="assetTag, tên, serial..."
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                   />
