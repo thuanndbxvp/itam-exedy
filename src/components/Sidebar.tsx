@@ -8,7 +8,8 @@ import {
   LayoutDashboard, Monitor, Key, Settings, Menu, X, LifeBuoy,
   Activity, ChevronDown, ChevronRight,
   Wrench, BarChart3, DollarSign, LogOut, Shield, Building2, MapPin,
-  TrendingDown, Tag, Users, Building, UserCog, LayoutGrid, Server
+  TrendingDown, Tag, Users, Building, UserCog, LayoutGrid, Server,
+  Factory, Box, Truck
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
@@ -86,9 +87,9 @@ const NAVIGATION_GROUPS: NavGroup[] = [
       { name: 'Bản quyền', href: '/licenses', icon: Key, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'licenses.read' },
       { name: 'Bảo trì', href: '/maintenances', icon: Wrench, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER'], permissionKey: 'assets.read' },
       { name: 'Loại tài sản', href: '/settings/categories', icon: LayoutGrid, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
-      { name: 'Model thiết bị', href: '/settings/asset-models', icon: LayoutGrid, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
-      { name: 'Nhà sản xuất', href: '/settings/manufacturers', icon: LayoutGrid, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
-      { name: 'Nhà cung cấp', href: '/settings/suppliers', icon: LayoutGrid, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Model thiết bị', href: '/settings/asset-models', icon: Box, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Nhà sản xuất', href: '/settings/manufacturers', icon: Factory, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Nhà cung cấp', href: '/settings/suppliers', icon: Truck, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
       { name: 'Vị trí', href: '/settings/locations', icon: MapPin, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
       { name: 'Khấu hao', href: '/settings/depreciation', icon: TrendingDown, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
       { name: 'Trạng thái', href: '/settings/statuses', icon: Tag, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
@@ -155,8 +156,9 @@ export default function Sidebar() {
         setPerms(new Set(cached))
         setLoaded(true)
       })
-      return
     }
+    
+    // Always fetch latest to prevent stale sessionStorage
     fetch('/api/me/permissions')
       .then(async (r) => {
         if (r.status === 401) { window.location.href = '/login'; return }
@@ -228,7 +230,7 @@ export default function Sidebar() {
 
       {/* Sidebar panel */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out flex flex-col
+        fixed lg:static inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out flex flex-col border-r border-slate-800 shadow-xl
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
 
@@ -240,31 +242,6 @@ export default function Sidebar() {
           IT Manager
         </div>
 
-        {/* User info */}
-        {session?.user && (
-          <div className="px-4 py-3 border-b border-slate-800 shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold shrink-0">
-                <span>{getInitials(session.user)}</span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-white truncate">
-                  {[session.user.firstName, session.user.lastName].filter(Boolean).join(' ') || session.user.email || 'User'}
-                </p>
-                <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${ROLE_BADGE_COLORS[session.user.role] ?? 'bg-slate-500/20 text-slate-300'}`}>
-                  {ROLE_LABELS[session.user.role] ?? session.user.role}
-                </span>
-              </div>
-              <button
-                onClick={() => signOut({ callbackUrl: '/login' })}
-                title="Đăng xuất"
-                className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition shrink-0"
-              >
-                <LogOut size={16} />
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Nav */}
         <nav className="flex-1 px-4 py-4 overflow-y-auto custom-scrollbar space-y-4">
@@ -297,10 +274,10 @@ export default function Sidebar() {
                           <Link
                             href={item.href}
                             onClick={handleNavClick}
-                            className={`flex-1 flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${
+                            className={`flex-1 flex items-center px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
                               itemActive
-                                ? 'bg-blue-600 text-white shadow-sm'
-                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md font-medium'
+                                : 'text-slate-300 hover:bg-slate-800 hover:text-white hover:translate-x-1'
                             }`}
                           >
                             <Icon className={`mr-2.5 h-4 w-4 shrink-0 ${itemActive ? 'text-white' : 'text-slate-400'}`} />
