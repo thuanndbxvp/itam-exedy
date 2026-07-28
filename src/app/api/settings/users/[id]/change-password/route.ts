@@ -160,7 +160,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Audit log
     const userName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email
     const action = isSelf ? 'Tự đổi mật khẩu' : `Admin reset mật khẩu cho "${userName}"`
-    await recordAudit(actor.id, 'PASSWORD_CHANGE', 'USER', id, action)
+    await recordAudit(actor.id, 'PASSWORD_RESET', 'USER', id, action)
 
     return okResponse({ message: 'Đã đổi mật khẩu thành công.' })
   } catch (e) {
