@@ -1,0 +1,16 @@
+
+> temp-app-2@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.11 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.10.84:3000
+- Environments: .env
+✓ Ready in 525ms
+
+ GET /api/reports/it-costs 403 in 1043ms (next.js: 1002ms, application-code: 42ms)
+○ Compiling /reports/costs ...
+ GET /reports/costs 307 in 5.5s (next.js: 5.3s, application-code: 294ms)
+ GET /login?callbackUrl=%2F 200 in 525ms (next.js: 474ms, application-code: 51ms)
+ GET /reports/costs 307 in 76ms (next.js: 5ms, application-code: 71ms)
+ GET /login?callbackUrl=%2F 200 in 50ms (next.js: 5ms, application-code: 45ms)
