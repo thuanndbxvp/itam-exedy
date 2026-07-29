@@ -29,11 +29,15 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           set -e
-          # pg_dump không hoạt động qua Connection Pooler của Neon, phải dùng kết nối trực tiếp
-          # Ta sẽ tự động xóa chữ "-pooler" khỏi URL
-          DIRECT_URL=$(echo "$DATABASE_URL" | sed 's/-pooler//g')
+          # pg_dump không hỗ trợ các tham số riêng của Prisma như uselibpqcompat
+          # Ta sẽ cắt bỏ toàn bộ tham số sau dấu ? và chỉ giữ lại sslmode=require
+          BASE_URL=$(echo "$DATABASE_URL" | cut -d'?' -f1)
+          # Xóa -pooler để dùng kết nối trực tiếp
+          DIRECT_URL=$(echo "$BASE_URL" | sed 's/-pooler//g')
+          FINAL_URL="${DIRECT_URL}?sslmode=require"
+          
           echo "Bắt đầu backup từ Direct URL..."
-          pg_dump "$DIRECT_URL" -F c > backup-${{ env.DATE }}.dump
+          pg_dump "$FINAL_URL" -F c > backup-${{ env.DATE }}.dump
           ls -lh backup-${{ env.DATE }}.dump
 
       - name: Configure AWS Credentials (for R2)
