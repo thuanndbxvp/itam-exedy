@@ -8,6 +8,7 @@ import { ToastProvider } from "@/components/Toast";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import RealtimeListener from "@/components/RealtimeListener";
 
 export const dynamic = 'force-dynamic';
 
@@ -85,6 +86,7 @@ export default async function RootLayout({
       <body className="h-full flex bg-slate-50">
         <SessionProviderClient>
           <ToastProvider>
+            <RealtimeListener />
             <AppShell>
               {children}
             </AppShell>

@@ -15,6 +15,7 @@ import {
 } from "@/lib/tickets/permissions";
 import { ForbiddenError, NotFoundError, ValidationError } from "@/lib/errors";
 import { notify } from "@/lib/tickets/notifications";
+import pusher, { CHANNEL_HELPDESK, EVENT_TICKET_UPDATED } from "@/lib/pusher";
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -120,6 +121,17 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         })
       )
     );
+
+    // Pusher: Real-time notification (Sprint C.10)
+    try {
+      await pusher.trigger(CHANNEL_HELPDESK, EVENT_TICKET_UPDATED, {
+        ticketId: id,
+        code: ticket.code,
+        message: `${ticket.code} có phản hồi mới`,
+      });
+    } catch (err) {
+      console.error("[Pusher] Failed to trigger ticket-updated:", err);
+    }
 
     return okResponse({ comment });
   } catch (err) {

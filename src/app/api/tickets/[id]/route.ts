@@ -31,6 +31,7 @@ import {
 import { ForbiddenError, NotFoundError, ValidationError, InvalidStateError } from "@/lib/errors";
 import { notify, notifyMany } from "@/lib/tickets/notifications";
 import type { TicketPriority, TicketStatus } from "@prisma/client";
+import pusher, { CHANNEL_HELPDESK, EVENT_TICKET_UPDATED } from "@/lib/pusher";
 
 const VALID_STATUSES: TicketStatus[] = [
   "NEW",
@@ -150,6 +151,17 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         link: `/helpdesk/${ticket.code}`,
       });
 
+      // Pusher: Real-time notification (Sprint C.10)
+      try {
+        await pusher.trigger(CHANNEL_HELPDESK, EVENT_TICKET_UPDATED, {
+          ticketId: id,
+          code: ticket.code,
+          message: `${ticket.code} đã được nhận xử lý`,
+        });
+      } catch (err) {
+        console.error("[Pusher] Failed to trigger ticket-updated:", err);
+      }
+
       return okResponse({ ticket: updated });
     }
 
@@ -177,6 +189,18 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
           link: `/helpdesk/${ticket.code}`,
         });
       }
+
+      // Pusher: Real-time notification (Sprint C.10)
+      try {
+        await pusher.trigger(CHANNEL_HELPDESK, EVENT_TICKET_UPDATED, {
+          ticketId: id,
+          code: ticket.code,
+          message: `${ticket.code} được chuyển cho ${newAssignee.firstName}`,
+        });
+      } catch (err) {
+        console.error("[Pusher] Failed to trigger ticket-updated:", err);
+      }
+
       return okResponse({ ticket: updated });
     }
 
@@ -206,6 +230,17 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         link: `/helpdesk/${ticket.code}`,
       });
 
+      // Pusher: Real-time notification (Sprint C.10)
+      try {
+        await pusher.trigger(CHANNEL_HELPDESK, EVENT_TICKET_UPDATED, {
+          ticketId: id,
+          code: ticket.code,
+          message: `${ticket.code} đã được đóng`,
+        });
+      } catch (err) {
+        console.error("[Pusher] Failed to trigger ticket-updated:", err);
+      }
+
       return okResponse({ ticket: updated });
     }
 
@@ -232,6 +267,17 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         body: "Ticket được mở lại để xử lý tiếp.",
         link: `/helpdesk/${ticket.code}`,
       });
+
+      // Pusher: Real-time notification (Sprint C.10)
+      try {
+        await pusher.trigger(CHANNEL_HELPDESK, EVENT_TICKET_UPDATED, {
+          ticketId: id,
+          code: ticket.code,
+          message: `${ticket.code} đã được mở lại`,
+        });
+      } catch (err) {
+        console.error("[Pusher] Failed to trigger ticket-updated:", err);
+      }
 
       return okResponse({ ticket: updated });
     }
@@ -306,6 +352,17 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
           body: undefined,
           link: `/helpdesk/${ticket.code}`,
         });
+      }
+
+      // Pusher: Real-time notification (Sprint C.10)
+      try {
+        await pusher.trigger(CHANNEL_HELPDESK, EVENT_TICKET_UPDATED, {
+          ticketId: id,
+          code: ticket.code,
+          message: body.status ? `${ticket.code} → ${body.status}` : `${ticket.code} đã được cập nhật`,
+        });
+      } catch (err) {
+        console.error("[Pusher] Failed to trigger ticket-updated:", err);
       }
 
       return okResponse({ ticket: updated });

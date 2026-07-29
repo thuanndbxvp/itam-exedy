@@ -29,6 +29,7 @@ import { resolveAssignmentRule } from "@/lib/tickets/auto-assign";
 import { notify, notifyMany } from "@/lib/tickets/notifications";
 import type { TicketCategory, TicketPriority, TicketStatus, TicketType } from "@prisma/client";
 import { requirePermissionApi } from '@/lib/permissions/http-guard'
+import pusher, { CHANNEL_HELPDESK, EVENT_TICKET_CREATED } from "@/lib/pusher";
 
 const VALID_TYPES: TicketType[] = ["INCIDENT", "REQUEST"];
 const VALID_CATEGORIES: TicketCategory[] = ["HARDWARE", "SOFTWARE", "NETWORK", "ACCOUNT", "OTHER"];
@@ -212,6 +213,18 @@ export async function POST(req: NextRequest) {
 
     // ----- Notification -----
     await notifyCreatedTicket(user, ticket);
+
+    // ----- Pusher: Real-time notification (Sprint C.10) -----
+    try {
+      await pusher.trigger(CHANNEL_HELPDESK, EVENT_TICKET_CREATED, {
+        ticketId: ticket.id,
+        code: ticket.code,
+        title: ticket.title,
+      });
+    } catch (err) {
+      // Log but don't fail the request
+      console.error("[Pusher] Failed to trigger ticket-created:", err);
+    }
 
     // ----- Trả về ticket đầy đủ -----
     const full = await prisma.ticket.findUnique({
