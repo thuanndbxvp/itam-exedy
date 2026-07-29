@@ -414,7 +414,7 @@ function generateSecureToken(): string {
  */
 export async function getAssetHandoverHistory(assetId: string): Promise<Array<{
   id: string;
-  docNo: string;
+  docNo: string | null;
   action: string;
   handoverDate: Date;
   toUser: { firstName: string; lastName: string | null };
@@ -452,7 +452,7 @@ export async function getPendingConfirmations(userId: string): Promise<Array<{
   handoverDate: Date;
   tokenExpiresAt: Date | null;
 }>> {
-  return prisma.assetHandover.findMany({
+  const handovers = await prisma.assetHandover.findMany({
     where: {
       toUserId: userId,
       confirmedAt: null,
@@ -470,6 +470,18 @@ export async function getPendingConfirmations(userId: string): Promise<Array<{
       tokenExpiresAt: true,
     },
   });
+
+  return handovers
+    .filter(h => h.docNo !== null)
+    .map(h => ({
+      id: h.id,
+      docNo: h.docNo!,
+      assetTag: h.asset.assetTag,
+      assetName: h.asset.name,
+      action: h.action,
+      handoverDate: h.handoverDate,
+      tokenExpiresAt: h.tokenExpiresAt,
+    }));
 }
 
 /**
