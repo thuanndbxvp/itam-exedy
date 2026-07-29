@@ -14,23 +14,23 @@
  */
 
 import prisma from '@/lib/prisma';
-import { Decimal } from '@prisma/client/runtime/library';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
+// Decimal fields from Prisma - use number after conversion
 export interface HealthScoreInput {
   purchaseDate: Date | null;
-  purchaseCost: Decimal | number | null;
+  purchaseCost: number | string | null;
   expectedLifeMonths: number | null; // từ Depreciation config
   repairCount: number;
-  totalRepairCost: Decimal | number | null;
+  totalRepairCost: number | string | null;
   assetModel?: {
     depreciation?: {
       months: number;
       depreciationType: 'LINEAR' | 'HALF_YEAR';
-      minimumValue: Decimal | number;
+      minimumValue: number;
     } | null;
   } | null;
 }
@@ -343,11 +343,17 @@ export async function recalculateHealthScore(assetId: string): Promise<HealthSco
 
   const result = calculateHealthScore({
     purchaseDate: asset.purchaseDate,
-    purchaseCost: asset.purchaseCost,
+    purchaseCost: asset.purchaseCost ? Number(asset.purchaseCost) : null,
     expectedLifeMonths: asset.model?.depreciation?.months ?? null,
     repairCount: asset.repairCount,
-    totalRepairCost: asset.totalRepairCost,
-    assetModel: asset.model,
+    totalRepairCost: asset.totalRepairCost ? Number(asset.totalRepairCost) : null,
+    assetModel: asset.model ? {
+      ...asset.model,
+      depreciation: asset.model.depreciation ? {
+        ...asset.model.depreciation,
+        minimumValue: Number(asset.model.depreciation.minimumValue),
+      } : null,
+    } : null,
   });
 
   await prisma.asset.update({
@@ -426,11 +432,17 @@ export async function batchRecalculateHealthScores(companyId?: string): Promise<
   for (const asset of assets) {
     const result = calculateHealthScore({
       purchaseDate: asset.purchaseDate,
-      purchaseCost: asset.purchaseCost,
+      purchaseCost: asset.purchaseCost ? Number(asset.purchaseCost) : null,
       expectedLifeMonths: asset.model?.depreciation?.months ?? null,
       repairCount: asset.repairCount,
-      totalRepairCost: asset.totalRepairCost,
-      assetModel: asset.model,
+      totalRepairCost: asset.totalRepairCost ? Number(asset.totalRepairCost) : null,
+      assetModel: asset.model ? {
+        ...asset.model,
+        depreciation: asset.model.depreciation ? {
+          ...asset.model.depreciation,
+          minimumValue: Number(asset.model.depreciation.minimumValue)
+        } : null
+      } : null,
     });
 
     await prisma.asset.update({
