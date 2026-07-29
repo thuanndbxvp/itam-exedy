@@ -11,6 +11,7 @@ import CSVImportModal from '@/components/assets/CSVImportModal'
 import Modal from '@/components/ui/Modal'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
+import VirtualInventoryTabs from '@/components/assets/VirtualInventoryTabs'
 
 const getStatusColor = (s: { deployable: boolean; pending: boolean; archived: boolean } | null) => {
   if (!s) return 'bg-gray-100 text-gray-700 border-gray-200'
@@ -44,6 +45,7 @@ interface Props {
   locations: { id: string; name: string }[]
   transferableAssets: { id: string; assetTag: string; name: string }[]
   filterNode?: React.ReactNode
+  virtualCounts: { available: number; maintenance: number; archived: number }
 }
 
 export default function AssetsPageClient({
@@ -52,6 +54,7 @@ export default function AssetsPageClient({
   locations,
   transferableAssets,
   filterNode,
+  virtualCounts,
 }: Props) {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [showImportModal, setShowImportModal] = useState(false)
@@ -154,6 +157,9 @@ export default function AssetsPageClient({
             </RoleGate>
           </div>
         </div>
+
+        {/* Virtual Inventory (Kho Ảo) */}
+        <VirtualInventoryTabs counts={virtualCounts} />
 
         {/* Data Table Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

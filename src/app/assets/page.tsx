@@ -27,6 +27,7 @@ interface PageProps {
     eolDateTo?: string
     byod?: string
     requestable?: string
+    virtual_tab?: string // Kho ảo
   }>
 }
 
@@ -66,6 +67,18 @@ async function getPageData(params: PageProps['searchParams']) {
       { name: { contains: p.search, mode: 'insensitive' } },
       { serial: { contains: p.search, mode: 'insensitive' } },
     ]
+  }
+
+  // C11: Virtual Inventory (Kho ảo) - overrides standard filters if set
+  if (p.virtual_tab === 'available') {
+    where.status = { deployable: true }
+    where.assignedUserId = null
+    where.assignedLocationId = null
+    where.assignedAssetId = null
+  } else if (p.virtual_tab === 'maintenance') {
+    where.status = { pending: true }
+  } else if (p.virtual_tab === 'archived') {
+    where.status = { archived: true }
   }
 
   // C6: Advanced filter
@@ -111,7 +124,7 @@ async function getPageData(params: PageProps['searchParams']) {
   if (p.requestable === 'true') where.requestable = true
 
   // EMPLOYEE: không cần load full user list (chỉ xem của mình).
-  const [assetsRaw, total, statuses, categories, locations, users, transferableAssets, models, suppliers] = await Promise.all([
+  const [assetsRaw, total, statuses, categories, locations, users, transferableAssets, models, suppliers, countAvailable, countMaintenance, countArchived] = await Promise.all([
     prisma.asset.findMany({
       where,
       include: {
@@ -154,6 +167,10 @@ async function getPageData(params: PageProps['searchParams']) {
     // C6: dropdowns cho advanced filter
     prisma.assetModel.findMany({ where: { deletedAt: null }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
     prisma.supplier.findMany({ where: { deletedAt: null }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+    // C11: Kho ảo counts
+    prisma.asset.count({ where: { deletedAt: null, status: { deployable: true }, assignedUserId: null, assignedLocationId: null, assignedAssetId: null } }),
+    prisma.asset.count({ where: { deletedAt: null, status: { pending: true } } }),
+    prisma.asset.count({ where: { deletedAt: null, status: { archived: true } } })
   ])
 
   // Serialize: convert Prisma Decimal → number (Plain objects only for Server → Client)
@@ -184,6 +201,11 @@ async function getPageData(params: PageProps['searchParams']) {
     transferableAssets,
     models,
     suppliers,
+    virtualCounts: {
+      available: countAvailable,
+      maintenance: countMaintenance,
+      archived: countArchived
+    }
   }
 }
 
@@ -207,6 +229,7 @@ export default async function AssetsPage({ searchParams }: PageProps) {
               suppliers={data.suppliers}
             />
           }
+          virtualCounts={data.virtualCounts}
         />
         {data.totalPages > 1 && (
           <div className="flex items-center justify-end bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3 mt-4">
