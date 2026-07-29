@@ -8,8 +8,13 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter), sans-serif;
   --font-mono: var(--font-geist-mono);
+
+  /* Stitch Design System Colors */
+  --color-primary: #004ac6;
+  --color-surface: #f7f9fb;
+  --color-surface-container: #eceef0;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,9 +25,9 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), sans-serif;
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
 }
 
 /* Custom Scrollbar for Dark Sidebar */

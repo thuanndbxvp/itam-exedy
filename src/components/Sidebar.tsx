@@ -57,8 +57,6 @@ type NavItem = {
   name: string
   href: string
   icon: IconKey
-  emoji?: string // Thêm emoji để làm giao diện màu mè như app cũ
-  iconColor?: string // Màu cho icon Lucide nếu không dùng emoji
   allowedRoles: ('ADMIN' | 'IT_STAFF' | 'IT_MANAGER' | 'EMPLOYEE')[]
   permissionKey?: string
   children?: { label: string; href: string; icon: IconKey; permissionKey?: string }[]
@@ -68,7 +66,6 @@ type NavItem = {
 type NavGroup = {
   label: string
   icon: IconKey
-  emoji?: string
   hideHeader?: boolean
   allowedRoles: ('ADMIN' | 'IT_STAFF' | 'IT_MANAGER' | 'EMPLOYEE')[]
   items: NavItem[]
@@ -79,66 +76,61 @@ const NAVIGATION_GROUPS: NavGroup[] = [
     label: 'Tổng quan',
     hideHeader: true,
     icon: LayoutDashboard,
-    emoji: '📊',
     allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'],
     items: [
-      { name: 'Dashboard', href: '/', icon: LayoutDashboard, emoji: '📊', allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'] },
+      { name: 'Dashboard', href: '/', icon: LayoutDashboard, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'] },
     ],
   },
   {
     label: 'Quản lý Tài sản',
     icon: Monitor,
-    emoji: '💻',
     allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'],
     items: [
-      { name: 'Thiết bị', href: '/assets', icon: Monitor, emoji: '💻', allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'] },
-      { name: 'Bản quyền', href: '/licenses', icon: Key, emoji: '🔐', allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'] },
-      { name: 'Bảo trì', href: '/maintenances', icon: Wrench, emoji: '🛠️', allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER'], permissionKey: 'assets.read' },
-      { name: 'Loại tài sản', href: '/settings/categories', icon: FolderOpen, emoji: '📁', allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
-      { name: 'Model thiết bị', href: '/settings/asset-models', icon: Box, emoji: '📦', allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
-      { name: 'Nhà sản xuất', href: '/settings/manufacturers', icon: Factory, emoji: '🏭', allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
-      { name: 'Nhà cung cấp', href: '/settings/suppliers', icon: Package, emoji: '🚚', allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
-      { name: 'Vị trí', href: '/settings/locations', icon: MapPin, emoji: '📍', allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
-      { name: 'Khấu hao', href: '/settings/depreciation', icon: TrendingDown, emoji: '📉', allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
-      { name: 'Trạng thái', href: '/settings/statuses', icon: Tag, emoji: '🏷️', allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Thiết bị', href: '/assets', icon: Monitor, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'] },
+      { name: 'Bản quyền', href: '/licenses', icon: Key, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'] },
+      { name: 'Bảo trì', href: '/maintenances', icon: Wrench, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER'], permissionKey: 'assets.read' },
+      { name: 'Loại tài sản', href: '/settings/categories', icon: FolderOpen, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Model thiết bị', href: '/settings/asset-models', icon: Box, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Nhà sản xuất', href: '/settings/manufacturers', icon: Factory, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Nhà cung cấp', href: '/settings/suppliers', icon: Package, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Vị trí', href: '/settings/locations', icon: MapPin, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Khấu hao', href: '/settings/depreciation', icon: TrendingDown, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Trạng thái', href: '/settings/statuses', icon: Tag, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
     ],
   },
   {
     label: 'Vận hành & Hỗ trợ',
     icon: LifeBuoy,
-    emoji: '🆘',
     allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'],
     items: [
-      { name: 'Helpdesk', href: '/helpdesk', icon: LifeBuoy, emoji: '🎧', allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'helpdesk.view' },
-      { name: 'Quản trị Helpdesk', href: '/admin/helpdesk', icon: Settings, emoji: '⚙️', allowedRoles: ['ADMIN'], permissionKey: 'helpdesk.manage_rules' },
-      { name: 'Báo cáo', href: '/reports', icon: BarChart3, emoji: '📈', allowedRoles: ['ADMIN', 'IT_MANAGER'], permissionKey: 'reports.view', exact: true },
-      { name: 'Chi phí IT', href: '/reports/costs', icon: DollarSign, emoji: '💰', allowedRoles: ['ADMIN', 'IT_MANAGER'], permissionKey: 'reports.view', exact: true },
-      { name: 'Kiểm kê', href: '/reports/audit', icon: ClipboardCheck, emoji: '📋', allowedRoles: ['ADMIN', 'IT_MANAGER'], permissionKey: 'reports.view', exact: true },
+      { name: 'Helpdesk', href: '/helpdesk', icon: LifeBuoy, allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'], permissionKey: 'helpdesk.view' },
+      { name: 'Quản trị Helpdesk', href: '/admin/helpdesk', icon: Settings, allowedRoles: ['ADMIN'], permissionKey: 'helpdesk.manage_rules' },
+      { name: 'Báo cáo', href: '/reports', icon: BarChart3, allowedRoles: ['ADMIN', 'IT_MANAGER'], permissionKey: 'reports.view', exact: true },
+      { name: 'Chi phí IT', href: '/reports/costs', icon: DollarSign, allowedRoles: ['ADMIN', 'IT_MANAGER'], permissionKey: 'reports.view', exact: true },
+      { name: 'Kiểm kê', href: '/reports/audit', icon: ClipboardCheck, allowedRoles: ['ADMIN', 'IT_MANAGER'], permissionKey: 'reports.view', exact: true },
     ],
   },
   {
     label: 'Nhân sự & Tổ chức',
     icon: Users,
-    emoji: '👥',
     allowedRoles: ['ADMIN'],
     items: [
-      { name: 'Người dùng', href: '/settings/users', icon: Users, emoji: '👤', allowedRoles: ['ADMIN'], permissionKey: 'users.read' },
-      { name: 'Phòng ban', href: '/settings/departments', icon: Building2, emoji: '🏢', allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
-      { name: 'Công ty', href: '/settings/companies', icon: Building, emoji: '🏛️', allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
-      { name: 'Phân quyền', href: '/settings/permissions', icon: UserCog, emoji: '🔑', allowedRoles: ['ADMIN'], permissionKey: 'users.manage_roles' },
+      { name: 'Người dùng', href: '/settings/users', icon: Users, allowedRoles: ['ADMIN'], permissionKey: 'users.read' },
+      { name: 'Phòng ban', href: '/settings/departments', icon: Building2, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Công ty', href: '/settings/companies', icon: Building, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Phân quyền', href: '/settings/permissions', icon: UserCog, allowedRoles: ['ADMIN'], permissionKey: 'users.manage_roles' },
     ],
   },
   {
     label: 'Hệ thống',
     icon: Server,
-    emoji: '⚙️',
     allowedRoles: ['ADMIN'],
     items: [
-      { name: 'Tổng quan', href: '/settings/general', icon: Sliders, emoji: '🎛️', allowedRoles: ['ADMIN'], permissionKey: 'settings.read' },
-      { name: 'Thương hiệu', href: '/settings/branding', icon: Palette, emoji: '🎨', allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
-      { name: 'Bảo mật', href: '/settings/security', icon: Shield, emoji: '🛡️', allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
-      { name: 'Email', href: '/settings/email', icon: Mail, emoji: '📧', allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
-      { name: 'Nhật ký Audit', href: '/settings/audit-log', icon: Activity, emoji: '📝', allowedRoles: ['ADMIN'], permissionKey: 'settings.read' },
+      { name: 'Tổng quan', href: '/settings/general', icon: Sliders, allowedRoles: ['ADMIN'], permissionKey: 'settings.read' },
+      { name: 'Thương hiệu', href: '/settings/branding', icon: Palette, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Bảo mật', href: '/settings/security', icon: Shield, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Email', href: '/settings/email', icon: Mail, allowedRoles: ['ADMIN'], permissionKey: 'settings.update' },
+      { name: 'Nhật ký Audit', href: '/settings/audit-log', icon: Activity, allowedRoles: ['ADMIN'], permissionKey: 'settings.read' },
     ],
   },
 ]
@@ -231,16 +223,16 @@ export default function Sidebar() {
 
       {/* Sidebar panel */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-40 w-64 bg-[#0a2342] text-white transform transition-transform duration-300 ease-in-out flex flex-col border-r border-[#0d2d53] shadow-xl
+        fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white text-[#191c1e] transform transition-transform duration-300 ease-in-out flex flex-col border-r border-[#e0e3e5] shadow-sm
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
 
         {/* Branding */}
-        <div className="h-16 flex items-center px-6 font-bold text-xl tracking-tight border-b border-[#0d2d53] shrink-0">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg mr-3 flex items-center justify-center shadow-lg">
+        <div className="h-16 flex items-center px-6 font-semibold text-xl tracking-tight border-b border-[#eceef0] shrink-0">
+          <div className="w-8 h-8 bg-[#004ac6] rounded-lg mr-3 flex items-center justify-center shadow-sm">
             <Monitor size={18} className="text-white" />
           </div>
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-100 to-white">IT Manager</span>
+          <span className="text-[#191c1e]">IT Manager</span>
         </div>
 
 
@@ -255,10 +247,10 @@ export default function Sidebar() {
               <div key={group.label}>
                 {/* Group header */}
                 {!group.hideHeader && (
-                  <div className={`flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold uppercase tracking-wider mb-1 ${
-                    groupActive ? 'text-blue-300' : 'text-[#6b93b8]'
+                  <div className={`flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold uppercase tracking-wider mb-1 ${
+                    groupActive ? 'text-[#004ac6]' : 'text-[#737686]'
                   }`}>
-                    <span className="text-base leading-none">{group.emoji}</span>
+                    <group.icon size={14} />
                     <span>{group.label}</span>
                   </div>
                 )}
@@ -279,23 +271,17 @@ export default function Sidebar() {
                             onClick={handleNavClick}
                             className={`flex-1 flex items-center px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
                               itemActive
-                                ? 'bg-[#0ea5e9] text-white shadow-[0_4px_14px_0_rgba(14,165,233,0.39)] font-semibold'
-                                : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                                ? 'bg-[#004ac6] text-white font-medium shadow-sm'
+                                : 'text-[#434655] hover:bg-[#f2f4f6] hover:text-[#191c1e]'
                             }`}
                           >
-                            {item.emoji ? (
-                              <span className="mr-3 text-lg leading-none shrink-0" style={{ textShadow: itemActive ? 'none' : '0 1px 2px rgba(0,0,0,0.5)' }}>
-                                {item.emoji}
-                              </span>
-                            ) : (
-                              <Icon className={`mr-3 h-4 w-4 shrink-0 ${itemActive ? 'text-white' : item.iconColor || 'text-slate-400'}`} />
-                            )}
+                            <Icon className={`mr-3 h-4 w-4 shrink-0 ${itemActive ? 'text-white' : 'text-[#737686]'}`} />
                             <span className="text-[14px]">{item.name}</span>
                           </Link>
                           {hasChildren && (
                             <button
                               onClick={(e) => toggleMenu(item.name, e)}
-                              className="p-1 mr-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition"
+                              className={`p-1 mr-1 rounded hover:bg-[#eceef0] transition ${itemActive ? 'text-white' : 'text-[#737686]'}`}
                               aria-label="Mở rộng menu"
                             >
                               {menuOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -313,8 +299,8 @@ export default function Sidebar() {
                                 onClick={handleNavClick}
                                 className={`flex items-center px-3 py-1.5 rounded-md text-sm transition-colors ${
                                   isChildActive(child)
-                                    ? 'bg-slate-800 text-white font-medium'
-                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                    ? 'bg-[#e0e3e5] text-[#191c1e] font-medium'
+                                    : 'text-[#434655] hover:bg-[#f2f4f6] hover:text-[#191c1e]'
                                 }`}
                               >
                                 <span className="w-1 h-1 rounded-full bg-current mr-2 opacity-60" />
