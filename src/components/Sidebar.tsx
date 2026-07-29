@@ -9,7 +9,7 @@ import {
   Activity, ChevronDown, ChevronRight,
   Wrench, BarChart3, DollarSign, LogOut, Shield, Building2, MapPin,
   TrendingDown, Tag, Users, Building, UserCog, LayoutGrid, Server,
-  Factory, Box, Truck, Sliders, Palette, Mail, FolderOpen, Package
+  Factory, Box, Truck, Sliders, Palette, Mail, FolderOpen, Package, ClipboardCheck
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
@@ -105,6 +105,7 @@ const NAVIGATION_GROUPS: NavGroup[] = [
       { name: 'Quản trị Helpdesk', href: '/admin/helpdesk', icon: Settings, allowedRoles: ['ADMIN'], permissionKey: 'helpdesk.manage_rules' },
       { name: 'Báo cáo', href: '/reports', icon: BarChart3, allowedRoles: ['ADMIN', 'IT_MANAGER'], permissionKey: 'reports.view', exact: true },
       { name: 'Chi phí IT', href: '/reports/costs', icon: DollarSign, allowedRoles: ['ADMIN', 'IT_MANAGER'], permissionKey: 'reports.view', exact: true },
+      { name: 'Kiểm kê', href: '/reports/audit', icon: ClipboardCheck, allowedRoles: ['ADMIN', 'IT_MANAGER'], permissionKey: 'reports.view', exact: true },
     ],
   },
   {

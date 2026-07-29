@@ -308,9 +308,10 @@ export function calculateDepreciation(
 
 /**
  * Lấy Asset data cần thiết để tính Health Score.
+ * Decimal fields returned as-is - convert in calculateHealthScore call.
  */
 export async function getAssetForHealthScore(assetId: string) {
-  return prisma.asset.findUnique({
+  const asset = await prisma.asset.findUnique({
     where: { id: assetId },
     select: {
       id: true,
@@ -331,6 +332,22 @@ export async function getAssetForHealthScore(assetId: string) {
       },
     },
   });
+  
+  if (!asset) return null;
+  
+  // Convert Decimal to number for type compatibility
+  return {
+    ...asset,
+    purchaseCost: asset.purchaseCost ? Number(asset.purchaseCost) : null,
+    totalRepairCost: asset.totalRepairCost ? Number(asset.totalRepairCost) : null,
+    model: asset.model ? {
+      ...asset.model,
+      depreciation: asset.model.depreciation ? {
+        ...asset.model.depreciation,
+        minimumValue: Number(asset.model.depreciation.minimumValue),
+      } : null,
+    } : null,
+  };
 }
 
 /**
@@ -343,17 +360,11 @@ export async function recalculateHealthScore(assetId: string): Promise<HealthSco
 
   const result = calculateHealthScore({
     purchaseDate: asset.purchaseDate,
-    purchaseCost: asset.purchaseCost ? Number(asset.purchaseCost) : null,
+    purchaseCost: asset.purchaseCost,
     expectedLifeMonths: asset.model?.depreciation?.months ?? null,
     repairCount: asset.repairCount,
-    totalRepairCost: asset.totalRepairCost ? Number(asset.totalRepairCost) : null,
-    assetModel: asset.model ? {
-      ...asset.model,
-      depreciation: asset.model.depreciation ? {
-        ...asset.model.depreciation,
-        minimumValue: Number(asset.model.depreciation.minimumValue),
-      } : null,
-    } : null,
+    totalRepairCost: asset.totalRepairCost,
+    assetModel: asset.model,
   });
 
   await prisma.asset.update({
@@ -406,6 +417,7 @@ export async function getHealthScoreSummary(companyId?: string) {
 export async function batchRecalculateHealthScores(companyId?: string): Promise<number> {
   const where = companyId ? { companyId, deletedAt: null } : { deletedAt: null };
 
+  // This function queries directly to avoid the conversion overhead in the loop
   const assets = await prisma.asset.findMany({
     where,
     select: {

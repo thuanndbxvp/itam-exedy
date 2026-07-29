@@ -41,11 +41,17 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     // Calculate health score (realtime)
     const healthScore = calculateHealthScore({
       purchaseDate: rawAsset.purchaseDate,
-      purchaseCost: rawAsset.purchaseCost,
+      purchaseCost: rawAsset.purchaseCost ? Number(rawAsset.purchaseCost) : null,
       expectedLifeMonths: rawAsset.model?.depreciation?.months ?? null,
       repairCount: rawAsset.repairCount,
-      totalRepairCost: rawAsset.totalRepairCost,
-      assetModel: rawAsset.model,
+      totalRepairCost: rawAsset.totalRepairCost ? Number(rawAsset.totalRepairCost) : null,
+      assetModel: rawAsset.model ? {
+        ...rawAsset.model,
+        depreciation: rawAsset.model.depreciation ? {
+          ...rawAsset.model.depreciation,
+          minimumValue: Number(rawAsset.model.depreciation.minimumValue),
+        } : null,
+      } : null,
     })
 
     return okResponse({
