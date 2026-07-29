@@ -69,6 +69,7 @@ type NavGroup = {
   label: string
   icon: IconKey
   emoji?: string
+  hideHeader?: boolean
   allowedRoles: ('ADMIN' | 'IT_STAFF' | 'IT_MANAGER' | 'EMPLOYEE')[]
   items: NavItem[]
 }
@@ -76,6 +77,7 @@ type NavGroup = {
 const NAVIGATION_GROUPS: NavGroup[] = [
   {
     label: 'Tổng quan',
+    hideHeader: true,
     icon: LayoutDashboard,
     emoji: '📊',
     allowedRoles: ['ADMIN', 'IT_STAFF', 'IT_MANAGER', 'EMPLOYEE'],
@@ -252,12 +254,14 @@ export default function Sidebar() {
             return (
               <div key={group.label}>
                 {/* Group header */}
-                <div className={`flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold uppercase tracking-wider mb-1 ${
-                  groupActive ? 'text-blue-300' : 'text-[#6b93b8]'
-                }`}>
-                  <span className="text-base leading-none">{group.emoji}</span>
-                  <span>{group.label}</span>
-                </div>
+                {!group.hideHeader && (
+                  <div className={`flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold uppercase tracking-wider mb-1 ${
+                    groupActive ? 'text-blue-300' : 'text-[#6b93b8]'
+                  }`}>
+                    <span className="text-base leading-none">{group.emoji}</span>
+                    <span>{group.label}</span>
+                  </div>
+                )}
 
                 {/* Items */}
                 <div className="space-y-0.5">
