@@ -39,14 +39,14 @@ function formatDate(dateStr: string | null): string {
 function getStatusBadge(status: 'overdue' | 'due_soon') {
   if (status === 'overdue') {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[12px] font-bold uppercase tracking-wide bg-red-100 text-red-800">
         <XCircle className="w-3 h-3" />
         Quá hạn
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[12px] font-bold uppercase tracking-wide bg-orange-100 text-orange-800">
       <AlertTriangle className="w-3 h-3" />
       Sắp đến hạn
     </span>
@@ -105,7 +105,7 @@ export default function AuditReportClient() {
       {/* Counters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Overdue */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100">
+        <div className="bg-white p-6 rounded-2xl shadow-[0_4px_15px_rgba(0,74,198,0.04)] border border-slate-100">
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-xl bg-red-50">
               <XCircle className="w-6 h-6 text-red-500" />
@@ -118,20 +118,20 @@ export default function AuditReportClient() {
         </div>
 
         {/* Due Soon */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-amber-100">
+        <div className="bg-white p-6 rounded-2xl shadow-[0_4px_15px_rgba(0,74,198,0.04)] border border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-amber-50">
-              <AlertTriangle className="w-6 h-6 text-amber-500" />
+            <div className="p-3 rounded-xl bg-orange-50">
+              <AlertTriangle className="w-6 h-6 text-orange-500" />
             </div>
             <div>
-              <p className="text-3xl font-bold text-amber-600">{counters.dueSoon}</p>
+              <p className="text-3xl font-bold text-orange-600">{counters.dueSoon}</p>
               <p className="text-sm text-gray-500">Sắp đến hạn (30 ngày)</p>
             </div>
           </div>
         </div>
 
         {/* Safe */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100">
+        <div className="bg-white p-6 rounded-2xl shadow-[0_4px_15px_rgba(0,74,198,0.04)] border border-slate-100">
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-xl bg-emerald-50">
               <CheckCircle2 className="w-6 h-6 text-emerald-500" />
@@ -145,8 +145,8 @@ export default function AuditReportClient() {
       </div>
 
       {/* Data Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
+      <div className="bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,74,198,0.04)] border border-slate-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100">
           <h2 className="text-lg font-semibold text-gray-900">
             Tài sản cần kiểm kê ({assets.length})
           </h2>
@@ -163,17 +163,17 @@ export default function AuditReportClient() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tài sản</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Mã thẻ</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Trạng thái</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Người giữ</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Kiểm kê cuối</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Hạn tiếp theo</th>
+                  <th className="px-6 py-4 text-left text-[12px] font-semibold text-slate-600 uppercase tracking-wider">Tài sản</th>
+                  <th className="px-6 py-4 text-left text-[12px] font-semibold text-slate-600 uppercase tracking-wider">Mã thẻ</th>
+                  <th className="px-6 py-4 text-left text-[12px] font-semibold text-slate-600 uppercase tracking-wider">Trạng thái</th>
+                  <th className="px-6 py-4 text-left text-[12px] font-semibold text-slate-600 uppercase tracking-wider">Người giữ</th>
+                  <th className="px-6 py-4 text-left text-[12px] font-semibold text-slate-600 uppercase tracking-wider">Kiểm kê cuối</th>
+                  <th className="px-6 py-4 text-left text-[12px] font-semibold text-slate-600 uppercase tracking-wider">Hạn tiếp theo</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-slate-200">
                 {assets.map((asset) => (
                   <tr key={asset.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">

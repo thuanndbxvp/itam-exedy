@@ -223,16 +223,16 @@ export default function Sidebar() {
 
       {/* Sidebar panel */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white text-[#191c1e] transform transition-transform duration-300 ease-in-out flex flex-col border-r border-[#e0e3e5] shadow-sm
+        fixed lg:static inset-y-0 left-0 z-40 w-64 bg-[#191c1e] text-[#eff1f3] transform transition-transform duration-300 ease-in-out flex flex-col border-r border-[#2d3133] shadow-lg
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
 
         {/* Branding */}
-        <div className="h-16 flex items-center px-6 font-semibold text-xl tracking-tight border-b border-[#eceef0] shrink-0">
+        <div className="h-16 flex items-center px-6 font-semibold text-xl tracking-tight border-b border-[#2d3133] shrink-0">
           <div className="w-8 h-8 bg-[#004ac6] rounded-lg mr-3 flex items-center justify-center shadow-sm">
             <Monitor size={18} className="text-white" />
           </div>
-          <span className="text-[#191c1e]">IT Manager</span>
+          <span className="text-white">IT Manager</span>
         </div>
 
 
@@ -248,7 +248,7 @@ export default function Sidebar() {
                 {/* Group header */}
                 {!group.hideHeader && (
                   <div className={`flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold uppercase tracking-wider mb-1 ${
-                    groupActive ? 'text-[#004ac6]' : 'text-[#737686]'
+                    groupActive ? 'text-[#b4c5ff]' : 'text-[#737686]'
                   }`}>
                     <group.icon size={14} />
                     <span>{group.label}</span>
@@ -272,7 +272,7 @@ export default function Sidebar() {
                             className={`flex-1 flex items-center px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
                               itemActive
                                 ? 'bg-[#004ac6] text-white font-medium shadow-sm'
-                                : 'text-[#434655] hover:bg-[#f2f4f6] hover:text-[#191c1e]'
+                                : 'text-[#c3c6d7] hover:bg-[#2d3133] hover:text-white'
                             }`}
                           >
                             <Icon className={`mr-3 h-4 w-4 shrink-0 ${itemActive ? 'text-white' : 'text-[#737686]'}`} />
@@ -281,7 +281,7 @@ export default function Sidebar() {
                           {hasChildren && (
                             <button
                               onClick={(e) => toggleMenu(item.name, e)}
-                              className={`p-1 mr-1 rounded hover:bg-[#eceef0] transition ${itemActive ? 'text-white' : 'text-[#737686]'}`}
+                              className={`p-1 mr-1 rounded hover:bg-[#2d3133] transition ${itemActive ? 'text-white' : 'text-[#737686] hover:text-white'}`}
                               aria-label="Mở rộng menu"
                             >
                               {menuOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -299,8 +299,8 @@ export default function Sidebar() {
                                 onClick={handleNavClick}
                                 className={`flex items-center px-3 py-1.5 rounded-md text-sm transition-colors ${
                                   isChildActive(child)
-                                    ? 'bg-[#e0e3e5] text-[#191c1e] font-medium'
-                                    : 'text-[#434655] hover:bg-[#f2f4f6] hover:text-[#191c1e]'
+                                    ? 'bg-[#2d3133] text-white font-medium'
+                                    : 'text-[#c3c6d7] hover:bg-[#2d3133] hover:text-white'
                                 }`}
                               >
                                 <span className="w-1 h-1 rounded-full bg-current mr-2 opacity-60" />
