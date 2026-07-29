@@ -31,10 +31,10 @@ export default function VirtualInventoryTabs({ counts }: Props) {
     <div className="flex flex-wrap gap-3 mb-6">
       <button
         onClick={() => toggleTab('available')}
-        className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all duration-200 ${
+        className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all duration-200 ${
           currentTab === 'available'
-            ? 'bg-emerald-500 text-white border-emerald-600 shadow-md shadow-emerald-500/20'
-            : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'
+            ? 'bg-green-600 text-white border-green-700 shadow-md shadow-green-600/20'
+            : 'bg-white text-green-700 border-green-200 hover:bg-green-50'
         }`}
       >
         <CheckCircle2 className="w-4 h-4" />
@@ -48,10 +48,10 @@ export default function VirtualInventoryTabs({ counts }: Props) {
 
       <button
         onClick={() => toggleTab('maintenance')}
-        className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all duration-200 ${
+        className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all duration-200 ${
           currentTab === 'maintenance'
-            ? 'bg-amber-500 text-white border-amber-600 shadow-md shadow-amber-500/20'
-            : 'bg-white text-amber-700 border-amber-200 hover:bg-amber-50'
+            ? 'bg-orange-600 text-white border-orange-700 shadow-md shadow-orange-600/20'
+            : 'bg-white text-orange-700 border-orange-200 hover:bg-orange-50'
         }`}
       >
         <Wrench className="w-4 h-4" />
@@ -65,9 +65,9 @@ export default function VirtualInventoryTabs({ counts }: Props) {
 
       <button
         onClick={() => toggleTab('archived')}
-        className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all duration-200 ${
+        className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all duration-200 ${
           currentTab === 'archived'
-            ? 'bg-slate-600 text-white border-slate-700 shadow-md shadow-slate-500/20'
+            ? 'bg-slate-600 text-white border-slate-700 shadow-md shadow-slate-600/20'
             : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
         }`}
       >

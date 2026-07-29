@@ -14,11 +14,11 @@ import { useToast } from '@/components/Toast'
 import VirtualInventoryTabs from '@/components/assets/VirtualInventoryTabs'
 
 const getStatusColor = (s: { deployable: boolean; pending: boolean; archived: boolean } | null) => {
-  if (!s) return 'bg-gray-100 text-gray-700 border-gray-200'
-  if (s.archived) return 'bg-slate-100 text-slate-700 border-slate-200'
-  if (s.pending) return 'bg-amber-100 text-amber-700 border-amber-200'
-  if (!s.deployable) return 'bg-rose-100 text-rose-700 border-rose-200'
-  return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+  if (!s) return 'bg-slate-100 text-slate-700'
+  if (s.archived) return 'bg-slate-100 text-slate-700'
+  if (s.pending) return 'bg-orange-100 text-orange-800'
+  if (!s.deployable) return 'bg-red-100 text-red-800'
+  return 'bg-green-100 text-green-800'
 }
 
 const formatUserName = (u: { firstName: string; lastName: string | null } | null) => {
@@ -118,7 +118,7 @@ export default function AssetsPageClient({
               <input
                 type="text"
                 placeholder="Tìm theo mã thẻ, tên, serial..."
-                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm transition"
+                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-[#004ac6] focus:border-[#004ac6] outline-none shadow-sm transition"
               />
             </div>
             {filterNode && <div>{filterNode}</div>}
@@ -128,28 +128,28 @@ export default function AssetsPageClient({
             <RoleGate allowedRoles={['ADMIN']}>
               <button
                 onClick={() => setShowImportModal(true)}
-                className="flex items-center space-x-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-xl transition shadow-sm font-medium"
+                className="flex items-center space-x-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg transition shadow-sm font-medium"
               >
                 <Upload className="w-4 h-4" />
                 <span>Import CSV</span>
               </button>
               <button
                 onClick={handleExportCSV}
-                className="flex items-center space-x-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-xl transition shadow-sm font-medium"
+                className="flex items-center space-x-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg transition shadow-sm font-medium"
               >
                 <Download className="w-4 h-4" />
                 <span>Export CSV</span>
               </button>
               <Link
                 href="/print/asset-labels"
-                className="flex items-center space-x-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-xl transition shadow-sm font-medium"
+                className="flex items-center space-x-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg transition shadow-sm font-medium"
               >
                 <Printer className="w-4 h-4" />
                 <span>In mã QR</span>
               </Link>
               <Link
                 href="/assets/new"
-                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition shadow-sm font-medium"
+                className="flex items-center space-x-2 bg-[#004ac6] hover:bg-[#003ea8] text-white px-5 py-2 rounded-lg transition shadow-[0_1px_2px_rgba(0,0,0,0.05),inset_0_1px_0_rgba(255,255,255,0.2)] font-medium"
               >
                 <Plus className="w-5 h-5" />
                 <span>Thêm Tài Sản</span>
@@ -162,11 +162,11 @@ export default function AssetsPageClient({
         <VirtualInventoryTabs counts={virtualCounts} />
 
         {/* Data Table Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,74,198,0.04)] border border-slate-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="bg-slate-50/80 border-b border-gray-100 text-gray-500">
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase tracking-wider text-[12px]">
                   <th className="px-4 py-4 w-12">
                     <input
                       type="checkbox"
@@ -179,10 +179,10 @@ export default function AssetsPageClient({
                   <th className="px-6 py-4 font-medium whitespace-nowrap">Trạng thái</th>
                   <th className="px-6 py-4 font-medium whitespace-nowrap">Người/Vị trí/Thiết bị giữ</th>
                   <th className="px-6 py-4 font-medium whitespace-nowrap">Ngày tạo</th>
-                  <th className="px-6 py-4 text-right font-medium">Thao tác</th>
+                  <th className="px-6 py-4 text-right font-semibold">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-slate-200">
                 {assets.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
@@ -239,8 +239,7 @@ export default function AssetsPageClient({
                           </Link>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${isAssigned ? 'bg-blue-100 text-blue-700 border-blue-200' : getStatusColor(asset.status)}`}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-[12px] font-bold uppercase tracking-wide ${isAssigned ? 'bg-sky-100 text-sky-800' : getStatusColor(asset.status)}`}>
                             {isAssigned ? 'Đang sử dụng' : (asset.status?.name || 'Không rõ')}
                           </span>
                         </td>
