@@ -28,8 +28,12 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          # Chạy lệnh pg_dump kết nối tới Neon và nén file lại
-          pg_dump "$DATABASE_URL" -F c > backup-${{ env.DATE }}.dump
+          set -e
+          # pg_dump không hoạt động qua Connection Pooler của Neon, phải dùng kết nối trực tiếp
+          # Ta sẽ tự động xóa chữ "-pooler" khỏi URL
+          DIRECT_URL=$(echo "$DATABASE_URL" | sed 's/-pooler//g')
+          echo "Bắt đầu backup từ Direct URL..."
+          pg_dump "$DIRECT_URL" -F c > backup-${{ env.DATE }}.dump
           ls -lh backup-${{ env.DATE }}.dump
 
       - name: Configure AWS Credentials (for R2)
