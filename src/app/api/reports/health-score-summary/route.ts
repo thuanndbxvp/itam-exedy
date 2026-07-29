@@ -28,34 +28,31 @@ export async function GET(_req: NextRequest) {
       return NextResponse.json({ ok: false, code: 'FORBIDDEN', message: 'Không có quyền.' }, { status: 403 })
     }
 
-    // Query với company filter nếu có
-    const companyFilter = session.user.companyId ? { companyId: session.user.companyId } : {}
-
+    // No company filter - single company app
     const [excellent, good, fair, poor, total, needsReplacement] = await Promise.all([
       // Excellent: 85-100
       prisma.asset.count({
-        where: { ...companyFilter, deletedAt: null, healthScore: { gte: 85 } }
+        where: { deletedAt: null, healthScore: { gte: 85 } }
       }),
       // Good: 70-84
       prisma.asset.count({
-        where: { ...companyFilter, deletedAt: null, healthScore: { gte: 70, lt: 85 } }
+        where: { deletedAt: null, healthScore: { gte: 70, lt: 85 } }
       }),
       // Fair: 50-69
       prisma.asset.count({
-        where: { ...companyFilter, deletedAt: null, healthScore: { gte: 50, lt: 70 } }
+        where: { deletedAt: null, healthScore: { gte: 50, lt: 70 } }
       }),
       // Poor: 0-49
       prisma.asset.count({
-        where: { ...companyFilter, deletedAt: null, healthScore: { lt: 50 } }
+        where: { deletedAt: null, healthScore: { lt: 50 } }
       }),
       // Total assets
       prisma.asset.count({
-        where: { ...companyFilter, deletedAt: null }
+        where: { deletedAt: null }
       }),
       // Needs replacement: score < 50 hoặc chưa calculate
       prisma.asset.count({
         where: {
-          ...companyFilter,
           deletedAt: null,
           OR: [
             { healthScore: { lt: 50 } },
@@ -68,10 +65,8 @@ export async function GET(_req: NextRequest) {
     // Top assets cần thay thế
     const topReplacementCandidates = await prisma.asset.findMany({
       where: {
-        ...companyFilter,
         deletedAt: null,
-        healthScore: { lt: 60 },
-        healthScore: { not: null },
+        healthScore: { lt: 60, not: null },
       },
       orderBy: { healthScore: 'asc' },
       take: 5,
@@ -87,7 +82,7 @@ export async function GET(_req: NextRequest) {
 
     // Calculate average score
     const avgScoreResult = await prisma.asset.aggregate({
-      where: { ...companyFilter, deletedAt: null, healthScore: { not: null } },
+      where: { deletedAt: null, healthScore: { not: null } },
       _avg: { healthScore: true },
     })
     const avgScore = avgScoreResult._avg.healthScore
