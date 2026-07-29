@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
 import { bulkCheckoutAction, bulkCheckinAction } from '@/app/actions/bulk-asset'
-import { Loader2, Package, RotateCcw } from 'lucide-react'
+import { Loader2, Package, RotateCcw, Printer } from 'lucide-react'
 
 interface BulkActionBarProps {
   selectedIds: string[]

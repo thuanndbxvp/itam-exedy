@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Plus, Search, MoreVertical, Edit2, Archive, Trash2, Upload, Download } from 'lucide-react'
+import { Plus, Search, MoreVertical, Edit2, Archive, Trash2, Upload, Download, Printer } from 'lucide-react'
 import RoleGate from '@/components/RoleGate'
 import CheckoutAssetButton from '@/components/assets/CheckoutAssetButton'
 import CheckinAssetButton from '@/components/assets/CheckinAssetButton'
@@ -137,6 +137,13 @@ export default function AssetsPageClient({
                 <Download className="w-4 h-4" />
                 <span>Export CSV</span>
               </button>
+              <Link
+                href="/print/asset-labels"
+                className="flex items-center space-x-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-xl transition shadow-sm font-medium"
+              >
+                <Printer className="w-4 h-4" />
+                <span>In mã QR</span>
+              </Link>
               <Link
                 href="/assets/new"
                 className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition shadow-sm font-medium"
