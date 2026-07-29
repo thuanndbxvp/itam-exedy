@@ -2,11 +2,14 @@
  * DELETE /api/maintenances/[id]  — soft-delete 1 phiếu sửa chữa
  *
  * Auth: assets.update.
+ *
+ * Sprint C.11: Sync lại asset status & stats sau khi xóa.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { errorResponse, okResponse } from '@/lib/api'
 import { requirePermissionApi } from '@/lib/permissions/http-guard'
+import { onMaintenanceDeleted, updateMaintenanceStats } from '@/lib/asset-status-sync'
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -22,10 +25,16 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
       )
     }
 
+    const assetId = existing.assetId
+
     await prisma.assetMaintenance.update({
       where: { id },
       data: { deletedAt: new Date() },
     })
+
+    // Sprint C.11: Sync asset status & stats
+    await updateMaintenanceStats(assetId)
+    await onMaintenanceDeleted(assetId, undefined, existing.title)
 
     return okResponse(undefined)
   } catch (e) {

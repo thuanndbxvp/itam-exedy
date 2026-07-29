@@ -31,12 +31,29 @@ interface CategoryData {
   count: number
 }
 
+// C.11: Health Score types
+interface HealthScoreData {
+  distribution: { excellent: number; good: number; fair: number; poor: number; total: number }
+  avgScore: number | null
+  needsReplacement: number
+  topReplacementCandidates: Array<{
+    id: string
+    assetTag: string
+    name: string
+    healthScore: number | null
+    repairCount: number
+    purchaseDate: string | null
+  }>
+}
+
 // R.4: Lazy load heavy components
 const AssetStats = lazy(() => import('./AssetStats'))
 const StatusPieChart = lazy(() => import('./StatusPieChart'))
 const CategoryBarChart = lazy(() => import('./CategoryBarChart'))
 const LicenseExpiryAlert = lazy(() => import('./alerts/LicenseExpiryAlert'))
 const AssetEolAlert = lazy(() => import('./alerts/AssetEolAlert'))
+// C.11: Health Score
+const HealthScoreSummary = lazy(() => import('./HealthScoreSummary'))
 
 // Loading skeleton for lazy components
 function ChartSkeleton() {
@@ -66,6 +83,7 @@ export default function DashboardClient() {
   const [summary, setSummary] = useState<SummaryData | null>(null)
   const [statusData, setStatusData] = useState<StatusData[]>([])
   const [categoryData, setCategoryData] = useState<CategoryData[]>([])
+  const [healthScoreData, setHealthScoreData] = useState<HealthScoreData | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -73,10 +91,12 @@ export default function DashboardClient() {
       fetch('/api/reports/summary').then((r) => r.json()),
       fetch('/api/reports/assets-by-status').then((r) => r.json()),
       fetch('/api/reports/assets-by-category').then((r) => r.json()),
-    ]).then(([summaryRes, statusRes, categoryRes]) => {
+      fetch('/api/reports/health-score-summary').then((r) => r.json()),
+    ]).then(([summaryRes, statusRes, categoryRes, healthScoreRes]) => {
       if (summaryRes.ok) setSummary(summaryRes.data)
       if (statusRes.ok) setStatusData(statusRes.data)
       if (categoryRes.ok) setCategoryData(categoryRes.data)
+      if (healthScoreRes.ok) setHealthScoreData(healthScoreRes.data)
       setLoading(false)
     })
   }, [])
@@ -136,6 +156,18 @@ export default function DashboardClient() {
           <AssetEolAlert />
         </Suspense>
       </div>
+
+      {/* C.11: Health Score Summary */}
+      {healthScoreData && (
+        <Suspense fallback={<AlertSkeleton />}>
+          <HealthScoreSummary
+            distribution={healthScoreData.distribution}
+            avgScore={healthScoreData.avgScore}
+            needsReplacement={healthScoreData.needsReplacement}
+            topReplacementCandidates={healthScoreData.topReplacementCandidates}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }

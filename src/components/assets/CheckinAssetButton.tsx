@@ -39,6 +39,23 @@ export default function CheckinAssetButton({
     try {
       const result = await checkinAssetCmd({ assetId })
       showCommandResult(result, `Đã thu hồi asset "${assetTag}" về kho.`)
+
+      // C12: Tạo handover record sau khi checkin thành công
+      if (result && typeof result === 'object' && 'ok' in result && (result as { ok: boolean }).ok) {
+        try {
+          await fetch('/api/handover', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              assetId,
+              action: 'RETURN',
+            }),
+          })
+        } catch {
+          console.error('Failed to create handover record')
+        }
+      }
     } finally {
       setIsPending(false)
     }

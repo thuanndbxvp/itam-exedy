@@ -158,10 +158,16 @@ export default async function AssetDetailPage({ params }: PageProps) {
     statusColor: a.status?.color ?? null,
   }))
 
+  // C.11: Serialize health score fields
   const serialized = {
     ...asset,
     licenseSeats: serializedSeats,
     assignedToAssets: serializedChildAssets,
+    // C.11: Health Score fields
+    repairCount: asset.repairCount,
+    totalRepairCost: asset.totalRepairCost ? Number(asset.totalRepairCost) : null,
+    healthScore: asset.healthScore,
+    lastHealthCheck: asset.lastHealthCheck?.toISOString() ?? null,
     assignedUserId: asset.assignedUserId,
     assignedLocationId: asset.assignedLocationId,
     assignedAssetId: asset.assignedAssetId,

@@ -1,13 +1,18 @@
 /**
- * GET  /api/assets/[id]/maintenances  — list lịch sử sửa chữa
  * POST /api/assets/[id]/maintenances  — tạo phiếu sửa chữa mới
  *
- * Auth: assets.read cho GET, assets.update cho POST.
+ * Auth: assets.update.
+ *
+ * Sprint C.11: Tự động sync:
+ * - Asset status → MAINTENANCE (nếu chưa hoàn thành)
+ * - Asset repairCount, totalRepairCost
+ * - Asset healthScore (recalculate)
  */
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { errorResponse, okResponse } from '@/lib/api'
 import { requirePermissionApi } from '@/lib/permissions/http-guard'
+import { onMaintenanceCreated, updateMaintenanceStats } from '@/lib/asset-status-sync'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -92,6 +97,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       },
     })
 
+    // Sprint C.11: Sync asset status & stats
+    await updateMaintenanceStats(id)
+    const syncResult = await onMaintenanceCreated(id, actor.id, title)
+
     return okResponse(
       {
         ...created,
@@ -100,6 +109,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         completionDate: created.completionDate?.toISOString() ?? null,
         createdAt: created.createdAt.toISOString(),
         updatedAt: created.updatedAt.toISOString(),
+        // Extra: health info for UI refresh
+        assetHealth: {
+          healthScore: syncResult.healthScore,
+          recommendation: syncResult.recommendation,
+        },
       },
       { status: 201 },
     )

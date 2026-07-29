@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, Edit2, Trash2, Monitor, User, MapPin, Calendar,
   Package, Tag, Building2, Shield, DollarSign, Clock,
-  CheckCircle, XCircle, AlertCircle, History, Wrench, Key, Plus, Loader2
+  CheckCircle, XCircle, AlertCircle, History, Wrench, Key, Plus, Loader2, FileText
 } from 'lucide-react'
 import RoleGate from '@/components/RoleGate'
 import CheckoutAssetButton from '@/components/assets/CheckoutAssetButton'
@@ -15,6 +15,8 @@ import AssetHistoryTimeline from '@/components/assets/AssetHistoryTimeline'
 import AssetMaintenanceList from '@/components/assets/AssetMaintenanceList'
 import AssignLicenseModal from '@/components/licenses/AssignLicenseModal'
 import AssetAcceptanceBanner from '@/components/assets/AssetAcceptanceBanner'
+import HealthScoreBadge, { HealthScoreCard, ReplacementAlertBanner } from '@/components/assets/HealthScoreBadge'
+import HandoverHistory from '@/components/assets/HandoverHistory'
 import { useToast } from '@/components/Toast'
 import Modal from '@/components/ui/Modal'
 import { useRouter } from 'next/navigation'
@@ -79,6 +81,11 @@ interface Asset {
     statusName: string | null
     statusColor: string | null
   }[]
+  // C.11: Health Score
+  repairCount?: number
+  totalRepairCost?: number | null
+  healthScore?: number | null
+  lastHealthCheck?: string | null
 }
 
 interface Props {
@@ -124,7 +131,7 @@ export default function AssetDetailClient({
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deletePassword, setDeletePassword] = useState('')
   const [deleting, setDeleting] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'maintenance' | 'licenses' | 'children'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'maintenance' | 'licenses' | 'children' | 'handover'>('overview')
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [checkinSeatId, setCheckinSeatId] = useState<string | null>(null)
   const [checkingIn, setCheckingIn] = useState(false)
@@ -263,6 +270,13 @@ export default function AssetDetailClient({
             onClick={() => setActiveTab('children')}
             icon={<Package size={16} />}
             label={`Thiết bị đi kèm (${asset.assignedToAssets?.length ?? 0})`}
+          />
+          {/* C.12: Tab biên bản bàn giao */}
+          <TabButton
+            active={activeTab === 'handover'}
+            onClick={() => setActiveTab('handover')}
+            icon={<FileText size={16} />}
+            label="Biên bản BG"
           />
         </div>
 
@@ -487,6 +501,33 @@ export default function AssetDetailClient({
             </dl>
           </div>
 
+          {/* C.11: Health Score */}
+          {(asset.healthScore !== undefined || asset.repairCount !== undefined) && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <h2 className="font-semibold text-gray-900 mb-4">Điểm sức khỏe</h2>
+              <HealthScoreBadge
+                score={asset.healthScore ?? null}
+                showBar={true}
+                size="md"
+                showLabel={true}
+              />
+              {asset.repairCount !== undefined && (
+                <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <Wrench size={12} />
+                    {asset.repairCount} lần sửa chữa
+                  </span>
+                  {asset.totalRepairCost !== undefined && asset.totalRepairCost !== null && (
+                    <span className="flex items-center gap-1">
+                      <DollarSign size={12} />
+                      {formatCurrency(asset.totalRepairCost)}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Checkout Stats */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 className="font-semibold text-gray-900 mb-4">Thống kê</h2>
@@ -709,6 +750,13 @@ export default function AssetDetailClient({
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {/* C.12: Tab biên bản bàn giao */}
+        {activeTab === 'handover' && (
+          <div className="p-6">
+            <HandoverHistory assetId={asset.id} />
           </div>
         )}
       </div>

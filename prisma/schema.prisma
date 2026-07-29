@@ -98,6 +98,9 @@ enum ActionType {
   PASSWORD_RESET
   TWO_FACTOR_ENABLED
   TWO_FACTOR_DISABLED
+  // Sprint C.11
+  MAINTENANCE_STARTED
+  MAINTENANCE_ENDED
 }
 
 enum ItemType {
@@ -427,6 +430,10 @@ model User {
   teamsLed            Team[]                 @relation("TeamLead")
   assetMaintenances   AssetMaintenance[]     @relation("AssetMaintenanceCreator")
 
+  // Sprint C.12: Asset Handover
+  handoversFrom      AssetHandover[]  @relation("HandoverFromUser")
+  handoversTo        AssetHandover[]  @relation("HandoverToUser")
+
   preference UserPreference?
 
   passwordResetTokens PasswordResetToken[]
@@ -503,6 +510,12 @@ model Asset {
   checkoutCounter Int @default(0)
   checkinCounter  Int @default(0)
 
+  // Sprint C.11: Health Score & Replacement Advisory
+  repairCount       Int       @default(0)
+  totalRepairCost  Decimal?  @db.Decimal(15, 2)
+  healthScore      Int?      // 0-100, nullable (calculated on-demand or cached)
+  lastHealthCheck  DateTime?
+
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
@@ -514,6 +527,9 @@ model Asset {
   licenseSeats LicenseSeat[]
   tickets      Ticket[]           @relation("TicketAsset")
   maintenances AssetMaintenance[]
+
+  // Sprint C.12: Asset Handover
+  handovers    AssetHandover[]
 
   @@index([modelId])
   @@index([statusId])
@@ -531,6 +547,9 @@ model Asset {
   @@index([statusId, deletedAt])
   @@index([companyId, deletedAt])
   @@index([categoryId, deletedAt])
+  // Sprint C.11: Health Score indexes
+  @@index([healthScore])
+  @@index([repairCount])
 }
 
 // ============================================================================
@@ -566,6 +585,78 @@ model AssetMaintenance {
   // R.2: Indexes for soft-delete + common queries
   @@index([deletedAt])
   @@index([createdById])
+}
+
+// ============================================================================
+// SPRINT C.12: ASSET HANDOVER & TRANSFER DOCUMENTS
+// ============================================================================
+//
+// Biên bản bàn giao tài sản khi checkout/return.
+// Hỗ trợ:
+// - Tạo biên bản PDF
+// - E-Sign confirmation từ Trưởng Bộ Phận
+// - Lưu lịch sử handover
+
+model AssetHandover {
+  id String @id @default(cuid())
+
+  // Asset & Users
+  assetId    String
+  asset      Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  action     HandoverAction @default(HANDOVER)
+  // HANDOVER = checkout (cấp phát)
+  // RETURN = checkin (thu hồi)
+  // TRANSFER = điều chuyển giữa các phòng ban
+
+  handoverDate DateTime @default(now())
+
+  // From (người giao / đơn vị giao)
+  fromUserId   String?
+  fromUser     User?    @relation("HandoverFromUser", fields: [fromUserId], references: [id], onDelete: SetNull)
+  fromDeptId   String?
+  fromLocationId String?
+
+  // To (người nhận / đơn vị nhận)
+  toUserId     String
+  toUser       User     @relation("HandoverToUser", fields: [toUserId], references: [id], onDelete: Restrict)
+  toDeptId     String?
+  toLocationId String?
+
+  // Document
+  docNo    String? @unique // Số biên bản: HB-2026-000001
+  pdfUrl   String? // URL file PDF đã generate
+
+  // E-Sign confirmation
+  managerName    String?
+  managerEmail   String?
+  confirmToken   String?  @unique
+  tokenExpiresAt DateTime?
+  confirmedAt     DateTime?
+  confirmedBy    String?  // IP address
+  confirmedUserId String? // User ID đã xác nhận (nullable vì có thể TBP confirm)
+
+  // Details
+  accessories  String? @db.Text // JSON: ["Sạc laptop", "Chuột", ...]
+  condition    String? // Tình trạng khi bàn giao: "Hoạt động bình thường"
+  note         String?
+
+  createdAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([assetId])
+  @@index([toUserId])
+  @@index([fromUserId])
+  @@index([action])
+  @@index([handoverDate])
+  @@index([confirmToken])
+  @@index([docNo])
+}
+
+enum HandoverAction {
+  HANDOVER // Cấp phát
+  RETURN   // Thu hồi
+  TRANSFER // Điều chuyển
 }
 
 // ============================================================================

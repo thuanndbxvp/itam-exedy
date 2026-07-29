@@ -243,10 +243,10 @@ export default function Sidebar() {
             return (
               <div key={group.label}>
                 {/* Group header */}
-                <div className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider mb-1 ${
-                  groupActive ? 'text-blue-400' : 'text-slate-400'
+                <div className={`flex items-center gap-1.5 px-3 py-2 text-[13px] font-extrabold uppercase tracking-widest mb-1 ${
+                  groupActive ? 'text-blue-300' : 'text-slate-200'
                 }`}>
-                  <group.icon size={13} />
+                  <group.icon size={14} />
                   <span>{group.label}</span>
                 </div>
 

@@ -9,7 +9,7 @@ import {
   checkoutAssetToAssetCmd,
 } from '@/app/actions/asset'
 import { useToast } from '@/components/Toast'
-import { User, MapPin, Loader2, MonitorSmartphone } from 'lucide-react'
+import { User, MapPin, Loader2, MonitorSmartphone, FileText } from 'lucide-react'
 import EulaModal from './EulaModal'
 
 interface CheckoutAssetModalProps {
@@ -56,6 +56,13 @@ export default function CheckoutAssetModal({
   const [eulaOpen, setEulaOpen] = useState(false)
   const [eulaChecked, setEulaChecked] = useState(false)
 
+  // C12: Handover state
+  const [handoverResult, setHandoverResult] = useState<{
+    docNo: string;
+    confirmUrl?: string;
+    pdfUrl?: string;
+  } | null>(null)
+
   function reset() {
     setTargetUserId('')
     setTargetLocationId('')
@@ -64,6 +71,7 @@ export default function CheckoutAssetModal({
     setExpectedCheckin('')
     setTargetType('USER')
     setEulaChecked(false)
+    setHandoverResult(null)
   }
 
   // C3: Khi mở modal → fetch EULA gate status cho asset này
@@ -160,6 +168,32 @@ export default function CheckoutAssetModal({
         'ok' in result &&
         (result as { ok: boolean }).ok
       ) {
+        // C12: Tạo handover record sau khi checkout thành công
+        try {
+          const handoverRes = await fetch('/api/handover', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              assetId,
+              action: 'HANDOVER',
+              toUserId: targetType === 'USER' ? targetUserId : undefined,
+            }),
+          })
+          const handoverJson = await handoverRes.json()
+          if (handoverJson.ok) {
+            setHandoverResult({
+              docNo: handoverJson.data.docNo,
+              confirmUrl: handoverJson.data.confirmToken
+                ? `${window.location.origin}/handover/confirm/${handoverJson.data.confirmToken}`
+                : undefined,
+              pdfUrl: handoverJson.data.pdfUrl,
+            })
+          }
+        } catch {
+          // Handover creation failed, but checkout succeeded
+          console.error('Failed to create handover')
+        }
         reset()
         onClose()
         router.refresh()
@@ -333,6 +367,31 @@ export default function CheckoutAssetModal({
             className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition disabled:opacity-50"
           />
         </div>
+
+        {/* C12: Handover Result */}
+        {handoverResult && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <FileText className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-semibold text-blue-900 mb-2">
+                  Biên bản bàn giao đã được tạo
+                </h4>
+                <div className="text-sm space-y-1 text-blue-800">
+                  <p>
+                    <span className="font-medium">Số biên bản:</span>{' '}
+                    <span className="font-mono">{handoverResult.docNo}</span>
+                  </p>
+                  {handoverResult.confirmUrl && (
+                    <p className="text-xs text-blue-600">
+                      Link xác nhận đã được gửi email cho người nhận
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex justify-end space-x-3 pt-2">
