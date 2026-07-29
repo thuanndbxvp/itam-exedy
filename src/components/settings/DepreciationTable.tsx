@@ -25,7 +25,7 @@ interface Props {
 type FormData = {
   name: string
   months: string
-  depreciationType: 'LINEAR' | 'HALF_YEAR'
+  depreciationType: 'LINEAR' | 'HALF_YEAR' | 'DOUBLE_DECLINING' | 'SUM_OF_YEARS'
   minimumValue: string
   notes: string
 }
@@ -36,7 +36,7 @@ function depreciationToForm(d: Depreciation): FormData {
   return {
     name: d.name,
     months: String(d.months),
-    depreciationType: d.depreciationType as 'LINEAR' | 'HALF_YEAR',
+    depreciationType: d.depreciationType as 'LINEAR' | 'HALF_YEAR' | 'DOUBLE_DECLINING' | 'SUM_OF_YEARS',
     minimumValue: typeof d.minimumValue === 'string' ? d.minimumValue : String(d.minimumValue),
     notes: d.notes ?? '',
   }
@@ -170,7 +170,12 @@ export default function DepreciationTable({ initial, canEdit }: Props) {
                 <tr key={d.id} className="hover:bg-gray-50 transition">
                   <td className="px-6 py-4 font-medium text-gray-900">{d.name}</td>
                   <td className="px-6 py-4 text-gray-600">{d.months} tháng</td>
-                  <td className="px-6 py-4 text-gray-600">{d.depreciationType === 'LINEAR' ? 'Tuyến tính' : 'Nửa năm'}</td>
+                  <td className="px-6 py-4 text-gray-600">
+                    {d.depreciationType === 'LINEAR' ? 'Tuyến tính' :
+                     d.depreciationType === 'HALF_YEAR' ? 'Nửa năm' :
+                     d.depreciationType === 'DOUBLE_DECLINING' ? 'Số dư giảm dần kép' :
+                     d.depreciationType === 'SUM_OF_YEARS' ? 'Tổng số năm' : d.depreciationType}
+                  </td>
                   <td className="px-6 py-4 text-gray-600">{fmtValue(d.minimumValue)}</td>
                   <td className="px-6 py-4 text-gray-500 text-xs">{d.notes ?? '—'}</td>
                   {canEdit && (
@@ -230,17 +235,24 @@ export default function DepreciationTable({ initial, canEdit }: Props) {
               <label className="block text-sm font-medium text-gray-700 mb-1 group relative inline-flex items-center gap-1">
                 Loại
                 <HelpCircle size={13} className="text-gray-400" />
-                <span className="invisible group-hover:visible absolute left-full ml-2 top-1/2 -translate-y-1/2 w-56 p-2 bg-gray-800 text-white text-xs rounded z-50 leading-relaxed">
-                  Tuyến tính: khấu hao đều mỗi năm.<br/>Nửa năm: chỉ tính 50% cho năm đầu và năm cuối.
+                <span className="invisible group-hover:visible absolute left-full ml-2 top-1/2 -translate-y-1/2 w-80 p-3 bg-gray-800 text-white text-xs rounded-lg z-50 leading-relaxed shadow-lg">
+                  <ul className="list-disc pl-4 space-y-1">
+                    <li><strong>Tuyến tính:</strong> Khấu hao đều mỗi năm.</li>
+                    <li><strong>Nửa năm:</strong> Nửa năm đầu và cuối (MACRS).</li>
+                    <li><strong>DDB (Giảm dần kép):</strong> Khấu hao rất nhanh những năm đầu (gấp đôi tuyến tính). Phù hợp thiết bị IT.</li>
+                    <li><strong>SYD (Tổng số năm):</strong> Khấu hao nhanh ở đầu, giảm dần đều đặn các năm sau.</li>
+                  </ul>
                 </span>
               </label>
               <select
                 value={form.depreciationType}
-                onChange={(e) => setForm({ ...form, depreciationType: e.target.value as 'LINEAR' | 'HALF_YEAR' })}
+                onChange={(e) => setForm({ ...form, depreciationType: e.target.value as any })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="LINEAR">Tuyến tính</option>
-                <option value="HALF_YEAR">Nửa năm</option>
+                <option value="LINEAR">Tuyến tính (Linear)</option>
+                <option value="HALF_YEAR">Nửa năm (Half-year)</option>
+                <option value="DOUBLE_DECLINING">Số dư giảm dần kép (DDB)</option>
+                <option value="SUM_OF_YEARS">Tổng số năm (SYD)</option>
               </select>
             </div>
           </div>

@@ -29,7 +29,7 @@ export interface HealthScoreInput {
   assetModel?: {
     depreciation?: {
       months: number;
-      depreciationType: 'LINEAR' | 'HALF_YEAR';
+      depreciationType: 'LINEAR' | 'HALF_YEAR' | 'DOUBLE_DECLINING' | 'SUM_OF_YEARS';
       minimumValue: number;
     } | null;
   } | null;
@@ -258,7 +258,7 @@ export function calculateDepreciation(
   purchaseValue: number,
   expectedLifeMonths: number,
   minimumValue: number,
-  depreciationType: 'LINEAR' | 'HALF_YEAR' = 'LINEAR'
+  depreciationType: 'LINEAR' | 'HALF_YEAR' | 'DOUBLE_DECLINING' | 'SUM_OF_YEARS' = 'LINEAR'
 ): { remainingValue: number; remainingPercent: number; depreciatedAmount: number } {
   const ageInMonths = calculateAgeInMonths(purchaseDate);
 
@@ -287,6 +287,52 @@ export function calculateDepreciation(
       }
     }
 
+    annualDepreciation = totalDepreciated;
+  } else if (depreciationType === 'DOUBLE_DECLINING') {
+    const expectedYears = Math.max(1, expectedLifeMonths / 12);
+    const straightLineRate = 1 / expectedYears;
+    const doubleDecliningRate = straightLineRate * 2;
+    
+    const fullYears = Math.floor(ageInMonths / 12);
+    const remainingMonthsInCurrentYear = ageInMonths % 12;
+
+    let currentBookValue = purchaseValue;
+    
+    for (let y = 0; y < fullYears; y++) {
+      const depExp = Math.min(currentBookValue * doubleDecliningRate, currentBookValue - minimumValue);
+      currentBookValue -= depExp;
+    }
+    
+    if (remainingMonthsInCurrentYear > 0) {
+      const annualDepExp = currentBookValue * doubleDecliningRate;
+      const partialDepExp = Math.min((annualDepExp / 12) * remainingMonthsInCurrentYear, currentBookValue - minimumValue);
+      currentBookValue -= partialDepExp;
+    }
+    
+    annualDepreciation = purchaseValue - currentBookValue;
+  } else if (depreciationType === 'SUM_OF_YEARS') {
+    const expectedYears = Math.max(1, Math.floor(expectedLifeMonths / 12));
+    const sumOfYears = (expectedYears * (expectedYears + 1)) / 2;
+    
+    const fullYears = Math.floor(ageInMonths / 12);
+    const remainingMonthsInCurrentYear = ageInMonths % 12;
+    const depreciableBase = purchaseValue - minimumValue;
+    
+    let totalDepreciated = 0;
+    
+    for (let y = 0; y < fullYears; y++) {
+      if (y >= expectedYears) break;
+      const remainingLifeYears = expectedYears - y;
+      const depExp = depreciableBase * (remainingLifeYears / sumOfYears);
+      totalDepreciated += depExp;
+    }
+    
+    if (remainingMonthsInCurrentYear > 0 && fullYears < expectedYears) {
+      const remainingLifeYears = expectedYears - fullYears;
+      const annualDepExp = depreciableBase * (remainingLifeYears / sumOfYears);
+      totalDepreciated += (annualDepExp / 12) * remainingMonthsInCurrentYear;
+    }
+    
     annualDepreciation = totalDepreciated;
   } else {
     // Linear: đều mỗi tháng

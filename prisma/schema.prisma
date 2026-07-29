@@ -142,6 +142,8 @@ enum UiTheme {
 enum DepreciationType {
   LINEAR
   HALF_YEAR
+  DOUBLE_DECLINING
+  SUM_OF_YEARS
 }
 
 // ============================================================================
