@@ -10,7 +10,6 @@
 
 import prisma from '@/lib/prisma';
 import { recordAudit } from '@/lib/audit';
-import { generateDocNo } from '@/lib/crypto';
 import type { HandoverAction } from '@prisma/client';
 
 // ============================================================================
