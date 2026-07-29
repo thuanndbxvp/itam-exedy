@@ -109,6 +109,13 @@ export default function TicketDetailPage() {
   const [selectedAssignee, setSelectedAssignee] = useState('')
   const { show } = useToast()
   const [confirmAction, setConfirmAction] = useState<{ type: 'claim' | 'close' | 'reopen' | 'reassign'; label: string } | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  useEffect(() => {
+    const handler = () => setRefreshKey((k) => k + 1)
+    window.addEventListener("ticket-changed", handler)
+    return () => window.removeEventListener("ticket-changed", handler)
+  }, [])
 
   const isIt =
     session?.user?.role === 'IT_STAFF' ||
@@ -143,7 +150,7 @@ export default function TicketDetailPage() {
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code])
+  }, [code, refreshKey])
 
   async function postComment(e: React.FormEvent) {
     e.preventDefault()

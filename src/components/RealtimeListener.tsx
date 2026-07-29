@@ -64,6 +64,7 @@ export default function RealtimeListener() {
         message: `Ticket mới: ${data.code ?? data.ticketId}`,
       });
       router.refresh();
+      window.dispatchEvent(new CustomEvent("ticket-changed"));
     });
 
     // Event: ticket-updated
@@ -74,6 +75,7 @@ export default function RealtimeListener() {
         message: data.message ?? `Cập nhật ticket: ${data.code ?? data.ticketId}`,
       });
       router.refresh();
+      window.dispatchEvent(new CustomEvent("ticket-changed"));
     });
 
     // Cleanup on unmount

@@ -80,6 +80,13 @@ function HelpdeskContent() {
   const initialTab = (searchParams.get('tab') as Tab) || (isIt ? 'mine' : 'all')
   const [tab, setTab] = useState<Tab>(initialTab)
   const [filterStatus, setFilterStatus] = useState('')
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  useEffect(() => {
+    const handler = () => setRefreshKey((k) => k + 1)
+    window.addEventListener("ticket-changed", handler)
+    return () => window.removeEventListener("ticket-changed", handler)
+  }, [])
 
   // A6: priority / teamId / assigneeId tu URL
   const filterPriority = searchParams.get('priority') ?? ''
@@ -138,7 +145,7 @@ function HelpdeskContent() {
     if (session?.user?.role) {
       load()
     }
-  }, [tab, filterStatus, filterPriority, filterTeamId, filterAssigneeId, isIt, session?.user?.role])
+  }, [tab, filterStatus, filterPriority, filterTeamId, filterAssigneeId, isIt, session?.user?.role, refreshKey])
 
   const handleTabChange = useCallback((newTab: Tab) => {
     setTab(newTab)
